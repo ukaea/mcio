@@ -1,0 +1,46 @@
+{
+    "255_000_255": {
+        "density": 0.997,
+        "composition": {
+            "H": 0.666667,
+            "O": 0.333333
+        },
+        "number": 1,
+        "fraction_type": "ao",
+        "name": "Water, Liquid",
+        "mcnp": {
+            "sab_cards": [
+                "h-h2o.40t"
+            ],
+            "libs": {},
+            "library": ".32c",
+            "library_by_isotope": {}
+        }
+    },
+    "192_192_192": {
+        "density": 2.3,
+        "composition": {
+            "H": 0.168753,
+            "C": 0.001416,
+            "O": 0.562525,
+            "Na": 0.011838,
+            "Mg": 0.0014,
+            "Al": 0.021354,
+            "Si": 0.204119,
+            "K": 0.005656,
+            "Ca": 0.018674,
+            "Fe": 0.004264
+        },
+        "number": 500,
+        "fraction_type": "ao",
+        "name": "Concrete, Portland",
+        "mcnp": {
+            "sab_cards": [
+                "sio2.40t"
+            ],
+            "libs": {},
+            "library": ".32c",
+            "library_by_isotope": {}
+        }
+    }
+}

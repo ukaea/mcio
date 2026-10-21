@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcio"
+authors = [
+    {name = "UKAEA"},
+]
+description = "mcio"
+version = "0.1.0-dev"
+requires-python = ">3.10"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "Intended Audience :: Science/Research",
+    "Natural Language :: English",
+    "Topic :: Scientific/Engineering",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    "numpy",
+    "scipy",
+    "matplotlib",
+    "setuptools",
+    "rich",
+    "tqdm"
+]
+
+[tool.setuptools]
+packages = ["mcio"]
+
+[tool.setuptools.package-data]
+"mcio" = ["data/*.txt", "data/*.json"]
+
+[project.optional-dependencies]
+docs = [
+    "sphinx==5.0.2",
+    "sphinxcontrib-katex",
+    "sphinx-numfig",
+    "standard-imghdr",
+    "sphinxcontrib-svg2pdfconverter",
+    "sphinx-rtd-theme==1.0.0",
+    "myst-parser",
+    "linkify-it-py"
+]
+dev = ["pylint", "black", "pytest", "pytest-cov"]
+cad = ["cadquery"]
+jupyter = ["jupyter", "jupyter-cadquery"]
