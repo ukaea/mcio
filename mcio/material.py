@@ -283,7 +283,7 @@ def _material_lookup(material_assignment_method: str, red: int, green: int, blue
         logger.fatal(msg)
         raise ValueError(msg)
 
-def openmc_material_to_mcio_material(material_openmc: openmc.Material) -> Material:
+def openmc_material_to_mcio_material(material_openmc: "openmc.Material") -> Material:
     """Convert an OpenMC material into an mcio material.
 
     Parameters

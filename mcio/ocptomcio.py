@@ -18,6 +18,7 @@ import math
 
 
 try:
+    import casadi
     import OCP
     from OCP.BRepAdaptor import (
         BRepAdaptor_Surface

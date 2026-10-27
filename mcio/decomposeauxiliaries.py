@@ -12,6 +12,7 @@ import math
 from typing import Any
 
 try:
+    import casadi
     import OCP
     from OCP.BRepAlgoAPI import BRepAlgoAPI_Cut
     from OCP.BRepBuilderAPI import BRepBuilderAPI_MakeFace

@@ -874,7 +874,7 @@ class MCNPMaterialParameters(SerialisableFromDict):
         self.sab_cards: list[str] = []
         self.libs: dict[str, str] = {}
         self._library: str | None = None
-        self._library_by_isotopes: dict[str, str] | None = None
+        self._library_by_isotope: dict[str, str] | None = None
 
         # load seralisable from dictionary
         self._dictable_attributes: list[str] = ['sab_cards', 'libs', 'library', 'library_by_isotope']
@@ -914,7 +914,7 @@ class MCNPMaterialParameters(SerialisableFromDict):
         dict[str, str] or None
             Isotope to library suffix mapping.
         """
-        return self._library_by_isotopes
+        return self._library_by_isotope
 
     @library_by_isotope.setter
     def library_by_isotope(self, library_by_isotope: dict[str, str] | None) -> None:
@@ -925,4 +925,4 @@ class MCNPMaterialParameters(SerialisableFromDict):
         library_by_isotope : dict[str, str] or None
             Isotope to library suffix mapping.
         """
-        self._library_by_isotopes = library_by_isotope
+        self._library_by_isotope = library_by_isotope

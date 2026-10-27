@@ -44,6 +44,7 @@ from typing import (
 from mcio import logger, LOGGER_LEVELS
 
 try:
+    import casadi
     import OCP
     from OCP.BRepCheck import BRepCheck_Analyzer
     from OCP.BRepExtrema import BRepExtrema_DistShapeShape

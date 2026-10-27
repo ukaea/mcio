@@ -121,7 +121,7 @@ class Cell:
 
     def ocp_solid(
         self, bounding_box: BoundingBox, decom_params: DecompositionParameters
-    ) -> TopoDS_Shape:
+    ) -> "TopoDS_Shape":
         """Generate Open CASCADE CAD solid for the cell volume.
 
         Parameters

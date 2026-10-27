@@ -24,6 +24,7 @@ if TYPE_CHECKING:
 
 
 try:
+    import casadi
     import OCP
     from OCP.BRepAlgoAPI import (
         BRepAlgoAPI_Common,

@@ -19,6 +19,7 @@ from rich.progress import (
 from tqdm.notebook import tqdm as tqdm_notebook
 
 try:
+    import casadi
     import OCP
     from OCP.BRepBuilderAPI import BRepBuilderAPI_MakeFace
     from OCP.TopAbs import TopAbs_REVERSED, TopAbs_FACE

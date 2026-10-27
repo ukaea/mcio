@@ -159,7 +159,7 @@ class And(Boolean):
         return vol_openmc
 
     def ocp_solid(self, bounding_box: BoundingBox | None=None,
-                  decom_params: DecompositionParameters | None=None) -> TopoDS_Shape:
+                  decom_params: DecompositionParameters | None=None) -> "TopoDS_Shape":
         """Build an Open CASCADE solid of the intersection.
 
         Parameters

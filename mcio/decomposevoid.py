@@ -50,6 +50,7 @@ from .geometric import BoundingBox, obbs_overlap
 from .universe import Universe
 
 try:
+    import casadi
     import OCP
     from OCP.TopoDS import TopoDS_Solid, TopoDS
     from OCP.BRepClass3d import BRepClass3d_SolidClassifier

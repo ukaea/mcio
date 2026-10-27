@@ -11,6 +11,7 @@ import numpy as np
 import math
 
 try:
+    import casadi
     import OCP
 
     from OCP.gp import (
@@ -103,7 +104,7 @@ class Transform():
             raise Exception(msg)
 
     @property
-    def ocp_transform(self) -> gp_Trsf:
+    def ocp_transform(self) -> "gp_Trsf":
         """Convert the MCNP direction angles (TR card) to an active OpenCASCADE gp_Trsf.
 
         Returns

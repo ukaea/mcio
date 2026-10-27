@@ -14,6 +14,7 @@ from mcio import logger
 
 
 try:
+    import casadi
     import OCP
     from OCP.Bnd import (
         Bnd_Box, 
@@ -211,7 +212,7 @@ def bounding_box_from_hollow_of_shape(shape: TopoDS_Shape) -> BoundingBox:
     bbox = bounding_box_from_shape(shape)
 
 
-def ocp_box_from_bounding_box(bounding_box: BoundingBox) -> TopoDS_Solid:
+def ocp_box_from_bounding_box(bounding_box: BoundingBox) -> "TopoDS_Solid":
     """Build an OCP box solid matching an axis-aligned bounding box.
 
     Parameters

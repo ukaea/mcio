@@ -7,6 +7,7 @@ import re
 from typing import List, Union
 
 try:
+    import casadi
     import OCP
     from OCP.BRepBuilderAPI import BRepBuilderAPI_MakeEdge
     from OCP.BRepPrimAPI import BRepPrimAPI_MakeSphere

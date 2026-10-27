@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import pickle
 
 try:
+    import casadi
     import OCP
     from OCP.BRepBuilderAPI import BRepBuilderAPI_MakeFace
     from OCP.TopAbs import TopAbs_REVERSED, TopAbs_FACE

@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any
 from mcio import logger
 
 try:
+    import casadi
     import OCP
     from OCP.BRep import (
         BRep_Tool

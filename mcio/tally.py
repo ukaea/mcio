@@ -92,8 +92,19 @@ class Tally:
             logger.data(msg)
             raise KeyError(msg)
 
+        # special case for mcnp only variables
+        if 'multiplier' in tally_data:
+            mcnp_multiplier = tally_data['multiplier']
+            del tally_data['multiplier']
+        else:
+            mcnp_multiplier = None
+
+        # set up tally
+        tally = TALLY_TYPES[tally_type_label](**tally_data)
+        tally.mcnp.multiplier = mcnp_multiplier
+
         # return tally
-        return TALLY_TYPES[tally_type_label.lower()](**tally_data)
+        return tally
 
 
 class CellOrSurfaceTally(Tally):
@@ -153,6 +164,7 @@ class CellOrSurfaceTally(Tally):
             If ``dose_conversion_factors`` is not a two-item list, tuple or
             ndarray.
         """
+
         particles = ','.join([MCNP_PARTICLE_DESIGNATORS[p].upper() for p in self.particles])
         mcnp_card = MCNPCard(f'F{self.number}{self.mcnp_tally_designator}:{particles}', 
                              [self.target_numbers])

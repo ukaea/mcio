@@ -170,6 +170,17 @@ class Model:
         self._tallies = tallies
         self._asign_numbers_tallies()
 
+    def add_material(self, material: Material) -> None:
+        """Add a material to the model output
+
+        Parameters
+        ----------
+        material : Material
+            The material to be added to the model.
+        """
+
+        self._materials[material.mcnp_card.as_string] = material
+
     @property
     def materials(self) -> Materials:
         """Materials collected from the model cells.

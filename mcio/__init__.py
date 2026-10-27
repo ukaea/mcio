@@ -11,18 +11,10 @@ from __future__ import annotations
 
 import logging
 import os
-import sys
 from multiprocessing import parent_process
 
 import warnings
 
-
-# # Disable OpenCASCADE internal memory manager (prevents heap corruption)
-# os.environ["MMGT_OPT"] = "0"
-
-# # Limit internal OpenCASCADE C++ threads per worker to stop thread contention
-# os.environ["CSF_NUM_THREADS"] = "1"
-# os.environ["OMP_NUM_THREADS"] = "1"
 
 # filter warning of OCP missing
 warnings.filterwarnings("ignore", message=r".*No module named ['\"]OCP['\"].*")
@@ -109,7 +101,7 @@ from . import cad
 from . import cell
 from . import checkvals
 from . import data
-from . import diagnostic
+from . import decomposeparams
 from . import formatting
 from . import geant4
 from . import macrobody
@@ -127,9 +119,11 @@ from . import universe
 
 # check for optional packages - ocp-cadquery
 try:
+    import casadi
     import OCP
     from . import decompose
-    from . import decomposeparams
+    from . import diagnostic
+    # from . import inversion
     from . import ocp
     from . import ocpbooleans
     from . import ocpboundingbox
@@ -137,6 +131,7 @@ try:
     from . import ocpproperties
     from . import ocprepair
     from . import ocptomcio
+
 except ModuleNotFoundError as e:
     logger.warning(f'[PACKAGE UNAVAILABLE - unable to load OCP]')
     logger.warning(e)

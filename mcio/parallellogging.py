@@ -14,8 +14,6 @@ if TYPE_CHECKING:
 
 import logging
 import logging.handlers
-import multiprocessing
-import os
 import sys
 import ctypes
 from multiprocessing import Queue

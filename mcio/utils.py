@@ -20,6 +20,7 @@ import inspect
 
 
 try:
+    import casadi
     import OCP
     from OCP.TDF import TDF_LabelSequence
 except:

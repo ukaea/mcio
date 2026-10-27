@@ -42,6 +42,7 @@ except:
     pass
 
 try:
+    import casadi
     import OCP
     from OCP.BRep import (
         BRep_Tool,
