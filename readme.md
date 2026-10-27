@@ -16,6 +16,8 @@
 
 > [!WARNING]
 > MCIO uses MCNP default units: cm for length, MeV for energy etc.
+> MCIO requires STEP files to use the AP242 schema.
+
 
 The MCIO CAD-to-CSG package can be installed for the end user and run via the command line. 
 
