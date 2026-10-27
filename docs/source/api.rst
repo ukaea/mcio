@@ -39,4 +39,36 @@ mcio.source
 .. automodule:: mcio.source
    :members:
    :undoc-members:
-   :show-inheritance
+   :show-inheritance:
+
+mcio.cell
+---------------------
+
+.. automodule:: mcio.cell
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+mcio.model
+---------------------
+
+.. automodule:: mcio.model
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+mcio.mcnp
+---------------------
+
+.. automodule:: mcio.mcnp
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+mcio.decomposeparams
+---------------------
+
+.. automodule:: mcio.decomposeparams
+   :members:
+   :undoc-members:
+   :show-inheritance:
