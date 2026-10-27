@@ -1,34 +1,36 @@
-""" 
+"""
 example_2.py
 
-Decomposition using single core mode
+Decomposition using multiprocess, of a dummy bunker model with materials
+assigned by colour.
 
 """
 
+import sys
+from pathlib import Path
+
 import mcio
-mcio.load_decomposer()
 
-# set user defined parameters
-mcio.decompose.DECOM_PARAMS.SPLIT_MAX_VOL_DEVIATION = 1e-2
-mcio.decompose.DECOM_PARAMS.SPLIT_MIN_AREA_TO_VOLUME_RATIO = 1e-3
+# the dummy bunker model lives in the models folder of the repository
+MODELS_DIR = Path(__file__).resolve().parents[1] / 'models'
+sys.path.insert(0, str(MODELS_DIR))
 
-mcio.decompose.DECOM_PARAMS.VOID_MAX_DECOMPOSITION_SOLIDS_PER_OCTANT = 10
-mcio.decompose.DECOM_PARAMS.VOID_MAX_SPLIT_SOLIDS_PER_OCTANT = 15
-mcio.decompose.DECOM_PARAMS.VOID_MAX_SURFACES_BOUNDING_BOX_PER_OCTANT = 50
-mcio.decompose.DECOM_PARAMS.VOID_MAX_SURFACES_BY_DISTANCE_PER_OCTANT = 50
-mcio.decompose.DECOM_PARAMS.VOID_MIN_WIDTH = 20.0
-mcio.decompose.DECOM_PARAMS.VOID_MAX_RECURSION_DEPTH = 15
-
-mcio.decompose.DECOM_PARAMS.VOID_USE_FACE_DISTANCE_CHECK = False
-mcio.decompose.DECOM_PARAMS.VOID_USE_ALL_FACES_IN_SOLID_SOLID = True
-
-mcio.decompose.DECOM_PARAMS.BOOL_CUTTER_FUZZY_VALUE = 1e-6
+from referencebunker import write_bunker_model_to_step
 
 
-# set up decomposer
-decomposer = mcio.decompose.Decomposer(
-    step_file_paths=['model.stp'],
-    materials_file_path='materials.json')
+# set up guard for using multiprocess
+if __name__ == "__main__":
+    # set up dummy model and save to stp (AP242)
+    write_bunker_model_to_step('bunker.stp')
 
-# run decomposer
-decomposer.run()
+    # set up a decomposer and provide the model path and material json path
+    decomposer = mcio.decompose.Decomposer(
+        step_file_paths=['bunker.stp'],
+        materials_file_path=MODELS_DIR / 'referencebunkermats.json')
+
+    # run decomposer, with 8 cores
+    decomposer.run(cores=8)
+
+    # save files for mcnp and openmc
+    decomposer.model.write_mcnp('model_mcnp.i')
+    decomposer.model.write_openmc('model_openmc')

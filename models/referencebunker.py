@@ -1,4 +1,5 @@
 import numpy as np
+import os
 
 
 from OCP.gp import gp_Pnt
@@ -6,6 +7,11 @@ from OCP.BRepPrimAPI import BRepPrimAPI_MakeBox, BRepPrimAPI_MakeSphere
 from OCP.BRepAlgoAPI import BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse
 from OCP.TopoDS import TopoDS_Solid, TopoDS_Shape
 
+from mcio.ocp import STEPFileWriter
+
+# colours matching the keys in referencebunkermats.json
+CONCRETE_RGB = (192, 192, 192)
+WATER_RGB = (255, 0, 255)
 
 
 def create_box(
@@ -106,4 +112,15 @@ def generate_bunker_solids() -> list[TopoDS_Solid]:
     spheres = {f'sphere_{i}': BRepPrimAPI_MakeSphere(gp_Pnt(x, room_dy / 2.0 - offset_from_wall, -room_dz / 2.0 + offset_from_wall), 25.0).Shape() for i, x in enumerate(xs, start=1)}
 
     # return the final bunker solids and their labels
-    return {'bunker': bunker, **spheres}
+    return {'concrete_walls': bunker, **spheres}
+
+def write_bunker_model_to_step(output_path: os.PathLike) -> None:
+    # write the bunker and spheres to a single step file, coloured so that
+    # referencebunkermats.json assigns concrete to the bunker and water to the spheres
+    step_file_writer = STEPFileWriter()
+
+    for label, solid in generate_bunker_solids().items():
+        rgb = CONCRETE_RGB if label == 'concrete_walls' else WATER_RGB
+        step_file_writer.add_solid(solid, label, rgb=rgb)
+
+    step_file_writer.write(output_path)

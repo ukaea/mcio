@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Any, TYPE_CHECKING
 
 import numpy as np
+import math
 
 try:
     import openmc
@@ -20,6 +21,7 @@ from .formatting import formatting
 from .mcnp import MCNPCard, MCNPTallyParameters, MCNP_PARTICLE_DESIGNATORS
 from .checkvals import isnumeric
 from .openmcparams import OpenMCTallyParameters
+from .geometric import BoundingBox
 
 if TYPE_CHECKING:
     from .cell import Cell
@@ -367,6 +369,7 @@ class PulseHeightTally(CellOrSurfaceTally):
         self.mcnp_tally_designator = 8
         self.openmc_tally_score = ['pulse-height']
 
+
 class FluenceMeshTally(Tally):
     """Regular Cartesian mesh fluence tally (MCNP FMESH, OpenMC mesh filter).
 
@@ -413,6 +416,21 @@ class FluenceMeshTally(Tally):
         self.x_ints: list[int] = [x_ints] if isnumeric(x_ints) else x_ints
         self.y_ints: list[int] = [y_ints] if isnumeric(y_ints) else y_ints
         self.z_ints: list[int] = [z_ints] if isnumeric(z_ints) else z_ints
+
+    @classmethod
+    def from_bounding_box(cls, bounding_box: BoundingBox, resolution: float, extension: float, **kwargs) -> FluenceMeshTally:
+        return cls(
+            x_min = bounding_box.x_min - extension,
+            x_max = bounding_box.x_max + extension,
+            x_ints = math.ceil(bounding_box.x_length / resolution),
+            y_min = bounding_box.y_min - extension,
+            y_max = bounding_box.y_max + extension,
+            y_ints = math.ceil(bounding_box.y_length / resolution),
+            z_min = bounding_box.z_min - extension,
+            z_max = bounding_box.z_max + extension,
+            z_ints = math.ceil(bounding_box.z_length / resolution),
+            **kwargs
+        )
 
     @property
     def mcnp_card(self) -> MCNPCard:
