@@ -1,16 +1,4 @@
-/* Round the search box like OpenMC docs */
-.bd-search input.form-control {
-    border-radius: 20px;   /* makes it pill-shaped */
-    padding: 6px 12px;
-    border: 1px solid #ccc;
-}
-
-/* Optional: tweak focus style */
-.bd-search input.form-control:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 4px rgba(0, 123, 255, 0.4);
-}
-
+/* compact table used by the decomposition-params directive */
 /* 1. Target the table itself (no space between classes) */
 table.small-table.docutils {
     font-size: 0.60em !important;
@@ -29,7 +17,7 @@ table.small-table.docutils th {
 /* RTD theme sets font-size on these, which overrides the table setting */
 table.small-table.docutils td p,
 table.small-table.docutils th p {
-    font-size: 1em !important; /* This is 100% of the 0.75em above */
+    font-size: 1em !important; /* 100% of the table font size above */
     margin-bottom: 0 !important;
 }
 

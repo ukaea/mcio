@@ -115,7 +115,6 @@ try:
                                  TopAbs_SHAPE: lambda shape: shape}
 except Exception as e:
     logger.warning(f'failed to load OCP')
-    print(e)
     logger.warning(f'{e}')
 
 from .geometric import (

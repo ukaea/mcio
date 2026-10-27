@@ -63,7 +63,7 @@ python -m pip install "openmc @ git+https://github.com/openmc-dev/openmc.git@83a
 
 ## Running MCIO - command line
 
-Running MCIO via the command line is the easiest way to produce a model with materials and some common tally types. The below example runs via 20 core multiprocess and assigns materials by RGB and some basic tally types. To assign materials by _m1_ type labels use -ml.
+Running MCIO via the command line is the easiest way to produce a model with materials and some common tally types. The below example runs via 20 core multiprocess and assigns materials by RGB and some basic tally types. Materials are assigned by RGB colour or by _m1_ type labels, depending on the keys used in the materials JSON.
 
 ```bash
 python -m mcio decompose -c 20 -i my_model.stp -m my_mats_rgb.json --tally my_tallies.json

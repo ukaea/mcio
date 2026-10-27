@@ -37,15 +37,31 @@ packages = ["mcio"]
 
 [project.optional-dependencies]
 docs = [
-    "sphinx==5.0.2",
-    "sphinxcontrib-katex",
-    "sphinx-numfig",
-    "standard-imghdr",
-    "sphinxcontrib-svg2pdfconverter",
-    "sphinx-rtd-theme==1.0.0",
-    "myst-parser",
-    "linkify-it-py"
+    "sphinx>=8",
+    "sphinx-rtd-theme>=3",
+    "myst-parser>=4",
+    "linkify-it-py",
+    "sphinx-copybutton",
 ]
-dev = ["pylint", "black", "pytest", "pytest-cov"]
+dev = ["ruff==0.17.3", "pytest", "pytest-cov", "cadquery"]
 cad = ["cadquery"]
 jupyter = ["jupyter", "jupyter-cadquery"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# unitutils.py lives in tests/, the reference CAD models in models/
+pythonpath = ["tests", "models"]
+addopts = ["-ra", "--strict-markers", "--strict-config"]
+
+[tool.coverage.run]
+source = ["mcio"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+exclude_also = [
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
