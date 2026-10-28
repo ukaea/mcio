@@ -6,7 +6,7 @@ and converts it into a half-space solid clipped to a bounding box. The
 ``SURFACE_TYPE_LOOKUP`` table maps surface class names to these generators.
 """
 
-from __future__ import annotations
+from typing import TYPE_CHECKING
 
 import math
 
@@ -67,6 +67,8 @@ try:
 except:
     pass
 
+if TYPE_CHECKING:
+    from .volume import HalfVolume
 
 from .decomposeparams import DecompositionParameters
 from .geometric import BoundingBox
@@ -111,7 +113,7 @@ def _local_bounding_box(bounding_box: BoundingBox, local_to_main: gp_Trsf) -> Bo
     hi = [max(c[i] for c in corners) for i in range(3)]
     return BoundingBox(lo[0], hi[0], lo[1], hi[1], lo[2], hi[2])
 
-def _convert_mcio_half_volume_into_ocp_solid(half_volume: "HalfVolume", bounding_box: BoundingBox, decom_params: DecompositionParameters) -> TopoDS_Solid | TopoDS_Shape:
+def _convert_mcio_half_volume_into_ocp_solid(half_volume: HalfVolume, bounding_box: BoundingBox, decom_params: DecompositionParameters) -> TopoDS_Solid | TopoDS_Shape:
     """Convert an MCIO half-volume into an OCP solid clipped to a bounding box.
 
     The generator is selected from ``SURFACE_TYPE_LOOKUP`` using the surface
@@ -157,7 +159,7 @@ def _convert_mcio_half_volume_into_ocp_solid(half_volume: "HalfVolume", bounding
 
     return ocp_half_space_solid
 
-def _generate_ocp_solid_from_mcio_half_volume_macrobody(half_volume: "HalfVolume", bounding_box_ocp: BoundingBox, decom_params: DecompositionParameters) -> TopoDS_Solid:
+def _generate_ocp_solid_from_mcio_half_volume_macrobody(half_volume: HalfVolume, bounding_box_ocp: BoundingBox, decom_params: DecompositionParameters) -> TopoDS_Solid:
     """Generate an OCP solid for a macrobody half-volume.
 
     The macrobody is expressed as a volume of its individual surfaces; for the
@@ -195,7 +197,7 @@ def _generate_ocp_solid_from_mcio_half_volume_macrobody(half_volume: "HalfVolume
     # return the solid
     return ocp_solid
 
-def _generate_ocp_solid_from_mcio_half_volume_plane(half_volume: "HalfVolume", bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Solid:
+def _generate_ocp_solid_from_mcio_half_volume_plane(half_volume: HalfVolume, bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Solid:
     """Generate an OCP half-space solid for a general ``Plane`` half-volume.
 
     The plane is defined by ``a*x + b*y + c*z = d``; the point on the plane closest
@@ -252,7 +254,7 @@ def _generate_ocp_solid_from_mcio_half_volume_plane(half_volume: "HalfVolume", b
     # return the surface
     return half_space_ocp
 
-def _generate_ocp_solid_from_mcio_half_volume_xplane(half_volume: "HalfVolume", bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Solid:
+def _generate_ocp_solid_from_mcio_half_volume_xplane(half_volume: HalfVolume, bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Solid:
     """Generate an OCP half-space solid for an ``XPlane`` half-volume.
 
     Parameters
@@ -290,7 +292,7 @@ def _generate_ocp_solid_from_mcio_half_volume_xplane(half_volume: "HalfVolume", 
     # return the surface
     return half_space_ocp
 
-def _generate_ocp_solid_from_mcio_half_volume_yplane(half_volume: "HalfVolume", bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Solid:
+def _generate_ocp_solid_from_mcio_half_volume_yplane(half_volume: HalfVolume, bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Solid:
     """Generate an OCP half-space solid for a ``YPlane`` half-volume.
 
     Parameters
@@ -328,7 +330,7 @@ def _generate_ocp_solid_from_mcio_half_volume_yplane(half_volume: "HalfVolume", 
     # return the surface
     return half_space_ocp
 
-def _generate_ocp_solid_from_mcio_half_volume_zplane(half_volume: "HalfVolume", bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Solid:
+def _generate_ocp_solid_from_mcio_half_volume_zplane(half_volume: HalfVolume, bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Solid:
     """Generate an OCP half-space solid for a ``ZPlane`` half-volume.
 
     Parameters
@@ -366,7 +368,7 @@ def _generate_ocp_solid_from_mcio_half_volume_zplane(half_volume: "HalfVolume", 
     # return the surface
     return half_space_ocp
 
-def _generate_ocp_solid_from_mcio_half_volume_sphere_at_origin(half_volume: "HalfVolume", bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Solid:
+def _generate_ocp_solid_from_mcio_half_volume_sphere_at_origin(half_volume: HalfVolume, bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Solid:
     """Generate an OCP half-space solid for a ``SphereAtOrigin`` half-volume.
 
     Parameters
@@ -405,7 +407,7 @@ def _generate_ocp_solid_from_mcio_half_volume_sphere_at_origin(half_volume: "Hal
     # return the surface
     return half_space_ocp
 
-def _generate_ocp_solid_from_mcio_half_volume_sphere(half_volume: "HalfVolume", bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Solid:
+def _generate_ocp_solid_from_mcio_half_volume_sphere(half_volume: HalfVolume, bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Solid:
     """Generate an OCP half-space solid for a ``Sphere`` half-volume.
 
     Parameters
@@ -511,7 +513,7 @@ def _ocp_half_space_from_primitive(primitives: list[TopoDS_Shape], direction: st
 
     return compound
 
-def _generate_ocp_solid_from_cone(half_volume: "HalfVolume", apex: tuple[float, float, float], axis: tuple[float, float, float], bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
+def _generate_ocp_solid_from_cone(half_volume: HalfVolume, apex: tuple[float, float, float], axis: tuple[float, float, float], bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
     """Generate an OCP half-space solid for a cone with its axis along a cartesian axis.
 
     Each nappe of the cone is built as a primitive cone from the apex, long
@@ -558,7 +560,7 @@ def _generate_ocp_solid_from_cone(half_volume: "HalfVolume", apex: tuple[float, 
 
     return _ocp_half_space_from_primitive(nappes, half_volume.direction, box, decom_params)
 
-def _generate_ocp_solid_from_cylinder(half_volume: "HalfVolume", point: tuple[float, float, float], axis: tuple[float, float, float], bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
+def _generate_ocp_solid_from_cylinder(half_volume: HalfVolume, point: tuple[float, float, float], axis: tuple[float, float, float], bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
     """Generate an OCP half-space solid for a cylinder with its axis along a cartesian axis.
 
     The cylinder is built as a primitive solid long enough to pass through the
@@ -593,61 +595,61 @@ def _generate_ocp_solid_from_cylinder(half_volume: "HalfVolume", point: tuple[fl
 
     return _ocp_half_space_from_primitive([cylinder], half_volume.direction, box, decom_params)
 
-def generate_ocp_solid_from_mcio_half_volume_cylinder_on_x(half_volume: "HalfVolume", bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
+def generate_ocp_solid_from_mcio_half_volume_cylinder_on_x(half_volume: HalfVolume, bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
     """Generate an OCP half-space solid for a cylinder on the x axis (CX)."""
     return _generate_ocp_solid_from_cylinder(half_volume, (0.0, 0.0, 0.0), (1.0, 0.0, 0.0), bounding_box_ocp, decom_params)
 
-def generate_ocp_solid_from_mcio_half_volume_cylinder_on_y(half_volume: "HalfVolume", bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
+def generate_ocp_solid_from_mcio_half_volume_cylinder_on_y(half_volume: HalfVolume, bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
     """Generate an OCP half-space solid for a cylinder on the y axis (CY)."""
     return _generate_ocp_solid_from_cylinder(half_volume, (0.0, 0.0, 0.0), (0.0, 1.0, 0.0), bounding_box_ocp, decom_params)
 
-def generate_ocp_solid_from_mcio_half_volume_cylinder_on_z(half_volume: "HalfVolume", bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
+def generate_ocp_solid_from_mcio_half_volume_cylinder_on_z(half_volume: HalfVolume, bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
     """Generate an OCP half-space solid for a cylinder on the z axis (CZ)."""
     return _generate_ocp_solid_from_cylinder(half_volume, (0.0, 0.0, 0.0), (0.0, 0.0, 1.0), bounding_box_ocp, decom_params)
 
-def generate_ocp_solid_from_mcio_half_volume_cylinder_parallel_to_x(half_volume: "HalfVolume", bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
+def generate_ocp_solid_from_mcio_half_volume_cylinder_parallel_to_x(half_volume: HalfVolume, bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
     """Generate an OCP half-space solid for a cylinder parallel to the x axis (C/X)."""
     surface = half_volume.surface
     return _generate_ocp_solid_from_cylinder(half_volume, (0.0, surface.y0, surface.z0), (1.0, 0.0, 0.0), bounding_box_ocp, decom_params)
 
-def generate_ocp_solid_from_mcio_half_volume_cylinder_parallel_to_y(half_volume: "HalfVolume", bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
+def generate_ocp_solid_from_mcio_half_volume_cylinder_parallel_to_y(half_volume: HalfVolume, bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
     """Generate an OCP half-space solid for a cylinder parallel to the y axis (C/Y)."""
     surface = half_volume.surface
     return _generate_ocp_solid_from_cylinder(half_volume, (surface.x0, 0.0, surface.z0), (0.0, 1.0, 0.0), bounding_box_ocp, decom_params)
 
-def generate_ocp_solid_from_mcio_half_volume_cylinder_parallel_to_z(half_volume: "HalfVolume", bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
+def generate_ocp_solid_from_mcio_half_volume_cylinder_parallel_to_z(half_volume: HalfVolume, bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
     """Generate an OCP half-space solid for a cylinder parallel to the z axis (C/Z)."""
     surface = half_volume.surface
     return _generate_ocp_solid_from_cylinder(half_volume, (surface.x0, surface.y0, 0.0), (0.0, 0.0, 1.0), bounding_box_ocp, decom_params)
 
-def _generate_ocp_solid_from_mcio_half_volume_cone_parallel_to_x_axis(half_volume: "HalfVolume", bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
+def _generate_ocp_solid_from_mcio_half_volume_cone_parallel_to_x_axis(half_volume: HalfVolume, bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
     """Generate an OCP half-space solid for a cone parallel to the x axis (K/X)."""
     surface = half_volume.surface
     return _generate_ocp_solid_from_cone(half_volume, (surface.x0, surface.y0, surface.z0), (1.0, 0.0, 0.0), bounding_box_ocp, decom_params)
 
-def _generate_ocp_solid_from_mcio_half_volume_cone_parallel_to_y_axis(half_volume: "HalfVolume", bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
+def _generate_ocp_solid_from_mcio_half_volume_cone_parallel_to_y_axis(half_volume: HalfVolume, bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
     """Generate an OCP half-space solid for a cone parallel to the y axis (K/Y)."""
     surface = half_volume.surface
     return _generate_ocp_solid_from_cone(half_volume, (surface.x0, surface.y0, surface.z0), (0.0, 1.0, 0.0), bounding_box_ocp, decom_params)
 
-def _generate_ocp_solid_from_mcio_half_volume_cone_parallel_to_z_axis(half_volume: "HalfVolume", bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
+def _generate_ocp_solid_from_mcio_half_volume_cone_parallel_to_z_axis(half_volume: HalfVolume, bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
     """Generate an OCP half-space solid for a cone parallel to the z axis (K/Z)."""
     surface = half_volume.surface
     return _generate_ocp_solid_from_cone(half_volume, (surface.x0, surface.y0, surface.z0), (0.0, 0.0, 1.0), bounding_box_ocp, decom_params)
 
-def _generate_ocp_solid_from_mcio_half_volume_cone_on_x_axis(half_volume: "HalfVolume", bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
+def _generate_ocp_solid_from_mcio_half_volume_cone_on_x_axis(half_volume: HalfVolume, bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
     """Generate an OCP half-space solid for a cone on the x axis (KX)."""
     return _generate_ocp_solid_from_cone(half_volume, (half_volume.surface.x0, 0.0, 0.0), (1.0, 0.0, 0.0), bounding_box_ocp, decom_params)
 
-def _generate_ocp_solid_from_mcio_half_volume_cone_on_y_axis(half_volume: "HalfVolume", bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
+def _generate_ocp_solid_from_mcio_half_volume_cone_on_y_axis(half_volume: HalfVolume, bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
     """Generate an OCP half-space solid for a cone on the y axis (KY)."""
     return _generate_ocp_solid_from_cone(half_volume, (0.0, half_volume.surface.y0, 0.0), (0.0, 1.0, 0.0), bounding_box_ocp, decom_params)
 
-def _generate_ocp_solid_from_mcio_half_volume_cone_on_z_axis(half_volume: "HalfVolume", bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
+def _generate_ocp_solid_from_mcio_half_volume_cone_on_z_axis(half_volume: HalfVolume, bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
     """Generate an OCP half-space solid for a cone on the z axis (KZ)."""
     return _generate_ocp_solid_from_cone(half_volume, (0.0, 0.0, half_volume.surface.z0), (0.0, 0.0, 1.0), bounding_box_ocp, decom_params)
 
-def _generate_ocp_solid_from_torus(half_volume: "HalfVolume", axis: tuple[float, float, float], radial: tuple[float, float, float], bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
+def _generate_ocp_solid_from_torus(half_volume: HalfVolume, axis: tuple[float, float, float], radial: tuple[float, float, float], bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
     """Generate an OCP half-space solid for a torus with its axis along a cartesian axis.
 
     Uses the MCNP definition: ``a`` is the major radius, ``b`` the semi-axis of
@@ -709,19 +711,19 @@ def _generate_ocp_solid_from_torus(half_volume: "HalfVolume", axis: tuple[float,
     box = _half_space_box(bounding_box_ocp, decom_params)
     return _ocp_half_space_from_primitive([torus], half_volume.direction, box, decom_params)
 
-def _generate_ocp_solid_from_mcio_half_volume_tori_on_x_axis(half_volume: "HalfVolume", bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
+def _generate_ocp_solid_from_mcio_half_volume_tori_on_x_axis(half_volume: HalfVolume, bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
     """Generate an OCP half-space solid for a torus with its axis parallel to x (TX)."""
     return _generate_ocp_solid_from_torus(half_volume, (1.0, 0.0, 0.0), (0.0, 1.0, 0.0), bounding_box_ocp, decom_params)
 
-def _generate_ocp_solid_from_mcio_half_volume_tori_on_y_axis(half_volume: "HalfVolume", bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
+def _generate_ocp_solid_from_mcio_half_volume_tori_on_y_axis(half_volume: HalfVolume, bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
     """Generate an OCP half-space solid for a torus with its axis parallel to y (TY)."""
     return _generate_ocp_solid_from_torus(half_volume, (0.0, 1.0, 0.0), (0.0, 0.0, 1.0), bounding_box_ocp, decom_params)
 
-def _generate_ocp_solid_from_mcio_half_volume_tori_on_z_axis(half_volume: "HalfVolume", bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
+def _generate_ocp_solid_from_mcio_half_volume_tori_on_z_axis(half_volume: HalfVolume, bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
     """Generate an OCP half-space solid for a torus with its axis parallel to z (TZ)."""
     return _generate_ocp_solid_from_torus(half_volume, (0.0, 0.0, 1.0), (1.0, 0.0, 0.0), bounding_box_ocp, decom_params)
 
-def _generate_ocp_solid_from_mcio_half_volume_sphere_on_axis(half_volume: "HalfVolume", bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Solid:
+def _generate_ocp_solid_from_mcio_half_volume_sphere_on_axis(half_volume: HalfVolume, bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Solid:
     """Generate an OCP half-space solid for a sphere centred on a cartesian axis (SX, SY, SZ).
 
     The centre is taken from whichever of ``x0``, ``y0`` and ``z0`` the surface
@@ -756,7 +758,7 @@ def _generate_ocp_solid_from_mcio_half_volume_sphere_on_axis(half_volume: "HalfV
         decom_params,
         reverse_halfspace=half_volume.direction=='+')
 
-def _generate_ocp_solid_from_mcio_half_volume_general_quadratic(half_volume: "HalfVolume", bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
+def _generate_ocp_solid_from_mcio_half_volume_general_quadratic(half_volume: HalfVolume, bounding_box_ocp: TopoDS_Solid, decom_params: DecompositionParameters) -> TopoDS_Shape:
     """Generate an OCP half-space solid for a general quadratic (GQ) surface.
 
     The quadric is reduced to its principal axes and built from a primitive
