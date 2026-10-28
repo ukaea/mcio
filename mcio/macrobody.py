@@ -83,6 +83,28 @@ class Macrobody:
         """
         return HalfVolume('-', self)
 
+    def __hash_string__(self) -> str:
+        """Unique hash string for macrobody identification."""
+
+        # cache the macrobody number
+        macrobody_number_cached = self.number
+
+        # set the macrobody number to zero
+        self.number = 0
+
+        # produce the mcnp string of the macrobody with number 0
+        macrobody_string = self.mcnp_card.as_string
+
+        # add a string of the transform with zero value
+        if self.transform is not None:
+            macrobody_string += self.transform.__hash_string__()
+
+        # return the number of the original surface via the cached value
+        self.number = macrobody_number_cached
+
+        # return the mcnp string of the surface
+        return macrobody_string
+
 def mcnp_macrobody(macrobody_type: str, parameters: list[float],
                    macrobody_number: int | None,
                    transform: Transform | None) -> MCNPCard:

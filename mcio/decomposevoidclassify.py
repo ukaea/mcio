@@ -648,7 +648,6 @@ def intersection_terms(region: HalfVolume | Volume | Boolean) -> list[HalfVolume
         return list(region.sub_booleans)
     return [region]
 
-
 def as_region(term: HalfVolume | Volume | Boolean) -> HalfVolume | Volume:
     """Wrap a raw :class:`Boolean` in a :class:`Volume` so CSG operators work.
 
@@ -666,7 +665,6 @@ def as_region(term: HalfVolume | Volume | Boolean) -> HalfVolume | Volume:
         return Volume(term)
     return term
 
-
 def intersect_terms(terms: Sequence[HalfVolume | Volume | Boolean]) -> HalfVolume | Volume:
     """Return the intersection of a non-empty sequence of terms as a region.
 
@@ -680,9 +678,13 @@ def intersect_terms(terms: Sequence[HalfVolume | Volume | Boolean]) -> HalfVolum
     HalfVolume or Volume
         ``terms[0] & terms[1] & ...``.
     """
-    region = as_region(terms[0])
-    for term in terms[1:]:
-        region = region & as_region(term)
+
+    if len(terms) == 1:
+        region = as_region(terms[0])
+    else:
+        operands = [term.boolean if isinstance(term, Volume) else term for term in terms]
+        region = Volume(And(operands))
+
     return region
 
 

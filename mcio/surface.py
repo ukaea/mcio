@@ -156,6 +156,28 @@ class Surface:
         """
         return self.mcnp_card.as_string
 
+    def __hash_string__(self) -> str:
+        """Unique hash string for surface identification."""
+
+        # cache the surface number
+        surface_number_cached = self.number
+
+        # set the surface number to zero
+        self.number = 0
+
+        # produce the mcnp string of the surface with number 0
+        surface_string = self.mcnp_card.as_string
+
+        # add a string of the transform with zero value
+        if self.transform is not None:
+            surface_string += self.transform.__hash_string__()
+
+        # return the number of the original surface via the cached value
+        self.number = surface_number_cached
+
+        # return the mcnp string of the surface
+        return surface_string
+
 
 def mcnp_surface(surface_type: str, parameters: List[str], surface: Surface) -> MCNPCard:
     """Construct an MCNPCard representation for a surface.
@@ -282,14 +304,6 @@ class Plane(Surface):
             )
         return self._openmc_surface
 
-    def __hash_string__(self) -> str:
-        """Unique hash string for surface identification."""
-        return f'plane_' + \
-               f'a_{self.a:{formatting.MCNP_FMT_SURFACE_PLANE_NORMAL}}_' + \
-               f'b_{self.b:{formatting.MCNP_FMT_SURFACE_PLANE_NORMAL}}_' + \
-               f'c_{self.c:{formatting.MCNP_FMT_SURFACE_PLANE_NORMAL}}_' + \
-               f'd_{self.d:{formatting.MCNP_FMT_SURFACE_PLANE_DISPLACEMENT}}'
-
     def __lt__(self, other: "Plane") -> bool:
         """Return whether this surface orders before another of the same type.
 
@@ -359,19 +373,6 @@ class PlaneFromThreePoints(Surface):
         ]
         return mcnp_surface(surface_type, surface_params, self)
 
-    def __hash_string__(self) -> str:
-        """Unique hash string for surface identification."""
-        return f'planefromthreepoints_' + \
-               f'x0_{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' + \
-               f'y0_{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' + \
-               f'z0_{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' + \
-               f'x1_{self.x1:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' + \
-               f'y1_{self.y1:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' + \
-               f'z1_{self.z1:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' + \
-               f'x2_{self.x2:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' + \
-               f'y2_{self.y2:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' + \
-               f'z2_{self.z2:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_'
-
     def __lt__(self, other: "PlaneFromThreePoints") -> bool:
         """Return whether this surface orders before another of the same type.
 
@@ -426,10 +427,6 @@ class XPlane(Surface):
             )
         return self._openmc_surface
 
-    def __hash_string__(self) -> str:
-        """Unique hash string for surface identification."""
-        return f'xplane_' + f'{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}'
-
     def __lt__(self, other: "XPlane") -> bool:
         """Return whether this surface orders before another of the same type.
 
@@ -482,10 +479,6 @@ class YPlane(Surface):
             )
         return self._openmc_surface
 
-    def __hash_string__(self) -> str:
-        """Unique hash string for surface identification."""
-        return f'yplane_' + f'{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}'
-
     def __lt__(self, other: "YPlane") -> bool:
         """Return whether this surface orders before another of the same type.
 
@@ -537,10 +530,6 @@ class ZPlane(Surface):
                 boundary_type=openmc_boundary_type(self)
             )
         return self._openmc_surface
-
-    def __hash_string__(self) -> str:
-        """Unique hash string for surface identification."""
-        return f'zplane_' + f'{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}'
 
     def __lt__(self, other: "ZPlane") -> bool:
         """Return whether this surface orders before another of the same type.
@@ -623,14 +612,6 @@ class Sphere(Surface):
             )
         return self._openmc_surface
 
-    def __hash_string__(self) -> str:
-        """Unique hash string for surface identification."""
-        return f'sphere_' + \
-               f'{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' +\
-               f'{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' +\
-               f'{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' +\
-               f'{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}'
-
     def __lt__(self, other: "Sphere") -> bool:
         """Return whether this surface orders before another of the same type.
 
@@ -684,10 +665,6 @@ class SphereAtOrigin(Surface):
                 boundary_type=openmc_boundary_type(self)
             )
         return self._openmc_surface
-
-    def __hash_string__(self) -> str:
-        """Unique hash string for surface identification."""
-        return f'sphereatorigin_' + f'{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}'
 
     def __lt__(self, other: "SphereAtOrigin") -> bool:
         """Return whether this surface orders before another of the same type.
@@ -747,12 +724,6 @@ class SphereOnXAxis(Surface):
                 boundary_type=openmc_boundary_type(self)
             )
         return self._openmc_surface
-
-    def __hash_string__(self) -> str:
-        """Unique hash string for surface identification."""
-        return f'sphereonxaxis_' + \
-               f'{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}} _' +\
-               f'{self.radius}:{formatting.MCNP_FMT_SURFACE_RADIUS}'
 
     def __lt__(self, other: "SphereOnXAxis") -> bool:
         """Return whether this surface orders before another of the same type.
@@ -815,12 +786,6 @@ class SphereOnYAxis(Surface):
             )
         return self._openmc_surface
 
-    def __hash_string__(self) -> str:
-        """Unique hash string for surface identification."""
-        return f'sphereonyaxis_' + \
-               f'{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' +\
-               f'{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}'
-
     def __lt__(self, other: "SphereOnYAxis") -> bool:
         """Return whether this surface orders before another of the same type.
 
@@ -881,12 +846,6 @@ class SphereOnZAxis(Surface):
                 boundary_type=openmc_boundary_type(self)
             )
         return self._openmc_surface
-
-    def __hash_string__(self) -> str:
-        """Unique hash string for surface identification."""
-        return f'sphereonzaxis_' + \
-               f'{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' +\
-               f'{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}'
 
     def __lt__(self, other: "SphereOnZAxis") -> bool:
         """Return whether this surface orders before another of the same type.
@@ -954,13 +913,6 @@ class CylinderParallelToXAxis(Surface):
             )
         return self._openmc_surface
 
-    def __hash_string__(self) -> str:
-        """Unique hash string for surface identification."""
-        return f'cylinderparalleltoxaxis_' + \
-               f'{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' +\
-               f'{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' +\
-               f'{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}'
-
     def __lt__(self, other: "CylinderParallelToXAxis") -> bool:
         """Return whether this surface orders before another of the same type.
 
@@ -1026,13 +978,6 @@ class CylinderParallelToYAxis(Surface):
                 boundary_type=openmc_boundary_type(self)
             )
         return self._openmc_surface
-
-    def __hash_string__(self) -> str:
-        """Unique hash string for surface identification."""
-        return f'cylinderparalleltoyaxis_' + \
-               f'{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' +\
-               f'{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' +\
-               f'{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}'
 
     def __lt__(self, other: "CylinderParallelToYAxis") -> bool:
         """Return whether this surface orders before another of the same type.
@@ -1100,13 +1045,6 @@ class CylinderParallelToZAxis(Surface):
             )
         return self._openmc_surface
 
-    def __hash_string__(self) -> str:
-        """Unique hash string for surface identification."""
-        return f'cylinderparalleltozaxis_' + \
-               f'{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' +\
-               f'{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' +\
-               f'{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}'
-
     def __lt__(self, other: "CylinderParallelToZAxis") -> bool:
         """Return whether this surface orders before another of the same type.
 
@@ -1161,10 +1099,6 @@ class CylinderOnXAxis(Surface):
             )
         return self._openmc_surface
 
-    def __hash_string__(self) -> str:
-        """Unique hash string for surface identification."""
-        return f'cylinderonxaxis_' + f'{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}'
-
     def __lt__(self, other: "CylinderOnXAxis") -> bool:
         """Return whether this surface orders before another of the same type.
 
@@ -1217,10 +1151,6 @@ class CylinderOnYAxis(Surface):
             )
         return self._openmc_surface
 
-    def __hash_string__(self) -> str:
-        """Unique hash string for surface identification."""
-        return f'cylinderonyaxis_' + f'{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}'
-
     def __lt__(self, other: "CylinderOnYAxis") -> bool:
         """Return whether this surface orders before another of the same type.
 
@@ -1272,10 +1202,6 @@ class CylinderOnZAxis(Surface):
                 boundary_type=openmc_boundary_type(self)
             )
         return self._openmc_surface
-
-    def __hash_string__(self) -> str:
-        """Unique hash string for surface identification."""
-        return f'cylinderonzaxis_' + f'{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}'
 
     def __lt__(self, other: "CylinderOnZAxis") -> bool:
         """Return whether this surface orders before another of the same type.
@@ -1373,15 +1299,6 @@ class ConeParallelToXAxis(Surface):
 
         return self._openmc_surface
 
-    def __hash_string__(self) -> str:
-        """Unique hash string for surface identification."""
-        return f'coneparalleltoxaxis_' + \
-               f'x0_{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' + \
-               f'y0_{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' + \
-               f'z0_{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' + \
-               f'tsq_{self.t_sq:{formatting.MCNP_FMT_SURFACE_T_SQ}}_' + \
-               f'sheet_{self.sheet}'
-
     def __lt__(self, other: "ConeParallelToXAxis") -> bool:
         """Return whether this surface orders before another of the same type.
 
@@ -1476,15 +1393,6 @@ class ConeParallelToYAxis(Surface):
                 )
 
         return self._openmc_surface
-
-    def __hash_string__(self) -> str:
-        """Unique hash string for surface identification."""
-        return f'coneparalleltoyaxis_' + \
-               f'x0_{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' + \
-               f'y0_{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' + \
-               f'z0_{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' + \
-               f'tsq_{self.t_sq:{formatting.MCNP_FMT_SURFACE_T_SQ}}_' + \
-               f'sheet_{self.sheet}'
 
     def __lt__(self, other: "ConeParallelToYAxis") -> bool:
         """Return whether this surface orders before another of the same type.
@@ -1581,15 +1489,6 @@ class ConeParallelToZAxis(Surface):
         
         return self._openmc_surface
 
-    def __hash_string__(self) -> str:
-        """Unique hash string for surface identification."""
-        return f'coneparalleltozaxis_' + \
-               f'x0_{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' + \
-               f'y0_{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' + \
-               f'z0_{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' + \
-               f'tsq_{self.t_sq:{formatting.MCNP_FMT_SURFACE_T_SQ}}_' + \
-               f'sheet_{self.sheet}'
-
     def __lt__(self, other: "ConeParallelToZAxis") -> bool:
         """Return whether this surface orders before another of the same type.
 
@@ -1670,13 +1569,6 @@ class ConeOnXAxis(Surface):
                 )
 
         return self._openmc_surface
-
-    def __hash_string__(self) -> str:
-        """Unique hash string for surface identification."""
-        return f'coneonxaxis_' + \
-               f'x0_{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' + \
-               f'tsq_{self.t_sq:{formatting.MCNP_FMT_SURFACE_T_SQ}}_' + \
-               f'sheet_{self.sheet}'
 
     def __lt__(self, other: "ConeOnXAxis") -> bool:
         """Return whether this surface orders before another of the same type.
@@ -1759,13 +1651,6 @@ class ConeOnYAxis(Surface):
         
         return self._openmc_surface
 
-    def __hash_string__(self) -> str:
-        """Unique hash string for surface identification."""
-        return f'coneonyaxis_' + \
-               f'y0_{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' + \
-               f'tsq_{self.t_sq:{formatting.MCNP_FMT_SURFACE_T_SQ}}_' + \
-               f'sheet_{self.sheet}'
-
     def __lt__(self, other: "ConeOnYAxis") -> bool:
         """Return whether this surface orders before another of the same type.
 
@@ -1847,13 +1732,6 @@ class ConeOnZAxis(Surface):
 
         return self._openmc_surface
 
-    def __hash_string__(self) -> str:
-        """Unique hash string for surface identification."""
-        return f'coneonzaxis_' + \
-               f'z0_{self.z0:{formatting.MCNP_FMT_SURFACE_PLANE_NORMAL}}_' + \
-               f'tsq_{self.t_sq:{formatting.MCNP_FMT_SURFACE_T_SQ}}_' + \
-               f'sheet_{self.sheet}'
-
     def __lt__(self, other: "ConeOnZAxis") -> bool:
         """Return whether this surface orders before another of the same type.
 
@@ -1921,20 +1799,6 @@ class Ellipsoid(Surface):
             f'{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}'
         ]
         return mcnp_surface(surface_type, surface_params, self)
-
-    def __hash_string__(self) -> str:
-        """Unique hash string for surface identification."""
-        return f'ellipsoid_' + \
-               f'a_{self.a:{formatting.MCNP_FMT_SURFACE_ELIPSOID}}_' + \
-               f'b_{self.b:{formatting.MCNP_FMT_SURFACE_ELIPSOID}}_' + \
-               f'c_{self.c:{formatting.MCNP_FMT_SURFACE_ELIPSOID}}_' + \
-               f'd_{self.d:{formatting.MCNP_FMT_SURFACE_ELIPSOID}}_' + \
-               f'e_{self.e:{formatting.MCNP_FMT_SURFACE_ELIPSOID}}_' + \
-               f'f_{self.f:{formatting.MCNP_FMT_SURFACE_ELIPSOID}}_' + \
-               f'g_{self.g:{formatting.MCNP_FMT_SURFACE_ELIPSOID}}_' + \
-               f'x0_{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' + \
-               f'y0_{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' + \
-               f'z0_{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}'
     
     def __lt__(self, other: "Ellipsoid") -> bool:
         """Return whether this surface orders before another of the same type.
@@ -2022,20 +1886,6 @@ class GeneralQuadratic(Surface):
 
         return self._openmc_surface
 
-    def __hash_string__(self) -> str:
-        """Unique hash string for surface identification."""
-        return f'generalquadratic_' + \
-               f'a_{self.a:{formatting.MCNP_FMT_SURFACE_GENERAL_QUADRATIC}}_' + \
-               f'b_{self.b:{formatting.MCNP_FMT_SURFACE_GENERAL_QUADRATIC}}_' + \
-               f'c_{self.c:{formatting.MCNP_FMT_SURFACE_GENERAL_QUADRATIC}}_' + \
-               f'd_{self.d:{formatting.MCNP_FMT_SURFACE_GENERAL_QUADRATIC}}_' + \
-               f'e_{self.e:{formatting.MCNP_FMT_SURFACE_GENERAL_QUADRATIC}}_' + \
-               f'f_{self.f:{formatting.MCNP_FMT_SURFACE_GENERAL_QUADRATIC}}_' + \
-               f'g_{self.g:{formatting.MCNP_FMT_SURFACE_GENERAL_QUADRATIC}}_' + \
-               f'h_{self.h:{formatting.MCNP_FMT_SURFACE_GENERAL_QUADRATIC}}_' + \
-               f'j_{self.j:{formatting.MCNP_FMT_SURFACE_GENERAL_QUADRATIC}}_' + \
-               f'k_{self.k:{formatting.MCNP_FMT_SURFACE_GENERAL_QUADRATIC}}'
-
     def __lt__(self, other: "GeneralQuadratic") -> bool:
         """Return whether this surface orders before another of the same type.
 
@@ -2110,16 +1960,6 @@ class ToriParralleltoXAxis(Surface):
             )
 
         return self._openmc_surface
-
-    def __hash_string__(self) -> str:
-        """Unique hash string for surface identification."""
-        return f'toriparaplleltoxaxis_' + \
-               f'x0_{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' + \
-               f'y0_{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' + \
-               f'z0_{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' + \
-               f'a_{self.a:{formatting.MCNP_FMT_SURFACE_TORI}}_' + \
-               f'b_{self.b:{formatting.MCNP_FMT_SURFACE_TORI}}_' + \
-               f'c_{self.c:{formatting.MCNP_FMT_SURFACE_TORI}}'
 
     def __lt__(self, other: "ToriParralleltoXAxis") -> bool:
         """Return whether this surface orders before another of the same type.
@@ -2196,16 +2036,6 @@ class ToriParralleltoYAxis(Surface):
         
         return self._openmc_surface
 
-    def __hash_string__(self) -> str:
-        """Unique hash string for surface identification."""
-        return f'toriparaplleltoyaxis_' + \
-               f'x0_{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' + \
-               f'y0_{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' + \
-               f'z0_{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' + \
-               f'a_{self.a:{formatting.MCNP_FMT_SURFACE_TORI}}_' + \
-               f'b_{self.b:{formatting.MCNP_FMT_SURFACE_TORI}}_' + \
-               f'c_{self.c:{formatting.MCNP_FMT_SURFACE_TORI}}'
-
     def __lt__(self, other: "ToriParralleltoYAxis") -> bool:
         """Return whether this surface orders before another of the same type.
 
@@ -2280,16 +2110,6 @@ class ToriParralleltoZAxis(Surface):
             )
         
         return self._openmc_surface
-
-    def __hash_string__(self) -> str:
-        """Unique hash string for surface identification."""
-        return f'toriparaplleltozaxis_' + \
-               f'x0_{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' + \
-               f'y0_{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' + \
-               f'z0_{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}_' + \
-               f'a_{self.a:{formatting.MCNP_FMT_SURFACE_TORI}}_' + \
-               f'b_{self.b:{formatting.MCNP_FMT_SURFACE_TORI}}_' + \
-               f'c_{self.c:{formatting.MCNP_FMT_SURFACE_TORI}}'
 
     def __lt__(self, other: "ToriParralleltoZAxis") -> bool:
         """Return whether this surface orders before another of the same type.

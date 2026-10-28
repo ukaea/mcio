@@ -7,8 +7,6 @@ and Open CASCADE solids.
 """
 from __future__ import annotations
 
-import copy
-
 from typing import TYPE_CHECKING
 
 from mcio import logger
@@ -26,10 +24,18 @@ except:
     pass
 
 if TYPE_CHECKING:
-    import openmc
-    from OCP.TopoDS import TopoDS_Shape
     from .surface import Surface
     from .macrobody import Macrobody
+
+    try:
+        import openmc
+    except ImportError:
+        pass
+
+    try:
+        from OCP.TopoDS import TopoDS_Shape
+    except ImportError:
+        pass
 
 
 class Boolean:
@@ -80,8 +86,8 @@ class Boolean:
         Boolean
             The inverted Boolean.
         """
-        self._inv_booleans = {And: Or, Or: And}
-        inv_bool = self._inv_booleans[type(self)]
+        
+        inv_bool = Or if isinstance(self, And) else And
         sub_booleans = [~sb for sb in self._sub_booleans]
 
         inv_bool = inv_bool(sub_booleans)
@@ -115,17 +121,20 @@ class And(Boolean):
                 # skipping half volumes already added
                 for nested in sub_bool.sub_booleans:
                     if isinstance(nested, HalfVolume):
-                        if nested.__hash_string__() in half_vols_inserted:
+                        key = nested.__hash_string__()
+                        if key in half_vols_inserted:
                             continue
-                        half_vols_inserted.add(nested.__hash_string__())
+                        half_vols_inserted.add(key)
                     self._sub_booleans.append(nested)
             elif isinstance(sub_bool, Or):
                 # case where sub boolean is an Or, add to the current
                 self._sub_booleans.append(sub_bool)
-            elif sub_bool.__hash_string__() not in half_vols_inserted:
-                # case where a unique half volume is found, add to current
-                self._sub_booleans.append(sub_bool)
-                half_vols_inserted.add(sub_bool.__hash_string__())
+            else:
+                key = sub_bool.__hash_string__()
+                if key not in half_vols_inserted:
+                    # case where a unique half volume is found, add to current
+                    self._sub_booleans.append(sub_bool)
+                    half_vols_inserted.add(key)
 
     @property
     def mcnp_string(self) -> list[str]:
@@ -230,17 +239,20 @@ class Or(Boolean):
                 # skipping half volumes already added
                 for nested in sub_bool.sub_booleans:
                     if isinstance(nested, HalfVolume):
-                        if nested.__hash_string__() in half_vols_inseted:
+                        key = nested.__hash_string__()
+                        if key in half_vols_inseted:
                             continue
-                        half_vols_inseted.add(nested.__hash_string__())
+                        half_vols_inseted.add(key)
                     self._sub_booleans.append(nested)
             elif isinstance(sub_bool, And):
                 # case where sub boolean is an And, add to the current
                 self._sub_booleans.append(sub_bool)
-            elif sub_bool.__hash_string__() not in half_vols_inseted:
-                # cahse where a unique half volume is found, add to current
-                self._sub_booleans.append(sub_bool)
-                half_vols_inseted.add(sub_bool.__hash_string__())
+            else:
+                key = sub_bool.__hash_string__()
+                if key not in half_vols_inseted:
+                    # cahse where a unique half volume is found, add to current
+                    self._sub_booleans.append(sub_bool)
+                    half_vols_inseted.add(key)
 
     @property
     def mcnp_string(self) -> list[str]:
@@ -267,7 +279,7 @@ class Or(Boolean):
         return result
 
     @property
-    def openmc_region(self) -> openmc.Region:
+    def openmc_region(self) -> "openmc.Region":
         """OpenMC region formed by the union of all sub-boolean regions."""
         vol_openmc = self._sub_booleans[0].openmc_region
 
@@ -277,7 +289,7 @@ class Or(Boolean):
         return vol_openmc
 
     def ocp_solid(self, bounding_box: BoundingBox | None=None,
-                  decom_params: DecompositionParameters | None=None) -> TopoDS_Shape:
+                  decom_params: DecompositionParameters | None=None) -> "TopoDS_Shape":
         """Build an Open CASCADE solid of the union.
 
         Parameters
@@ -327,6 +339,9 @@ class HalfVolume():
     surface : Surface or Macrobody
         The bounding surface.
     """
+
+    # shared by all instances, so it is not copied onto each object or pickled with it
+    _INVERSE_DIRECTION = {'+': '-', '-': '+'}
 
     def __init__(self, direction: str, surface: Surface | Macrobody) -> None:
         """Initialise the HalfVolume."""
@@ -398,7 +413,7 @@ class HalfVolume():
         return self._direction
 
     @property
-    def openmc_region(self) -> openmc.Halfspace:
+    def openmc_region(self) -> "openmc.Halfspace":
         """OpenMC half space for this side of the surface."""
         if self._direction == '+':
             return +self._surface.openmc_surface
@@ -406,7 +421,7 @@ class HalfVolume():
             return -self._surface.openmc_surface
 
     def ocp_solid(self, bounding_box: BoundingBox | None=None,
-                  decom_params: DecompositionParameters | None=None) -> TopoDS_Shape:
+                  decom_params: DecompositionParameters | None=None) -> "TopoDS_Shape":
         """Build an Open CASCADE solid of the half space clipped to a box.
 
         Parameters
@@ -434,20 +449,16 @@ class HalfVolume():
     def __hash_string__(self) -> str:
         """Return a string identifying the half volume independent of numbering.
 
-        Built from the direction and the MCNP card of a copy of the surface
-        with its number set to 0.
+        Built from the direction and the MCNP card with its number set to zero.
 
         Returns
         -------
         str
             Hash string for duplicate detection.
         """
+
         directions = {'+': '', '-': '-'}
-
-        surface = copy.deepcopy(self._surface)
-        surface.number = 0
-
-        return f'{directions[self._direction]}_{surface.mcnp_card.as_string}'
+        return f'{directions[self._direction]}_{self._surface.__hash_string__()}'
 
     def __and__(self, other: HalfVolume | Volume) -> Volume:
         """Return the intersection of this half volume with another operand.
@@ -491,8 +502,7 @@ class HalfVolume():
         HalfVolume
             Half volume with the direction flipped.
         """
-        inverse_map = {'+': '-', '-': '+'}
-        return HalfVolume(inverse_map[self._direction], self._surface)
+        return HalfVolume(self._INVERSE_DIRECTION[self._direction], self._surface)
 
     @property
     def mcnp_string(self) -> str:
@@ -603,12 +613,12 @@ class Volume:
         return self._boolean.mcnp_string
 
     @property
-    def openmc_region(self) -> openmc.Region:
+    def openmc_region(self) -> "openmc.Region":
         """OpenMC region for the volume."""
         return self._boolean.openmc_region
 
     def ocp_solid(self, bounding_box: BoundingBox | None=None,
-                  decom_params: DecompositionParameters | None=None) -> TopoDS_Shape:
+                  decom_params: DecompositionParameters | None=None) -> "TopoDS_Shape":
         """Build an Open CASCADE solid of the volume.
 
         Parameters
