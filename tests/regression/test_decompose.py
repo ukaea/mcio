@@ -164,7 +164,7 @@ class MCIORegressionTestDecomposeRGB(unittest.TestCase, CustomAssertions, Custom
         # save sphere to stp
         step_file_writer: mcio.ocp.STEPFileWriter = mcio.ocp.STEPFileWriter(self.decom_params)
 
-        step_file_writer.add_solid(bunker_solids['bunker'], 'bunker', rgb=(0, 0, 255))
+        step_file_writer.add_solid(bunker_solids['concrete_walls'], 'bunker', rgb=(0, 0, 255))
 
         # Sphere 1 - Carbon, Graphite (255_0_0)
         step_file_writer.add_solid(bunker_solids['sphere_1'], 'sphere_1', rgb=(255, 0, 0))

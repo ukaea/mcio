@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<tallies>
+  <mesh id="1">
+    <dimension>10 8 6</dimension>
+    <lower_left>-50 -40 -30</lower_left>
+    <upper_right>50 40 30</upper_right>
+  </mesh>
+  <filter id="1" type="particle">
+    <bins>neutron</bins>
+  </filter>
+  <filter id="2" type="cell">
+    <bins>1 2</bins>
+  </filter>
+  <filter id="4" type="surface">
+    <bins>1</bins>
+  </filter>
+  <filter id="9" type="energy">
+    <bins>5000000.0 10000000.0 20000000.0</bins>
+  </filter>
+  <filter id="10" type="energyfunction">
+    <energy>5000000.0 10000000.0 20000000.0</energy>
+    <y>0.15 0.3 0.45</y>
+    <interpolation>linear-linear</interpolation>
+  </filter>
+  <filter id="11" type="mesh">
+    <bins>1</bins>
+  </filter>
+  <tally id="1">
+    <filters>1 2</filters>
+    <scores>flux</scores>
+  </tally>
+  <tally id="2">
+    <filters>1 4</filters>
+    <scores>flux</scores>
+  </tally>
+  <tally id="3">
+    <filters>1 4</filters>
+    <scores>current</scores>
+  </tally>
+  <tally id="4" name="Dose Tally">
+    <filters>1 2 9 10</filters>
+    <scores>flux</scores>
+  </tally>
+  <tally id="5">
+    <filters>1 11</filters>
+    <scores>flux</scores>
+  </tally>
+</tallies>
