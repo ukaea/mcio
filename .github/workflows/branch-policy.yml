@@ -1,0 +1,39 @@
+name: Branch policy
+
+# GitHub rulesets cannot restrict which branch a pull request comes from, so this
+# check does it and the rulesets for dev and main require it:
+#   into main - only from dev in this repository
+#   into dev  - from a feature branch, never from main
+on:
+  pull_request:
+    branches: [dev, main]
+    # edited re-runs the check when the base branch of a pull request is changed
+    types: [opened, edited, reopened, synchronize]
+
+permissions: {}
+
+jobs:
+  source-branch:
+    name: PR source branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check pull request source branch
+        env:
+          BASE: ${{ github.base_ref }}
+          HEAD: ${{ github.head_ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "Pull request: $HEAD_REPO:$HEAD -> $BASE"
+          if [ "$BASE" = "main" ]; then
+            if [ "$HEAD" != "dev" ] || [ "$HEAD_REPO" != "$REPO" ]; then
+              echo "::error::Pull requests into main must come from dev. Open this pull request against dev instead."
+              exit 1
+            fi
+          elif [ "$BASE" = "dev" ]; then
+            if [ "$HEAD_REPO" = "$REPO" ] && { [ "$HEAD" = "main" ] || [ "$HEAD" = "dev" ]; }; then
+              echo "::error::Pull requests into dev must come from a feature branch, not $HEAD."
+              exit 1
+            fi
+          fi
+          echo "Source branch allowed."
