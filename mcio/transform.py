@@ -150,3 +150,14 @@ class Transform():
                        m[2, 0], m[2, 1], m[2, 2], translation[2])
 
         return trsf
+
+    def __hash_string__(self) -> str:
+        transform_number_cached = self.number
+
+        self.number = 0
+
+        transform_string = self.mcnp_card.as_string
+
+        self.number = transform_number_cached
+
+        return transform_string
