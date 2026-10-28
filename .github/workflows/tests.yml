@@ -1,0 +1,82 @@
+name: Tests
+
+on:
+  pull_request:
+    branches: [dev, main]
+  workflow_dispatch:
+  # Called by publish-docs.yml to produce the coverage badge for main
+  workflow_call:
+
+concurrency:
+  group: tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  # openmc is not published on PyPI; install the Python API from source at a fixed commit
+  OPENMC_SPEC: "openmc @ git+https://github.com/openmc-dev/openmc.git@83a30f6860c79fac8fd58584489cc0d1abcb0376"
+  COVERAGE_PYTHON: "3.13"
+
+jobs:
+  pytest:
+    name: Pytest (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13", "3.14"]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install package with dev dependencies
+        run: pip install .[dev] "$OPENMC_SPEC"
+
+      # Coverage is collected in the same run as the tests, so the suite only runs once
+      - name: Run tests with coverage
+        run: python -m pytest --cov --cov-report=term --cov-report=xml
+
+      - name: Coverage summary and badge
+        if: matrix.python-version == env.COVERAGE_PYTHON
+        run: |
+          total=$(coverage report --format=total)
+          echo "### Coverage: ${total}%" >> "$GITHUB_STEP_SUMMARY"
+          pip install anybadge
+          mkdir -p badges
+          anybadge --value="$total" --file=badges/coverage.svg coverage
+
+      - name: Upload coverage report
+        if: matrix.python-version == env.COVERAGE_PYTHON
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-report
+          path: coverage.xml
+
+      - name: Upload coverage badge
+        if: matrix.python-version == env.COVERAGE_PYTHON
+        uses: actions/upload-artifact@v7
+        with:
+          name: badge-coverage
+          path: badges/coverage.svg
+
+  # One stable check name for the rulesets to require, whatever the matrix
+  all-tests-passed:
+    name: All tests passed
+    needs: pytest
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail unless every test job succeeded
+        env:
+          RESULT: ${{ needs.pytest.result }}
+        run: |
+          echo "Test result: $RESULT"
+          [ "$RESULT" = "success" ]

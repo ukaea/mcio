@@ -481,10 +481,21 @@ class Material(SerialisableFromDict):
         str
             MCNP card string with material number 0.
         """
-        mat = copy.deepcopy(self)
-        mat.number = 0
 
-        return mat.mcnp_card.as_string
+        # cache the material number
+        material_number_cached = self.number
+
+        # set the material number to zero
+        self.number = 0
+
+        # produce the mcnp card of the material with number 0
+        material_string = self.mcnp_card.as_string
+
+        # return the number of the original one set via the cached value
+        self.number = material_number_cached
+
+        # return the mcnp string of the material
+        return material_string
 
     def _combine_isotopes(self) -> dict[str, float]:
         """Expand the composition into isotopes.

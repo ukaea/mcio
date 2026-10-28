@@ -70,7 +70,6 @@ try:
 
 except Exception as e:
     logger.warning(f'failed to load OCP')
-    print(e)
     logger.warning(f'{e}')
 
 if TYPE_CHECKING:

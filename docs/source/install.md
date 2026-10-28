@@ -2,11 +2,12 @@
 
 ## End user installation
 
-MCIO can be installed from source using the below commands
+MCIO can be installed from source using the below commands. The `cad` and `jupyter` extras install the
+dependencies for CAD-to-CSG decomposition and Jupyter; they are not needed for building CSG models directly.
 
 ```bash
 
-git clone git@gitlab.ukaea.uk:rworrall/mcio.git
+git clone https://github.com/ukaea/mcio.git
 
 cd mcio
 
@@ -16,11 +17,11 @@ python -m pip install .[cad,jupyter]
 
 ## Dev installation
 
-For those wishing to contribute to development, you can install all dependencies for docs.
+For those wishing to contribute to development, install the dependencies for testing, linting and building these docs.
 
 ```bash
 
-git clone -b dev git@gitlab.ukaea.uk:rworrall/mcio.git
+git clone -b dev https://github.com/ukaea/mcio.git
 
 cd mcio
 
@@ -28,10 +29,26 @@ python -m pip install .[dev,docs,cad,jupyter]
 
 ```
 
-## Conda installation for CadQuery-OCP (Open Cascade python wrapper used for CAD decomposition and inversion)
+The docs can then be built locally with:
+
+```bash
+python -m sphinx -b html docs/source docs/build/html
+```
+
+## OpenMC
+
+Writing OpenMC xml fires requires the instllation of the OpenMC Python API, instructions fo rthe install of which can
+be found at [OpenMC installation guide](https://docs.openmc.org/en/stable/quickinstall.html). For developers, the test
+suite requires it and the CI installs it with:
+
+```bash
+python -m pip install "openmc @ git+https://github.com/openmc-dev/openmc.git"
+```
+
+## Conda installation for CadQuery-OCP
 
 Some operating systems don't have pre-compiled wheels for the CadQuery-OCP binaries, such as on clusters with older
-version of linux. Conda can be installed without the need for super user access, as below:
+versions of Linux. Conda can be installed without the need for super user access, as below:
 
 ```bash
 # create a directory
@@ -48,7 +65,7 @@ bash Miniconda3-latest-Linux-x86_64.sh
 Add the below to your .bashrc file, replacing your user name with the <USERNAME> string.
 
 ```bash
-# to add to your .bashrc, swapping out <USERNAME> for your 
+# to add to your .bashrc, swapping out <USERNAME> for your user name
 
 function load_conda {
     echo "loading conda"

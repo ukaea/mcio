@@ -1,0 +1,65 @@
+name: Lint
+
+on:
+  pull_request:
+    branches: [dev, main]
+  workflow_dispatch:
+  # Called by publish-docs.yml to produce the ruff score badge for main
+  workflow_call:
+
+concurrency:
+  group: lint-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  # keep in step with the ruff pin in the dev extra of pyproject.toml
+  RUFF_VERSION: "0.17.3"
+
+jobs:
+  ruff:
+    # Whether this check blocks merging is set in the GitHub rulesets, not here
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      # ruff is a standalone binary, so the package and its dependencies are not needed
+      - name: Install ruff
+        run: pip install "ruff==$RUFF_VERSION"
+
+      # Runs before the checks below so the badge is produced even when they fail
+      - name: Ruff score and badge
+        run: |
+          python scripts/ruff_score.py mcio | tee ruff-score.txt
+          score=$(sed -n 's/^Your code has been rated at \([0-9.]*\)\/10$/\1/p' ruff-score.txt)
+          if [ -z "$score" ]; then
+            echo "::error::Could not read a ruff score. See the step output."
+            exit 1
+          fi
+          echo "### Ruff score: $score/10" >> "$GITHUB_STEP_SUMMARY"
+          pip install anybadge
+          mkdir -p badges
+          anybadge --label=ruff --value="$score" --file=badges/ruff.svg 2=red 4=orange 8=yellow 10=green
+
+      - name: Upload ruff badge
+        uses: actions/upload-artifact@v7
+        with:
+          name: badge-ruff
+          path: badges/ruff.svg
+
+      # findings are shown as annotations on the pull request diff
+      - name: Ruff lint
+        run: ruff check --output-format=github mcio tests
+
+      - name: Ruff format
+        if: ${{ !cancelled() }}
+        run: ruff format --check --diff mcio tests

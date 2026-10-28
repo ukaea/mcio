@@ -3,31 +3,36 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+import sys
+from pathlib import Path
+
+# make the mcio package importable for autodoc without installing it
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+# add dynamic class property table generator
+sys.path.append(str(Path(__file__).resolve().parent / "_ext"))
+
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'mcio'
-copyright = '2025, R. Worrall'
+copyright = '2026, UKAEA'
 author = 'R. Worrall'
 release = '0.1'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-html_static_path = ["_static"]
-
-def setup(app):
-    app.add_css_file("custom.css")
-
 extensions = [
     "sphinx.ext.autodoc",
-    "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",  # for Google/NumPy style docstrings
-    "myst_parser",          # if you want Markdown support
-    "sphinx.ext.mathjax"    # enable MathJax rendering
+    "sphinx.ext.mathjax",   # enable MathJax rendering
+    "myst_parser",          # Markdown support
+    "sphinx_copybutton",    # copy button on code blocks
+    "decomparams",          # decomposition parameters table directive
 ]
 
-# Tell MyST to parse dollar math
+# MyST markdown extensions, including dollar math
 myst_enable_extensions = [
     "colon_fence",
     "deflist",
@@ -45,7 +50,10 @@ myst_enable_extensions = [
     "amsmath"
 ]
 
-autosummary_generate = True  # make Sphinx create stub pages automatically
+exclude_patterns = []
+
+# -- Options for HTML output -------------------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = 'sphinx_rtd_theme'
 
@@ -54,23 +62,5 @@ html_theme_options = {
     "collapse_navigation": False,
 }
 
-html_sidebars = {
-    "**": ["search-field.html", "globaltoc.html", "sidebar-nav-bs.html", "sidebar-ethical-ads.html"],
-}
-
-templates_path = ['_templates']
-exclude_patterns = []
-
-# -- Options for HTML output -------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
-
-# html_theme = 'alabaster'
-# html_static_path = ['_static']
-
-import os
-import sys
-sys.path.insert(0, os.path.abspath(".."))  # so autodoc can find your package
-
-# add dynamic class property table generator
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "_ext")))
-extensions.append("decomparams")
+html_static_path = ["_static"]
+html_css_files = ["custom.css"]

@@ -37,7 +37,6 @@ except Exception as e:
     from mcio import logger
 
     logger.warning('failed to load OCP')
-    print(e)
     logger.warning(f"{e}")
 
 
