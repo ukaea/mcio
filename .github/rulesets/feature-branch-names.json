@@ -1,0 +1,20 @@
+{
+  "name": "feature branch names",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": {
+      "include": ["~ALL"],
+      "exclude": [
+        "refs/heads/main",
+        "refs/heads/dev",
+        "refs/heads/feature/**",
+        "refs/heads/dependabot/**"
+      ]
+    }
+  },
+  "bypass_actors": [],
+  "rules": [
+    { "type": "creation" }
+  ]
+}

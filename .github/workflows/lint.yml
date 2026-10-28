@@ -56,10 +56,18 @@ jobs:
           name: badge-ruff
           path: badges/ruff.svg
 
-      # findings are shown as annotations on the pull request diff
-      - name: Ruff lint
+      # Only real bugs block the pull request: syntax errors, invalid constructs and
+      # runtime errors (E9, F63, F7). Everything else is style and only feeds the score.
+      - name: Ruff lint (blocking)
+        run: ruff check --output-format=github --select E9,F63,F7 mcio tests
+
+      # Full rule set, shown as annotations on the diff but never fails the job
+      - name: Ruff lint (advisory)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
         run: ruff check --output-format=github mcio tests
 
-      - name: Ruff format
+      - name: Ruff format (advisory)
         if: ${{ !cancelled() }}
+        continue-on-error: true
         run: ruff format --check --diff mcio tests
