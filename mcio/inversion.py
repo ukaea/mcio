@@ -6,6 +6,8 @@ and converts it into a half-space solid clipped to a bounding box. The
 ``SURFACE_TYPE_LOOKUP`` table maps surface class names to these generators.
 """
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 import math
