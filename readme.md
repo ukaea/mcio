@@ -1,11 +1,13 @@
-# Badges
+# MCIO
 
+[![Publish docs and badges](https://github.com/ukaea/mcio/actions/workflows/publish-docs.yml/badge.svg?branch=main)](https://github.com/ukaea/mcio/actions/workflows/publish-docs.yml)
 [![Tests](https://github.com/ukaea/mcio/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/ukaea/mcio/actions/workflows/tests.yml)
-
-[![Coverage Score](https://ukaea.github.io/mcio/coverage.svg)](https://github.com/ukaea/mcio/actions/workflows/publish-docs.yml)
-
-[![Ruff Score](https://ukaea.github.io/mcio/ruff.svg)](https://github.com/ukaea/mcio/actions/workflows/lint.yml)
-
+[![Coverage](https://ukaea.github.io/mcio/coverage.svg)](https://github.com/ukaea/mcio/actions/workflows/publish-docs.yml)
+[![Ruff score](https://ukaea.github.io/mcio/ruff.svg)](https://github.com/ukaea/mcio/actions/workflows/publish-docs.yml)
+[![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://ukaea.github.io/mcio/)
+[![Release](https://img.shields.io/github/v/release/ukaea/mcio?include_prereleases)](https://github.com/ukaea/mcio/releases)
+[![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13%20%7C%203.14-blue)](https://github.com/ukaea/mcio/blob/main/pyproject.toml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 # Docs
 
@@ -122,7 +124,7 @@ python -m pytest --cov
 
 ## Linting and formatting
 
-Code is linted and formatted with [ruff](https://docs.astral.sh/ruff/). CI checks but does not change files, so run these before pushing:
+Code is linted and formatted with [ruff](https://docs.astral.sh/ruff/). CI only blocks a pull request on real bugs (syntax errors and invalid constructs); all other findings and formatting lower the ruff score but do not fail the check. CI does not change files, so to tidy up before pushing run:
 
 ```bash
 ruff format mcio tests
