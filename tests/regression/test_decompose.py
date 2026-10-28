@@ -217,7 +217,7 @@ class MCIORegressionTestDecomposeRGB(unittest.TestCase, CustomAssertions, Custom
             'sphere_4': 'Cobalt',
             'sphere_5': 'HDPE',
         }
-        materials_by_solid = {cell.comment.split('/')[-1]: cell.material.name for cell in material_cells}
+        materials_by_solid = {cell.name: cell.material.name for cell in material_cells}
         self.assertEqual(materials_by_solid, expected_materials)
 
         # every surface used by a cell is written in the surface block, and no line is too long

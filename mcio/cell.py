@@ -39,6 +39,7 @@ class Cell:
         volume: Volume = None,
         material: Material = None,
         name: str = None,
+        structure: list[str] = None,
         comment: str = None,
         transform: Transform = None,
         universe: Universe = None,
@@ -74,6 +75,7 @@ class Cell:
         self.number: int = None
         self.comment: str = comment
         self.name: str = name
+        self.structure: list[str] = structure
         self.transform: Transform = transform
         self.universe: Universe = universe
         self.universe_fill: UniverseFill = universe_fill
@@ -171,7 +173,7 @@ class Cell:
         else:
             density = ["0"]
 
-        header_data = {"name": self.name, "comment": self.comment}
+        header_data = {"name": self.name, "structure": self.structure, "comment": self.comment}
 
         # write cell importances
         importances = [
@@ -227,6 +229,7 @@ class Cell:
         cell_openmc = openmc.cell.Cell(
             region=self.volume.openmc_region if self.volume else None,
             fill=self.material.openmc_material if self.material else None,
+            name=self.name
         )
 
         # check if this cell is a graveyard, if so set all surfaces within it

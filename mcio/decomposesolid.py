@@ -212,8 +212,9 @@ def _generate_mcio_cells(
             + f"{bbox.z_mid:.2f} ext "
             + f"{max(bbox.x_length, bbox.y_length, bbox.z_length):.2f}"
         )
-        cell.name = f"cell number {i} of {n_solids} : {location}"
-        cell.comment = "/".join(decomposition_solid._structure_original or [])
+        cell.name = decomposition_solid.name
+        cell.comment = f"cell number {i} of {n_solids} : {location}"
+        cell.structure = '/'.join(decomposition_solid.structure_in_input_file)
 
         # if user requires, set volume on each cell
         if decom_params.model_set_output_cell_vols:
@@ -274,11 +275,13 @@ class DecompositionSolid:
         structure_original: Optional[List[str]] = None,
         colour_rgb: Optional[Union[ColourRGB, Tuple[int, int, int]]] = None,
         material: Optional[Any] = None,
+        name: Optional[str] = None,
         universe: Optional[Universe] = None,
         universe_fill: Optional[UniverseFill] = None,
         serialise: bool = False,
         surfaces_generated: Optional[Dict[Any, Any]] = None,
     ) -> None:
+
         """Initialise the DecompositionSolid, applying any requested shape cleanup."""
         # set input variables
         self._solid_original: Union["TopoDS_Solid", bytes] = solid_original
@@ -290,6 +293,7 @@ class DecompositionSolid:
             ColourRGB(*colour_rgb) if colour_rgb else None
         )
         self.material: Optional[Any] = material
+        self.name: Optional[str] = name
         self._universe: Optional[Universe] = universe
         self._universe_fill: Optional[UniverseFill] = universe_fill
         self.decom_params: DecompositionParameters = decom_params
@@ -716,6 +720,8 @@ class DecompositionSolid:
             material=self.material,
             universe=self.universe,
             universe_fill=self.universe_fill,
+            name=self.name,
+            structure=self.structure_in_input_file
         )
 
         # return self - this is required when using multiprocessing to pass

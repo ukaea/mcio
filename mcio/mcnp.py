@@ -8,6 +8,7 @@ attached to models, tallies, cells and materials (:class:`MCNPRunParameters`,
 """
 from __future__ import annotations
 
+import textwrap
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -150,7 +151,13 @@ class MCNPCardHeader:
         str
             Comment lines bracketed by blank ``C`` lines.
         """
-        comments = ''.join([f'C {k}: {v}\n' for k, v in self._data.items()])
+        # long values are wrapped onto further comment lines to respect the line length
+        lines = [
+            line
+            for k, v in self._data.items()
+            for line in textwrap.wrap(f'C {k}: {v}', width=formatting.MCNP_MAX_CHARS, subsequent_indent='C   ')
+        ]
+        comments = ''.join(f'{line}\n' for line in lines)
         return 'C\n' + comments + 'C\n'
 
 
