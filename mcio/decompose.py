@@ -617,6 +617,8 @@ class Decomposer:
             solid,
             self.decom_params,
             material=material,
+            name=name,
+            colour_rgb=colour,
             universe=self.universe,
             structure_original=structure if structure else [name],
         )
@@ -1375,12 +1377,18 @@ class Decomposer:
                     else None
                 )
 
+                # convert the structure to an independent list of strings
+                structure_as_list = [s for s in step_solid.structure]
+                name = structure_as_list[-1] if structure_as_list else None
+
+                # set up decompositoin solid
                 decompose_solid = DecompositionSolid(
                     step_solid.solid,
                     self.decom_params,
-                    structure_original=[s for s in step_solid.structure],
+                    structure_original=structure_as_list,
                     colour_rgb=step_solid.colour.rgb,
                     material=material,
+                    name=name,
                     universe=self.universe,
                     surfaces_generated=self._surfaces_generated,
                 )

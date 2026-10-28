@@ -43,7 +43,7 @@ python -m pip install .[cad,jupyter]
 
 ```
 
-OpenMC is not published on PyPI. To write OpenMC models, install its Python API from source, see the [OpenMC installation guide](https://docs.openmc.org/en/stable/quickinstall.html).
+To write OpenMC models, install its Python API, see the [OpenMC installation guide](https://docs.openmc.org/en/stable/quickinstall.html).
 
 ## Dev installation
 

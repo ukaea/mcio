@@ -710,18 +710,18 @@ class VoidOctreeBase:
 
         for i, void in enumerate(voids, start=1):
             bb = void.bounding_box
-            cell_label = (
-                f"void_cell_{i}_of_{n_voids} - location = "
-                f"{bb.x_mid:.2f} {bb.y_mid:.2f} {bb.z_mid:.2f} ex {bb.extent:.2f}"
+            cell_name = (
+                f"void_cell_{i}_of_{n_voids}"
             )
             cell_comment = (
                 f"n_split_solids = {len(void._candidates)} "
-                f"n_surfaces = {void.n_terms}"
+                f"n_surfaces = {void.n_terms} "
+                f"location = {bb.x_mid:.2f} {bb.y_mid:.2f} {bb.z_mid:.2f} ex {bb.extent:.2f}"
             )
             cells.append(
                 Cell(
                     volume=void.void_region(),
-                    name=cell_label,
+                    name=cell_name,
                     comment=cell_comment,
                     universe=self.universe,
                 )
