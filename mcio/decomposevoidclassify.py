@@ -661,6 +661,7 @@ def as_region(term: HalfVolume | Volume | Boolean) -> HalfVolume | Volume:
     HalfVolume or Volume
         The term, usable with ``&``, ``|`` and ``~``.
     """
+    
     if isinstance(term, Boolean):
         return Volume(term)
     return term
