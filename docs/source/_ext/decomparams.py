@@ -35,12 +35,12 @@ class DecompositionParamsTable(Directive):
         tgroup += tbody
 
         # 3. Logic: Iterate over fields to find definitions
-        # We look for fields starting with _DEF_
+        # each parameter has a definition field named _def_<parameter>
         all_fields = {f.name: f for f in fields(mcio.decomposeparams.DecompositionParameters)}
         
         for name in all_fields:
-            if name.startswith("_DEF_"):
-                # Get the actual parameter name (e.g., AUX_BOUNDING_BOX...)
+            if name.startswith("_def_"):
+                # Get the actual parameter name (e.g., doc_unit_in_metres)
                 param_name = name[5:] 
                 
                 # Get the value and the description string from the instance
@@ -60,7 +60,7 @@ class DecompositionParamsTable(Directive):
                 e2 += nodes.paragraph(text=str(value))
                 row += e2
 
-                # Column 3: Description (The string in _DEF_...)
+                # Column 3: Description (The string in _def_...)
                 e3 = nodes.entry()
                 e3 += nodes.paragraph(text=str(description))
                 row += e3

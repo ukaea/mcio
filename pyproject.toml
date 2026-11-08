@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools >= 61.0"]
+requires = ["setuptools >= 77.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,9 +7,12 @@ name = "mcio"
 authors = [
     {name = "UKAEA"},
 ]
-description = "mcio"
+description = "Build Monte Carlo radiation transport models in Python, convert CAD to CSG, and write MCNP and OpenMC inputs"
+readme = "readme.md"
+license = "MIT"
+license-files = ["LICENSE"]
 version = "0.1.0b1"
-requires-python = ">3.10"
+requires-python = ">=3.12"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -18,7 +21,9 @@ classifiers = [
     "Natural Language :: English",
     "Topic :: Scientific/Engineering",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
     "numpy",
@@ -28,6 +33,11 @@ dependencies = [
     "rich",
     "tqdm"
 ]
+
+[project.urls]
+Documentation = "https://ukaea.github.io/mcio/"
+Source = "https://github.com/ukaea/mcio"
+Issues = "https://github.com/ukaea/mcio/issues"
 
 [tool.setuptools]
 packages = ["mcio"]

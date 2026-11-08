@@ -72,3 +72,27 @@ mcio.decomposeparams
    :members:
    :undoc-members:
    :show-inheritance:
+
+mcio.decompose
+---------------------
+
+.. automodule:: mcio.decompose
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+mcio.diagnostic
+---------------------
+
+.. automodule:: mcio.diagnostic
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+mcio.ocpfilereadwrite
+---------------------
+
+.. automodule:: mcio.ocpfilereadwrite
+   :members:
+   :undoc-members:
+   :show-inheritance:

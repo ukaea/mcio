@@ -11,10 +11,11 @@ import os
 import time
 from typing import TYPE_CHECKING, Any
 
+# catch any failure (not just ImportError) so a broken OpenMC install doesn't stop MCNP-only use
 try:
     import openmc
-except:
-    pass
+except Exception:
+    openmc = None
 
 from mcio import logger
 from .cell import Cell
@@ -478,6 +479,12 @@ class Model:
         # return model if already generated.
         if self._openmc_model:
             return self._openmc_model
+
+        if openmc is None:
+            msg = ('writing OpenMC models requires the OpenMC Python API, see '
+                   'https://docs.openmc.org/en/stable/quickinstall.html')
+            logger.error(msg)
+            raise ImportError(msg)
 
         # get openmc cells
         openmc_cells = [cell.openmc_cell for cell in self.cells]

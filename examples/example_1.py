@@ -32,7 +32,7 @@ vol_graveyard = +surf_sphere
 mat_water = Material(1.0,                            # set density to 1 g/cc
                      {'H': 2, 'O': 1},               # set atom fraction
                      name='light water',             # give the material a name (optional)
-                     density_type='g/cc',            # set the units of the density
+                     density_unit='g/cm3',           # set the units of the density
                      fraction_type='ao')             # set the fraction type, either ao for atom or wo for weight
 
 # cells
@@ -51,23 +51,20 @@ tally_fluence_cell_dose = VolumeFluenceTally(cells=[cell_cube],
 
 tally_pulse_height = PulseHeightTally(cells=[cell_cube], comment='cube cell pulse height', energies=[0.1, 0.2, 0.3])
 
-mesh_tally_fluence = FluenceMeshTally(x_positions=[-100, 100],
-                                      x_ints=40,
-                                      y_positions=[-100, 100],
-                                      y_ints=40,
-                                      z_positions=[-100, 100],
-                                      z_ints=40)
+mesh_tally_fluence = FluenceMeshTally(x_min=-100, x_max=100, x_ints=40,
+                                      y_min=-100, y_max=100, y_ints=40,
+                                      z_min=-100, z_max=100, z_ints=40)
 
 tallies = [tally_fluence_cell_dose,
            tally_pulse_height,
            mesh_tally_fluence]
 
 #run parameters
-mcnp_rp = MCNPRunParameters(xsdir='/lustre/restricted_software/mcnp/xs/xsdir_mcnp6.2_all',
+mcnp_rp = MCNPRunParameters(xsdir='/path/to/your/xsdir',
                             nps=1e6,
-                            cut_particles=['n', 'p', 'e'],
-                            physics_cards=['n', 'p', 'e'],
-                            modes=['n', 'p', 'e'],
+                            cut_parameters={'neutron': {'t': 1.0e33, 'e': 1.0e-3}},
+                            physics_cards=['neutron', 'photon', 'electron'],
+                            modes=['neutron', 'photon', 'electron'],
                             stop_tallies={tally_fluence_cell_dose: 0.02})
 
 model = Model(cells=[cell_cube, cell_void, cell_graveyard], 
