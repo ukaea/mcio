@@ -14,11 +14,35 @@ if TYPE_CHECKING:
 
 import logging
 import logging.handlers
+import queue
 import sys
 import ctypes
 from multiprocessing import Queue
 import mcio
 from mcio import LOGGER_FILE_HANDLER
+
+# seconds a worker waits for room in a full log queue before dropping a record
+QUEUE_PUT_TIMEOUT: float = 30.0
+
+
+class BlockingQueueHandler(logging.handlers.QueueHandler):
+    """Queue handler which waits for room in a full queue instead of failing.
+
+    :class:`logging.handlers.QueueHandler` uses ``put_nowait``, so when workers
+    log faster than the listener writes, records are lost and a ``queue.Full``
+    traceback is printed for each one. A multiprocessing queue holds at most
+    32767 items on macOS, so this happens easily there. Waiting briefly slows the
+    worker instead; a record is only dropped if the queue stays full for
+    :data:`QUEUE_PUT_TIMEOUT` seconds (e.g. the listener has stopped).
+    """
+
+    def enqueue(self, record: logging.LogRecord) -> None:
+        """Put a record on the queue, waiting for room if it is full."""
+        try:
+            self.queue.put(record, block=True, timeout=QUEUE_PUT_TIMEOUT)
+        except queue.Full:
+            pass
+
 
 def start_multiprocess_logging() -> tuple[MPQueue, logging.handlers.QueueListener]:
     """Route ``mcio`` logging through a queue for multiprocess runs.
@@ -47,7 +71,7 @@ def start_multiprocess_logging() -> tuple[MPQueue, logging.handlers.QueueListene
     listener.start()
 
     # Workers and main process now log via QueueHandler
-    queue_handler = logging.handlers.QueueHandler(log_queue)
+    queue_handler = BlockingQueueHandler(log_queue)
     logger.addHandler(queue_handler)
 
     return log_queue, listener
@@ -100,7 +124,7 @@ def configure_worker_logger(log_queue: MPQueue) -> None:
     logger = logging.getLogger("mcio")
     logger.handlers.clear()
 
-    queue_handler = logging.handlers.QueueHandler(log_queue)
+    queue_handler = BlockingQueueHandler(log_queue)
     logger.addHandler(queue_handler)
     logger.setLevel(logging.INFO)
 

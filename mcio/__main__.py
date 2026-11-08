@@ -9,8 +9,6 @@ rich, mcio submodules) are deferred until after argument parsing, inside the
 
 from __future__ import annotations
 
-from typing import Any
-
 import argparse
 import os
 
@@ -194,17 +192,16 @@ def lost_particle(args: argparse.Namespace) -> None:
     )
 
 
-def run_analysis(input_file_paths: Any) -> None:
-    """Print a per-body analysis of the input CAD.
+def run_analysis(args: argparse.Namespace) -> None:
+    """Print a summary and per-body analysis of the input CAD.
 
     Parameters
     ----------
-    input_file_paths : Any
-        STEP file paths passed to ``Decomposer``. Note the command dispatch
-        passes the parsed ``argparse.Namespace`` here.
+    args : argparse.Namespace
+        Parsed arguments of the ``analysis`` sub-command.
     """
-    decomposer = Decomposer(input_file_paths)
-    print(decomposer.analysis.per_body)
+    decomposer = Decomposer(args.input)
+    print(decomposer.analysis)
 
 
 def stochastic_mcnp(args: argparse.Namespace) -> None:

@@ -245,7 +245,7 @@ def _split_solid_on_connection_between_equal_radii_cylinders(solid: "TopoDS_Soli
     split_solids: list[TopoDS_Solid] = []
 
     for i, face in enumerate(faces_cylinders[:-1]):
-        logger.info(f'face {i}')
+        logger.debug(f'face {i}')
 
         # get properties of face
         surface = _get_ocp_surface_from_ocp_face(face)
@@ -378,7 +378,7 @@ def _split_solids_on_axis_by_circular_edges(solid: "TopoDS_Solid", decom_params:
     split_solids: list[TopoDS_Solid] = []
 
     for i, face in enumerate(faces_filtered[:-1]):
-        logger.info(f'face {i}')
+        logger.debug(f'face {i}')
 
         # get properties of face
         surface = _get_ocp_surface_from_ocp_face(face)
