@@ -62,9 +62,8 @@ def run_decompose(args: argparse.Namespace) -> None:
     # write output files for mcnp
     decomposer.model.mcnp._prdmp_intervals = 100
     decomposer.model.mcnp._void = True
-    decomposer.model.mcnp.xsdir = (
-        r"/lustre/restricted_software/mcnp/xs/xsdir_mcnp6.2_all"
-    )
+    if args.xsdir:
+        decomposer.model.mcnp.xsdir = args.xsdir
     decomposer.model.write_mcnp(args.output_mcnp)
 
     # save decompose params
@@ -173,9 +172,7 @@ def run_decompose(args: argparse.Namespace) -> None:
             if cell.material:
                 cell.material.strip_isotopes(ADVANTG_MISSING_ISOTOPES)
 
-        decomposer.model.mcnp.xsdir = (
-            "/lustre/restricted_software/mcnp/xs/xsdir_mcnp5_all"
-        )
+        decomposer.model.mcnp.xsdir = args.xsdir_advantg
         decomposer.model.write_mcnp(args.output_mcnp_advantg)
 
 
@@ -252,7 +249,7 @@ def main() -> argparse.Namespace | None:
 
     # sub_parser - decompose
     decomp_help_msg = 'run cad to csg decomposer, e.g. ' +\
-                      'python -m mcio decompose -i model.stp model_2.stp -n 12'
+                      'python -m mcio decompose -i model.stp model_2.stp -c 12'
     decomp = subparsers.add_parser("decompose", help=decomp_help_msg)
     decomp.add_argument("--input", "-i", nargs="+", help="list of step files")
     decomp.add_argument(
@@ -314,6 +311,18 @@ def main() -> argparse.Namespace | None:
     )
     decomp.add_argument(
         "--tallies", "-t", type=str, default=None, help="json tally file"
+    )
+    decomp.add_argument(
+        "--xsdir",
+        type=str,
+        default=None,
+        help="path to the MCNP xsdir file to write to the MCNP model",
+    )
+    decomp.add_argument(
+        "--xsdir_advantg",
+        type=str,
+        default=None,
+        help="path to the MCNP xsdir file to write to the ADVANTG model",
     )
     decomp.add_argument(
         "--debug",

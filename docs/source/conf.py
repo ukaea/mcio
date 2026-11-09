@@ -18,7 +18,12 @@ sys.path.append(str(Path(__file__).resolve().parent / "_ext"))
 project = 'mcio'
 copyright = '2026, UKAEA'
 author = 'R. Worrall'
-release = '0.1'
+try:
+    from importlib.metadata import version as _version
+    release = _version('mcio')
+except Exception:
+    release = '0.1.0b1'
+version = release
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -49,6 +54,9 @@ myst_enable_extensions = [
     "dollarmath",
     "amsmath"
 ]
+
+# generate anchors for headings so markdown links like (#end-user-installation) resolve
+myst_heading_anchors = 3
 
 exclude_patterns = []
 
