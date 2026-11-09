@@ -205,7 +205,7 @@ class Analysis:
         str
             The summary and per body tables.
         """
-        return self.summary.as_string + "\n" + self.per_body.as_string
+        return self.summary + "\n" + self.per_body
 
     @property
     def summary(self) -> str:
@@ -881,6 +881,9 @@ class Decomposer:
                 logger.fatal(msg)
                 raise Exception(msg)
 
+        # time the decomposition (single core or multiprocess, including serialisation)
+        time_start_decomposition = time.time()
+
         # calculate for formatting output logging strings
         n_decomposition_solids = len(self._decomposition_solids)
         padding_index = math.ceil(math.log10(n_decomposition_solids))
@@ -1032,6 +1035,8 @@ class Decomposer:
 
             # deserialise
             self.deserialise()
+
+        self._profile_time_decomposition = time.time() - time_start_decomposition
 
         # collect decompositions solids which failed and collect their exceptions
         results_with_exceptions = [
@@ -1203,7 +1208,7 @@ class Decomposer:
         logger.debug(f"DEcomposer() - getting map of duplicated")
         time_start = time.time()
         self._surfaces_generated = _map_of_duplicate_surfaces()
-        time_total = time.time()
+        time_total = time.time() - time_start
         logger.debug(f"Decomposer() - map of duplicated - time take = {time_total:.2e}")
 
         # generate void cells
