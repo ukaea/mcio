@@ -1,0 +1,10 @@
+# Commits that only reformat code, skipped by `git blame` so it shows who last
+# changed each line's logic rather than who last reformatted it.
+#
+# GitHub uses this file automatically. Locally, run once per clone:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# Use full 40 character hashes, one per line.
+
+# ruff format of mcio/ and tests/ (layout only, no code changes)
+78051063d640c8fd0df53ff640ef1965edcdcd5a
