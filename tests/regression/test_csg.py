@@ -3,6 +3,7 @@ import mcio
 
 
 from unitutils import (
+    HAS_OPENMC,
     CustomAssertions,
     CustomParameterChecks
 )
@@ -42,8 +43,9 @@ class MCIORegressionTestCSGsurfaces(unittest.TestCase, CustomAssertions, CustomP
         # assert parameters are correct in instance of surface
         self.assertParametersInClassInstance(surf, parameters, self._tolerance)
 
-        # access openmc surface and assert parameters in surface are correct if an equivalent exists
-        if openmc_equivalent:
+        # access openmc surface and assert parameters in surface are correct if an equivalent
+        # exists (only when openmc is installed - CI always checks this)
+        if openmc_equivalent and HAS_OPENMC:
             expected_openmc = parameters_openmc if parameters_openmc is not None else parameters
             self.assertParametersInClassInstance(surf.openmc_surface, expected_openmc, self._tolerance)
 
@@ -303,7 +305,8 @@ class MCIORegressionTestCSGHalfSpace(unittest.TestCase, CustomAssertions, Custom
         self.assertParametersInClassInstance(half_space_neg.surface, parameters, self._tolerance)
 
         # Check OpenMC region properties on half-spaces if an equivalent exists
-        if openmc_equivalent:
+        # (only when openmc is installed - CI always checks this)
+        if openmc_equivalent and HAS_OPENMC:
             openmc_region_pos = half_space_pos.openmc_region
             openmc_region_neg = half_space_neg.openmc_region
 

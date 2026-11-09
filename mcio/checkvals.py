@@ -5,8 +5,10 @@ type validators, and decorators enforcing argument types on setter methods.
 """
 from __future__ import annotations
 
-import sys
+import functools
 import importlib
+import os
+import sys
 from numbers import Number
 from decimal import Decimal
 from fractions import Fraction
@@ -162,10 +164,14 @@ def check_types(
     if error_message:
         msg = error_message
     else:
-        types_available = "".join([f"{type(v)}" for v in variable_types])
-        msg = f"type error: {str(type(variable))} not in {types_available}"
+        types_available = ", ".join([t.__name__ for t in variable_types])
+        msg = f"type error: {type(variable).__name__} not in ({types_available})"
 
-    if not isinstance(variable, tuple(variable_types)):
+    if iterable:
+        # check each element of the iterable
+        if not all(isinstance(v, tuple(variable_types)) for v in variable):
+            raise TypeException(msg)
+    elif not isinstance(variable, tuple(variable_types)):
         raise TypeException(msg)
 
 
@@ -210,6 +216,7 @@ def require_int(func: Callable) -> Callable:
         If decorated method receives a non-int argument
     """
 
+    @functools.wraps(func)
     def wrapper(self, value: Any) -> Any:
         """Call ``func`` if ``value`` is an int, otherwise raise.
 
@@ -256,6 +263,7 @@ def require_numeric(func: Callable) -> Callable:
         If decorated method receives a non-numeric argument
     """
 
+    @functools.wraps(func)
     def wrapper(self, value: Any) -> Any:
         """Call ``func`` if ``value`` is a Number, otherwise raise.
 
@@ -284,7 +292,7 @@ def require_numeric(func: Callable) -> Callable:
 
 
 def require_path_like(func: Callable) -> Callable:
-    """Decorator to enforce path-like/integer type on the first argument of a method.
+    """Decorator to enforce a path-like (str or os.PathLike) first argument of a method.
 
     Parameters
     ----------
@@ -302,8 +310,9 @@ def require_path_like(func: Callable) -> Callable:
         If decorated method receives an invalid argument type
     """
 
+    @functools.wraps(func)
     def wrapper(self, value: Any) -> Any:
-        """Call ``func`` if ``value`` is an int, otherwise raise.
+        """Call ``func`` if ``value`` is path-like, otherwise raise.
 
         Parameters
         ----------
@@ -318,12 +327,12 @@ def require_path_like(func: Callable) -> Callable:
         Raises
         ------
         TypeError
-            If ``value`` is not an int.
+            If ``value`` is not a str or os.PathLike.
         """
-        if isinstance(value, int):
+        if isinstance(value, (str, os.PathLike)):
             return func(self, value)
         else:
-            msg = f"function requires int type, not {type(value)}"
+            msg = f"function requires a path (str or os.PathLike), not {type(value)}"
             raise TypeError(msg)
 
     return wrapper

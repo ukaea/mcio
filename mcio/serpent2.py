@@ -101,8 +101,9 @@ class SerpentCardHeader:
         str
             Comment lines of the form ``C key: value`` framed by ``C`` lines.
         """
-        comments = ''.join([f'C {k}: {v}\n' for k, v in self._data.items()])
-        return 'C\n' + comments + 'C\n'
+        # serpent comments start with % (C is the MCNP comment card)
+        comments = ''.join([f'% {k}: {v}\n' for k, v in self._data.items()])
+        return '%\n' + comments + '%\n'
 
 
 class SerpentCard:

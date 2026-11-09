@@ -5,7 +5,7 @@ import mcio
 import xml.etree.ElementTree as ET
 
 
-from unitutils import CustomAssertions
+from unitutils import CustomAssertions, HAS_OPENMC, requires_openmc
 
 
 class MCIOUnitTestTally(unittest.TestCase, CustomAssertions):
@@ -14,7 +14,8 @@ class MCIOUnitTestTally(unittest.TestCase, CustomAssertions):
         self.temp_dir = Path(self.temp_dir_obj.name)
 
         surf_sphere = mcio.surface.Sphere(radius=50)
-        surf_sphere.openmc_surface.id = 1
+        if HAS_OPENMC:
+            surf_sphere.openmc_surface.id = 1
         surf_sphere_g = mcio.surface.Sphere(radius=100)
 
         vol_sph = -surf_sphere
@@ -22,9 +23,11 @@ class MCIOUnitTestTally(unittest.TestCase, CustomAssertions):
         vol_g = +surf_sphere_g
 
         cell_sph = mcio.cell.Cell(volume=vol_sph)
-        cell_sph.openmc_cell.id = 1
+        if HAS_OPENMC:
+            cell_sph.openmc_cell.id = 1
         cell_v = mcio.cell.Cell(volume=vol_v)
-        cell_v.openmc_cell.id = 2
+        if HAS_OPENMC:
+            cell_v.openmc_cell.id = 2
         cell_g = mcio.cell.Cell(volume=vol_g, graveyard=True)
 
         tally_flux = mcio.tally.VolumeFluenceTally(cells=[cell_sph, cell_v])
@@ -47,7 +50,8 @@ class MCIOUnitTestTally(unittest.TestCase, CustomAssertions):
         sph_model.mcnp.modes = ['neutron']
 
         sph_model.write_mcnp(self.temp_dir / 'sph_model.mcnp')
-        sph_model.write_openmc(self.temp_dir)
+        if HAS_OPENMC:
+            sph_model.write_openmc(self.temp_dir)
 
     def tearDown(self):
         # clean up the temporary directory
@@ -143,6 +147,7 @@ class MCIOUnitTestTally(unittest.TestCase, CustomAssertions):
         global_map = self.build_global_id_map(root1, root2)
         self.compare_elements(root1, root2, global_map)
 
+    @requires_openmc
     def test_openmc_tally(self):
         reference_file = Path(__file__).parent / 'sph_model' / 'tallies.xml'
         generated_file = self.temp_dir / 'tallies.xml'
