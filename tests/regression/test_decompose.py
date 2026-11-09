@@ -37,10 +37,14 @@ unittest: regression testing
 """
 
 # the directory of the test reference data
-REF_DATA_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'testdata')
+REF_DATA_DIR = os.path.join(
+    os.path.dirname(os.path.realpath(__file__)), "..", "testdata"
+)
 
 
-class MCIORegressionTestDecomposeRGB(unittest.TestCase, CustomAssertions, CustomCheckValue):
+class MCIORegressionTestDecomposeRGB(
+    unittest.TestCase, CustomAssertions, CustomCheckValue
+):
     def setUp(self):
         # mock-up a materials by rgb json file
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -48,7 +52,9 @@ class MCIORegressionTestDecomposeRGB(unittest.TestCase, CustomAssertions, Custom
         self.step_file_path = os.path.join(self.temp_dir.name, "my_model.stp")
         self.mcnp_output_path = os.path.join(self.temp_dir.name, "model_mcnp.i")
         self.openmc_output_path = os.path.join(self.temp_dir.name, "model_openmc")
-        self.decom_params: mcio.decomposeparams.DecompositionParameters = mcio.decomposeparams.DecompositionParameters()
+        self.decom_params: mcio.decomposeparams.DecompositionParameters = (
+            mcio.decomposeparams.DecompositionParameters()
+        )
 
         # mock-up a material by rgb
         materials_data = {
@@ -155,35 +161,49 @@ class MCIORegressionTestDecomposeRGB(unittest.TestCase, CustomAssertions, Custom
                 },
             },
         }
-        
+
         # Write the dynamic string configuration out to the filesystem path
-        with open(self.json_file_path, 'w') as f:
+        with open(self.json_file_path, "w") as f:
             json.dump(materials_data, f, indent=4)
 
         # mock up a sphere
         bunker_solids = generate_bunker_solids()
 
         # save sphere to stp
-        step_file_writer: mcio.ocp.STEPFileWriter = mcio.ocp.STEPFileWriter(self.decom_params)
+        step_file_writer: mcio.ocp.STEPFileWriter = mcio.ocp.STEPFileWriter(
+            self.decom_params
+        )
 
-        step_file_writer.add_solid(bunker_solids['concrete_walls'], 'bunker', rgb=(0, 0, 255))
+        step_file_writer.add_solid(
+            bunker_solids["concrete_walls"], "bunker", rgb=(0, 0, 255)
+        )
 
         # Sphere 1 - Carbon, Graphite (255_0_0)
-        step_file_writer.add_solid(bunker_solids['sphere_1'], 'sphere_1', rgb=(255, 0, 0))
+        step_file_writer.add_solid(
+            bunker_solids["sphere_1"], "sphere_1", rgb=(255, 0, 0)
+        )
 
         # Sphere 2 - Silicon (0_255_0)
-        step_file_writer.add_solid(bunker_solids['sphere_2'], 'sphere_2', rgb=(0, 255, 0))
+        step_file_writer.add_solid(
+            bunker_solids["sphere_2"], "sphere_2", rgb=(0, 255, 0)
+        )
 
         # Sphere 3 - Iron (128_0_255)
-        step_file_writer.add_solid(bunker_solids['sphere_3'], 'sphere_3', rgb=(128, 0, 255))
+        step_file_writer.add_solid(
+            bunker_solids["sphere_3"], "sphere_3", rgb=(128, 0, 255)
+        )
 
         # Sphere 4 - Cobalt (255_128_0)
-        step_file_writer.add_solid(bunker_solids['sphere_4'], 'sphere_4', rgb=(255, 128, 0))
+        step_file_writer.add_solid(
+            bunker_solids["sphere_4"], "sphere_4", rgb=(255, 128, 0)
+        )
 
         # Sphere 5 - HDPE (128_255_0)
-        step_file_writer.add_solid(bunker_solids['sphere_5'], 'sphere_5', rgb=(128, 255, 0))
+        step_file_writer.add_solid(
+            bunker_solids["sphere_5"], "sphere_5", rgb=(128, 255, 0)
+        )
 
-        # write step files to temp directory            
+        # write step files to temp directory
         step_file_writer.write(self.step_file_path)
 
     def tearDown(self):
@@ -193,7 +213,7 @@ class MCIORegressionTestDecomposeRGB(unittest.TestCase, CustomAssertions, Custom
     def test_run_decomposer(self):
         decomposer = mcio.decompose.Decomposer(
             step_file_paths=[self.step_file_path],
-            materials_file_path=self.json_file_path
+            materials_file_path=self.json_file_path,
         )
 
         try:
@@ -213,69 +233,92 @@ class MCIORegressionTestDecomposeRGB(unittest.TestCase, CustomAssertions, Custom
 
         # materials assigned by colour
         expected_materials = {
-            'bunker': 'Concrete, Ordinary',
-            'sphere_1': 'Carbon, Graphite',
-            'sphere_2': 'Silicon',
-            'sphere_3': 'Iron',
-            'sphere_4': 'Cobalt',
-            'sphere_5': 'HDPE',
+            "bunker": "Concrete, Ordinary",
+            "sphere_1": "Carbon, Graphite",
+            "sphere_2": "Silicon",
+            "sphere_3": "Iron",
+            "sphere_4": "Cobalt",
+            "sphere_5": "HDPE",
         }
         materials_by_solid = {cell.name: cell.material.name for cell in material_cells}
         self.assertEqual(materials_by_solid, expected_materials)
 
         # every surface used by a cell is written in the surface block, and no line is too long
-        with open(self.mcnp_output_path, 'r') as f:
+        with open(self.mcnp_output_path, "r") as f:
             lines = f.read().splitlines()
         for line in lines:
             self.assertLessEqual(len(line), 80, line)
-        start = next(i for i, l in enumerate(lines) if '====== SURFACES' in l)
-        end = next(i for i, l in enumerate(lines) if '====== MATERIALS' in l)
-        surface_numbers = {int(l.split()[0]) for l in lines[start:end] if l[:1].isdigit()}
+        start = next(i for i, l in enumerate(lines) if "====== SURFACES" in l)
+        end = next(i for i, l in enumerate(lines) if "====== MATERIALS" in l)
+        surface_numbers = {
+            int(l.split()[0]) for l in lines[start:end] if l[:1].isdigit()
+        }
         for cell in cells:
             for surface in cell.volume.surfaces:
                 self.assertIn(surface.number, surface_numbers)
 
         # OpenMC model files written
         if HAS_OPENMC:
-            for file_name in ('geometry.xml', 'materials.xml', 'settings.xml'):
-                self.assertTrue(os.path.isfile(os.path.join(self.openmc_output_path, file_name)), file_name)
+            for file_name in ("geometry.xml", "materials.xml", "settings.xml"):
+                self.assertTrue(
+                    os.path.isfile(os.path.join(self.openmc_output_path, file_name)),
+                    file_name,
+                )
 
     def test_cells_have_no_repeated_terms(self):
         # operands of nested Ands are de-duplicated, so no cell repeats a term (e.g. "-12 -12")
         decomposer = mcio.decompose.Decomposer(
             step_file_paths=[self.step_file_path],
-            materials_file_path=self.json_file_path
+            materials_file_path=self.json_file_path,
         )
         decomposer.run(cores=1)
 
         def repeated_terms(boolean):
             if isinstance(boolean, mcio.volume.HalfVolume):
                 return 0
-            hashes = [sb.__hash_string__() for sb in boolean.sub_booleans if isinstance(sb, mcio.volume.HalfVolume)]
-            return len(hashes) - len(set(hashes)) + sum(repeated_terms(sb) for sb in boolean.sub_booleans)
+            hashes = [
+                sb.__hash_string__()
+                for sb in boolean.sub_booleans
+                if isinstance(sb, mcio.volume.HalfVolume)
+            ]
+            return (
+                len(hashes)
+                - len(set(hashes))
+                + sum(repeated_terms(sb) for sb in boolean.sub_booleans)
+            )
 
         for cell in decomposer.model.cells:
-            boolean = cell.volume.boolean if isinstance(cell.volume, mcio.volume.Volume) else cell.volume
+            boolean = (
+                cell.volume.boolean
+                if isinstance(cell.volume, mcio.volume.Volume)
+                else cell.volume
+            )
             self.assertEqual(repeated_terms(boolean), 0, cell.comment)
 
 
 @dataclass
 class AnnulusParameters:
-    radius_inner: float 
+    radius_inner: float
     radius_outer: float
     extrusion_offset: float
     extrusion_length: float
     workplane: str
 
     def __hash__(self):
-        string = ''
+        string = ""
         for param, val in self.__dict__.items():
-            string += f'{param}_{val:.12e}' if isinstance(val, (float, int)) else f'{param}_{val}'
+            string += (
+                f"{param}_{val:.12e}"
+                if isinstance(val, (float, int))
+                else f"{param}_{val}"
+            )
 
         return hash(string)
 
 
-class MCIORegressionTestDecomposeFromOCPSolidsCylinders(unittest.TestCase, CustomAssertions, CustomCheckValue):
+class MCIORegressionTestDecomposeFromOCPSolidsCylinders(
+    unittest.TestCase, CustomAssertions, CustomCheckValue
+):
     def setUp(self):
         # create two annuli
         annulus_params_1 = AnnulusParameters(
@@ -283,7 +326,7 @@ class MCIORegressionTestDecomposeFromOCPSolidsCylinders(unittest.TestCase, Custo
             radius_outer=150,
             extrusion_offset=-250,
             extrusion_length=375,
-            workplane=None
+            workplane=None,
         )
 
         annulus_params_2 = AnnulusParameters(
@@ -291,22 +334,26 @@ class MCIORegressionTestDecomposeFromOCPSolidsCylinders(unittest.TestCase, Custo
             radius_outer=80,
             extrusion_offset=250,
             extrusion_length=-125,
-            workplane=None
+            workplane=None,
         )
 
         self.params_and_solids = {}
-        for workplane in ['XY', 'YZ', 'ZX']:
+        for workplane in ["XY", "YZ", "ZX"]:
             for annulus_param in [annulus_params_1, annulus_params_2]:
                 params = copy.deepcopy(annulus_param)
                 params.workplane = workplane
 
                 solid = (
-                    cq.Workplane(params.workplane)
-                    .workplane(offset=params.extrusion_offset)
-                    .circle(params.radius_outer)
-                    .circle(params.radius_inner)
-                    .extrude(params.extrusion_length)
-                ).val().wrapped
+                    (
+                        cq.Workplane(params.workplane)
+                        .workplane(offset=params.extrusion_offset)
+                        .circle(params.radius_outer)
+                        .circle(params.radius_inner)
+                        .extrude(params.extrusion_length)
+                    )
+                    .val()
+                    .wrapped
+                )
 
                 self.params_and_solids[params] = solid
 
@@ -325,65 +372,110 @@ class MCIORegressionTestDecomposeFromOCPSolidsCylinders(unittest.TestCase, Custo
     def test_add_cylinders_from_cadquery_ocp_annulus(self):
         for params, solid in self.params_and_solids.items():
             decomposer = mcio.decompose.Decomposer()
-            decomposer.add_solid(solid, 'solid')
+            decomposer.add_solid(solid, "solid")
             decomposer.run(cores=1)
 
             decomposition_solid = decomposer.decomposition_solids[0]
 
             surface_lookup = {
-                'YZ': (mcio.surface.XPlane, mcio.surface.CylinderParallelToXAxis),
-                'ZX': (mcio.surface.YPlane, mcio.surface.CylinderParallelToYAxis),
-                'XY': (mcio.surface.ZPlane, mcio.surface.CylinderParallelToZAxis)
-                }
+                "YZ": (mcio.surface.XPlane, mcio.surface.CylinderParallelToXAxis),
+                "ZX": (mcio.surface.YPlane, mcio.surface.CylinderParallelToYAxis),
+                "XY": (mcio.surface.ZPlane, mcio.surface.CylinderParallelToZAxis),
+            }
 
             # check boolean type in volume
-            assert isinstance(decomposition_solid.mcio_cell.volume.boolean, mcio.volume.And)
+            assert isinstance(
+                decomposition_solid.mcio_cell.volume.boolean, mcio.volume.And
+            )
             assert len(decomposition_solid.mcio_cell.volume.boolean.sub_booleans) == 4
 
-            for half_volume in decomposition_solid.mcio_cell.volume.boolean.sub_booleans:
+            for (
+                half_volume
+            ) in decomposition_solid.mcio_cell.volume.boolean.sub_booleans:
                 assert isinstance(half_volume, mcio.volume.HalfVolume)
                 assert isinstance(half_volume.surface, surface_lookup[params.workplane])
 
                 if isinstance(half_volume.surface, mcio.surface.XPlane):
                     # find bottom and top of cylinder
-                    x_min = min(params.extrusion_offset, params.extrusion_offset + params.extrusion_length)
-                    x_max = max(params.extrusion_offset, params.extrusion_offset + params.extrusion_length)
+                    x_min = min(
+                        params.extrusion_offset,
+                        params.extrusion_offset + params.extrusion_length,
+                    )
+                    x_max = max(
+                        params.extrusion_offset,
+                        params.extrusion_offset + params.extrusion_length,
+                    )
 
                     # check x plane parmeters
-                    assert self.check_values_within_relative_tol (half_volume.surface.x0, x_min, tol=self._tolerance) or \
-                           self.check_values_within_relative_tol(half_volume.surface.x0, x_max, tol=self._tolerance)
+                    assert self.check_values_within_relative_tol(
+                        half_volume.surface.x0, x_min, tol=self._tolerance
+                    ) or self.check_values_within_relative_tol(
+                        half_volume.surface.x0, x_max, tol=self._tolerance
+                    )
 
                     # check surface directions for planes
-                    if self.check_values_within_relative_tol(half_volume.surface.x0, x_min, tol=self._tolerance):
-                        assert half_volume.direction == '+'
-                    elif self.check_values_within_relative_tol(half_volume.surface.x0, x_max, tol=self._tolerance):
-                        assert half_volume.direction == '-'
-
+                    if self.check_values_within_relative_tol(
+                        half_volume.surface.x0, x_min, tol=self._tolerance
+                    ):
+                        assert half_volume.direction == "+"
+                    elif self.check_values_within_relative_tol(
+                        half_volume.surface.x0, x_max, tol=self._tolerance
+                    ):
+                        assert half_volume.direction == "-"
 
                 if isinstance(half_volume.surface, mcio.surface.YPlane):
-                    y_min = min(params.extrusion_offset, params.extrusion_offset + params.extrusion_length)
-                    y_max = max(params.extrusion_offset, params.extrusion_offset + params.extrusion_length)
+                    y_min = min(
+                        params.extrusion_offset,
+                        params.extrusion_offset + params.extrusion_length,
+                    )
+                    y_max = max(
+                        params.extrusion_offset,
+                        params.extrusion_offset + params.extrusion_length,
+                    )
 
-                    assert self.check_values_within_relative_tol(half_volume.surface.y0, y_min, tol=self._tolerance) or \
-                            self.check_values_within_relative_tol(half_volume.surface.y0, y_max, tol=self._tolerance)
+                    assert self.check_values_within_relative_tol(
+                        half_volume.surface.y0, y_min, tol=self._tolerance
+                    ) or self.check_values_within_relative_tol(
+                        half_volume.surface.y0, y_max, tol=self._tolerance
+                    )
 
-                    if self.check_values_within_relative_tol(half_volume.surface.y0, y_min, tol=self._tolerance):
-                        assert half_volume.direction == '+'
-                    elif self.check_values_within_relative_tol(half_volume.surface.y0, y_max, tol=self._tolerance):
-                        assert half_volume.direction == '-'
+                    if self.check_values_within_relative_tol(
+                        half_volume.surface.y0, y_min, tol=self._tolerance
+                    ):
+                        assert half_volume.direction == "+"
+                    elif self.check_values_within_relative_tol(
+                        half_volume.surface.y0, y_max, tol=self._tolerance
+                    ):
+                        assert half_volume.direction == "-"
 
                 if isinstance(half_volume.surface, mcio.surface.ZPlane):
-                    z_min = min(params.extrusion_offset, params.extrusion_offset + params.extrusion_length)
-                    z_max = max(params.extrusion_offset, params.extrusion_offset + params.extrusion_length)
+                    z_min = min(
+                        params.extrusion_offset,
+                        params.extrusion_offset + params.extrusion_length,
+                    )
+                    z_max = max(
+                        params.extrusion_offset,
+                        params.extrusion_offset + params.extrusion_length,
+                    )
 
-                    assert self.check_values_within_relative_tol (half_volume.surface.z0, params.extrusion_offset, tol=self._tolerance) or \
-                           self.check_values_within_relative_tol(half_volume.surface.z0, params.extrusion_offset + params.extrusion_length, tol=self._tolerance)
+                    assert self.check_values_within_relative_tol(
+                        half_volume.surface.z0,
+                        params.extrusion_offset,
+                        tol=self._tolerance,
+                    ) or self.check_values_within_relative_tol(
+                        half_volume.surface.z0,
+                        params.extrusion_offset + params.extrusion_length,
+                        tol=self._tolerance,
+                    )
 
-                    if self.check_values_within_relative_tol(half_volume.surface.z0, z_min, tol=self._tolerance):
-                        assert half_volume.direction == '+'
-                    elif self.check_values_within_relative_tol(half_volume.surface.z0, z_max, tol=self._tolerance):
-                        assert half_volume.direction == '-'
-
+                    if self.check_values_within_relative_tol(
+                        half_volume.surface.z0, z_min, tol=self._tolerance
+                    ):
+                        assert half_volume.direction == "+"
+                    elif self.check_values_within_relative_tol(
+                        half_volume.surface.z0, z_max, tol=self._tolerance
+                    ):
+                        assert half_volume.direction == "-"
 
                 # if isinstance(half_volume.surface, mcio.surface.CylinderParallelToXAxis(, mcio.surface.CylinderParallelToYAxis, mcio.surface.CylinderParallelToZAxis)):
                 #     assert self.check_values_within_relative_tol(half_volume.surface.radius, params.radius_inner, tol=self._tolerance) or \
@@ -451,15 +543,25 @@ class MCIORegressionTestDecomposeFromOCPSolidsSpheres(
 
             # STEP export verification for diagnostic trace
             step_file_writer = mcio.ocpfilereadwrite.STEPFileWriter()
-            step_file_writer.add_solid(solid, f"sphere_{params.radius_outer}_{params.radius_inner}")
-            step_file_writer.write(os.path.join(self.temp_dir.name, f"sphere_{params.radius_outer}_{params.radius_inner}.stp"))
+            step_file_writer.add_solid(
+                solid, f"sphere_{params.radius_outer}_{params.radius_inner}"
+            )
+            step_file_writer.write(
+                os.path.join(
+                    self.temp_dir.name,
+                    f"sphere_{params.radius_outer}_{params.radius_inner}.stp",
+                )
+            )
 
             # Decompose directly from TopoDS_Solid object
             decomposer = mcio.decompose.Decomposer()
             decomposer.add_solid(solid, "solid")
             decomposer.run(cores=1)
             decomposer.model.write_mcnp(
-                os.path.join(self.temp_dir.name, f"model_sphere_{params.radius_outer}_{params.radius_inner}.i")
+                os.path.join(
+                    self.temp_dir.name,
+                    f"model_sphere_{params.radius_outer}_{params.radius_inner}.i",
+                )
             )
 
         self._tolerance = 1e-6
@@ -480,12 +582,7 @@ class MCIORegressionTestDecomposeFromOCPSolidsSpheres(
                 decomposition_solid.mcio_cell.volume.boolean, mcio.volume.And
             )
             # A spherical shell bounded by inner and outer spheres should consist of 2 half-spaces
-            assert (
-                len(
-                    decomposition_solid.mcio_cell.volume.boolean.sub_booleans
-                )
-                == 2
-            )
+            assert len(decomposition_solid.mcio_cell.volume.boolean.sub_booleans) == 2
 
             for (
                 half_volume

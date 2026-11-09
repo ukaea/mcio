@@ -220,16 +220,14 @@ class STLSolid:
         self.vertices_loop: bool | None = None
 
     def slice(
-        self, normal_axis: str = "x",
-        intercept: float = 0.0,
-        create_loops: bool = False
+        self, normal_axis: str = "x", intercept: float = 0.0, create_loops: bool = False
     ) -> STLSlicePX | STLSlicePY | STLSlicePZ:
         """Returns a 2D slice through the STLSolid geometry
 
         Parameters
         ----------
         normal_axis : str, optional
-            The axis to place the normal of the slice plane, x, y or z, by 
+            The axis to place the normal of the slice plane, x, y or z, by
             default "x"
         intercept : float, optional
             intercept along the axis, by default 0.0
@@ -473,7 +471,9 @@ class STL:
         ax.set_zlim(z_min, z_max)
         plt.show()
 
-    def plot_2d(self, axis: str = "x", intercept: float = 0.0, grid: bool = True) -> None:
+    def plot_2d(
+        self, axis: str = "x", intercept: float = 0.0, grid: bool = True
+    ) -> None:
         """STL plotting function producing 2D plot using matplotlib
 
         Parameters
@@ -682,7 +682,6 @@ def sort_intercepts_into_loop(
             y_max = p_next[1] + 50
 
             for axes_row in axes:
-
                 axes_row[1].plot([p_next[0], p_next[0]], [y_min, y_max])
                 axes_row[1].plot([x_min, x_max], [p_next[1], p_next[1]])
 

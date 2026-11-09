@@ -4,6 +4,7 @@ Contains the :class:`Macrobody` base class and the BOX, RPP and RCC
 macrobodies, which can be written as MCNP macrobody cards or expanded into
 volumes of primitive surfaces.
 """
+
 from __future__ import annotations
 
 import math
@@ -34,7 +35,9 @@ class Macrobody:
         Transform applied to the macrobody, by default None
     """
 
-    def __init__(self, comment: str | None=None, transform: Transform | None=None) -> None:
+    def __init__(
+        self, comment: str | None = None, transform: Transform | None = None
+    ) -> None:
         """Initialise the Macrobody base class."""
         self._comment: str | None = comment
         self._transform: Transform | None = transform
@@ -69,7 +72,7 @@ class Macrobody:
         HalfVolume
             Half volume with direction ``'+'``.
         """
-        return HalfVolume('+', self)
+        return HalfVolume("+", self)
 
     def __neg__(self) -> HalfVolume:
         """Return the negative (inside) half volume of the macrobody.
@@ -79,7 +82,7 @@ class Macrobody:
         HalfVolume
             Half volume with direction ``'-'``.
         """
-        return HalfVolume('-', self)
+        return HalfVolume("-", self)
 
     def __hash_string__(self) -> str:
         """Unique hash string for macrobody identification."""
@@ -103,9 +106,13 @@ class Macrobody:
         # return the mcnp string of the surface
         return macrobody_string
 
-def mcnp_macrobody(macrobody_type: str, parameters: list[float],
-                   macrobody_number: int | None,
-                   transform: Transform | None) -> MCNPCard:
+
+def mcnp_macrobody(
+    macrobody_type: str,
+    parameters: list[float],
+    macrobody_number: int | None,
+    transform: Transform | None,
+) -> MCNPCard:
     """Build an MCNP card for a macrobody.
 
     Parameters
@@ -125,10 +132,10 @@ def mcnp_macrobody(macrobody_type: str, parameters: list[float],
     MCNPCard
         The macrobody surface card.
     """
-    rows = [[f'{macrobody_type:<{formatting.MCNP_INDENT}}']]
+    rows = [[f"{macrobody_type:<{formatting.MCNP_INDENT}}"]]
 
     for parameter in parameters:
-        rows[0].append(f'{parameter:.{formatting.MCNP_DP}f}')
+        rows[0].append(f"{parameter:.{formatting.MCNP_DP}f}")
 
     if transform:
         rows[0].insert(0, str(transform.number))
@@ -169,9 +176,22 @@ class Box(Macrobody):
         Passed to :class:`Macrobody` (``comment``, ``transform``).
     """
 
-    def __init__(self, vx: float=0.0, vy: float=0.0, vz: float=0.0, a1x: float=0.0, a1y: float=0.0, a1z: float=0.0,
-                       a2x: float=0.0, a2y: float=0.0, a2z: float=0.0, a3x: float=0.0, a3y: float=0.0, a3z: float=0.0,
-                       **kwargs: Any) -> None:
+    def __init__(
+        self,
+        vx: float = 0.0,
+        vy: float = 0.0,
+        vz: float = 0.0,
+        a1x: float = 0.0,
+        a1y: float = 0.0,
+        a1z: float = 0.0,
+        a2x: float = 0.0,
+        a2y: float = 0.0,
+        a2z: float = 0.0,
+        a3x: float = 0.0,
+        a3y: float = 0.0,
+        a3z: float = 0.0,
+        **kwargs: Any,
+    ) -> None:
         """Initialise the Box macrobody."""
 
         super().__init__(**kwargs)
@@ -192,12 +212,25 @@ class Box(Macrobody):
     @property
     def mcnp_card(self) -> MCNPCard:
         """MCNP BOX surface card for the macrobody."""
-        return mcnp_macrobody('BOX',
-                              [self._vx, self._vy, self._vz,
-                               self._a1x, self._a1y, self._a1z,
-                               self._a2x, self._a2y, self._a2z,
-                               self._a3x, self._a3y, self._a3z],
-                               self._number, self._transform)
+        return mcnp_macrobody(
+            "BOX",
+            [
+                self._vx,
+                self._vy,
+                self._vz,
+                self._a1x,
+                self._a1y,
+                self._a1z,
+                self._a2x,
+                self._a2y,
+                self._a2z,
+                self._a3x,
+                self._a3y,
+                self._a3z,
+            ],
+            self._number,
+            self._transform,
+        )
 
     def ocp_shape(self) -> None:
         """Placeholder for building an Open CASCADE shape (not implemented)."""
@@ -224,8 +257,16 @@ class RectangularParallelepiped(Macrobody):
         Passed to :class:`Macrobody` (``comment``, ``transform``).
     """
 
-    def __init__(self, x_min: float=0.0, x_max: float=0.0, y_min: float=0.0,
-                 y_max: float=0.0, z_min: float=0.0, z_max: float=0.0, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        x_min: float = 0.0,
+        x_max: float = 0.0,
+        y_min: float = 0.0,
+        y_max: float = 0.0,
+        z_min: float = 0.0,
+        z_max: float = 0.0,
+        **kwargs: Any,
+    ) -> None:
         """Initialise the RectangularParallelepiped macrobody."""
 
         super().__init__(**kwargs)
@@ -240,10 +281,19 @@ class RectangularParallelepiped(Macrobody):
     @property
     def mcnp_card(self) -> MCNPCard:
         """MCNP RPP surface card for the macrobody."""
-        return mcnp_macrobody('RPP',
-                              [self._x_min, self._x_max, self._y_min,
-                               self._y_max, self._z_min, self._z_max],
-                               self._number, self._transform)
+        return mcnp_macrobody(
+            "RPP",
+            [
+                self._x_min,
+                self._x_max,
+                self._y_min,
+                self._y_max,
+                self._z_min,
+                self._z_max,
+            ],
+            self._number,
+            self._transform,
+        )
 
     def as_half_volumes(self) -> list[HalfVolume]:
         """Return the six plane half volumes whose intersection is the box.
@@ -255,17 +305,17 @@ class RectangularParallelepiped(Macrobody):
         """
         # set up list of half volumes
         half_volumes = [
-            HalfVolume('+', XPlane(x0=self._x_min, transform=self._transform)),
-            HalfVolume('-', XPlane(x0=self._x_max, transform=self._transform)),
-            HalfVolume('+', YPlane(y0=self._y_min, transform=self._transform)),
-            HalfVolume('-', YPlane(y0=self._y_max, transform=self._transform)),
-            HalfVolume('+', ZPlane(z0=self._z_min, transform=self._transform)),
-            HalfVolume('-', ZPlane(z0=self._z_max, transform=self._transform))
+            HalfVolume("+", XPlane(x0=self._x_min, transform=self._transform)),
+            HalfVolume("-", XPlane(x0=self._x_max, transform=self._transform)),
+            HalfVolume("+", YPlane(y0=self._y_min, transform=self._transform)),
+            HalfVolume("-", YPlane(y0=self._y_max, transform=self._transform)),
+            HalfVolume("+", ZPlane(z0=self._z_min, transform=self._transform)),
+            HalfVolume("-", ZPlane(z0=self._z_max, transform=self._transform)),
         ]
 
         return half_volumes
 
-    def as_volume_of_surfaces(self, invert: bool=False) -> Volume:
+    def as_volume_of_surfaces(self, invert: bool = False) -> Volume:
         """Return the interior of the box as a volume of six planes.
 
         Parameters
@@ -278,12 +328,14 @@ class RectangularParallelepiped(Macrobody):
         Volume
             Intersection of the six plane half volumes.
         """
-        vol = +XPlane(x0=self._x_min, transform=self._transform) & \
-              -XPlane(x0=self._x_max, transform=self._transform) & \
-              +YPlane(y0=self._y_min, transform=self._transform) & \
-              -YPlane(y0=self._y_max, transform=self._transform) & \
-              +ZPlane(z0=self._z_min, transform=self._transform) & \
-              -ZPlane(z0=self._z_max, transform=self._transform)
+        vol = (
+            +XPlane(x0=self._x_min, transform=self._transform)
+            & -XPlane(x0=self._x_max, transform=self._transform)
+            & +YPlane(y0=self._y_min, transform=self._transform)
+            & -YPlane(y0=self._y_max, transform=self._transform)
+            & +ZPlane(z0=self._z_min, transform=self._transform)
+            & -ZPlane(z0=self._z_max, transform=self._transform)
+        )
 
         return vol
 
@@ -293,6 +345,7 @@ class RectangularParallelepiped(Macrobody):
         # HalfVolume('-', YPlane(y0=self._y_max, transform=self._transform)),
         # HalfVolume('+', ZPlane(z0=self._z_min, transform=self._transform)),
         # HalfVolume('-', ZPlane(z0=self._z_max, transform=self._transform))
+
 
 class RightCircularCylinder(Macrobody):
     """Right circular cylinder (MCNP RCC macrobody).
@@ -317,7 +370,17 @@ class RightCircularCylinder(Macrobody):
         Passed to :class:`Macrobody` (``comment``, ``transform``).
     """
 
-    def __init__(self, x0: float=0.0, y0: float=0.0, z0: float=0.0, h_x: float=0.0, h_y: float=0.0, h_z: float=0.0, radius: float=0.0, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        x0: float = 0.0,
+        y0: float = 0.0,
+        z0: float = 0.0,
+        h_x: float = 0.0,
+        h_y: float = 0.0,
+        h_z: float = 0.0,
+        radius: float = 0.0,
+        **kwargs: Any,
+    ) -> None:
         """Initialise the RightCircularCylinder macrobody."""
 
         super().__init__(**kwargs)
@@ -333,10 +396,18 @@ class RightCircularCylinder(Macrobody):
     @property
     def mcnp_card(self) -> MCNPCard:
         """MCNP RCC surface card for the macrobody."""
-        params = [self._x0, self._y0, self._z0, self._h_x, self._h_y, self._h_z, self._radius]
-        return mcnp_macrobody('RCC', params, self._number, self._transform)
+        params = [
+            self._x0,
+            self._y0,
+            self._z0,
+            self._h_x,
+            self._h_y,
+            self._h_z,
+            self._radius,
+        ]
+        return mcnp_macrobody("RCC", params, self._number, self._transform)
 
-    def as_volume_of_surfaces(self, invert: bool=False) -> Volume:
+    def as_volume_of_surfaces(self, invert: bool = False) -> Volume:
         """Return the interior of the cylinder as a volume of primitive surfaces.
 
         A local frame is built with its z axis along the height vector and its
@@ -362,7 +433,7 @@ class RightCircularCylinder(Macrobody):
         height = math.sqrt(self._h_x**2 + self._h_y**2 + self._h_z**2)
 
         if height == 0:
-            msg = 'Height vector (h_x, h_y, h_z) cannot be zero.'
+            msg = "Height vector (h_x, h_y, h_z) cannot be zero."
             logger.fatal(msg)
             raise ValueError(msg)
 
@@ -379,7 +450,7 @@ class RightCircularCylinder(Macrobody):
         ux_raw = (
             ref[1] * uz[2] - ref[2] * uz[1],
             ref[2] * uz[0] - ref[0] * uz[2],
-            ref[0] * uz[1] - ref[1] * uz[0]
+            ref[0] * uz[1] - ref[1] * uz[0],
         )
         ux_len = math.sqrt(sum(k**2 for k in ux_raw))
         ux = tuple(k / ux_len for k in ux_raw)
@@ -388,22 +459,20 @@ class RightCircularCylinder(Macrobody):
         uy = (
             uz[1] * ux[2] - uz[2] * ux[1],
             uz[2] * ux[0] - uz[0] * ux[2],
-            uz[0] * ux[1] - uz[1] * ux[0]
+            uz[0] * ux[1] - uz[1] * ux[0],
         )
 
         # Rows must be the local axes (X', Y', Z') expressed in global coordinates (X, Y, Z)
         matrix = [
             [ux[0], ux[1], ux[2]],  # x' relative to global X, Y, Z
             [uy[0], uy[1], uy[2]],  # y' relative to global X, Y, Z
-            [uz[0], uz[1], uz[2]]   # z' relative to global X, Y, Z
+            [uz[0], uz[1], uz[2]],  # z' relative to global X, Y, Z
         ]
 
         lateral = (self._x0, self._y0, self._z0)
 
         transform = Transform(
-            lateral=lateral,
-            rotation_matrix=matrix,
-            angle_type='cosine'
+            lateral=lateral, rotation_matrix=matrix, angle_type="cosine"
         )
 
         # On-axis primitive surfaces in local space (Z-aligned, origin at base)

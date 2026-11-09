@@ -26,6 +26,7 @@ def function_timer(func: Callable[..., Any]) -> Callable[..., tuple[Any, float]]
         Wrapped function returning a tuple of the original result and the time
         taken in seconds.
     """
+
     def wrapper(*args: Any, **kwargs: Any) -> tuple[Any, float]:
         """Call the wrapped function and time it.
 
@@ -44,7 +45,7 @@ def function_timer(func: Callable[..., Any]) -> Callable[..., tuple[Any, float]]
         # record start time
         time_start = time.time()
 
-        # call function wrapper has been applied to 
+        # call function wrapper has been applied to
         result = func(*args, **kwargs)
 
         # calculate total time taken
@@ -52,7 +53,7 @@ def function_timer(func: Callable[..., Any]) -> Callable[..., tuple[Any, float]]
 
         # return the result of the fucntion wrapper has been applied to, along with total time taken
         return result, time_total
-    
+
     # return the wrapper
     return wrapper
 
@@ -62,8 +63,6 @@ class ProfilerDecompositionSolid:
     """Placeholder for profiling data of a single decomposed solid."""
 
 
-
 @dataclass
 class ProfilerDecomposer:
     """Placeholder for profiling data of a full decomposition run."""
-

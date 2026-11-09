@@ -1,5 +1,4 @@
-"""Numerical utility functions for MCIO.
-"""
+"""Numerical utility functions for MCIO."""
 
 from __future__ import annotations
 
@@ -35,4 +34,6 @@ def custom_round(val: float, digits: int) -> float:
     # Format to high precision float string first to avoid binary representation artifacts
     d = Decimal(f"{val:.16f}")
     return float(d.quantize(Decimal(10) ** -digits, rounding=ROUND_HALF_UP))
+
+
 1

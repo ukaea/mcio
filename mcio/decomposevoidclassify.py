@@ -307,8 +307,16 @@ def _torus_range(
 
 
 def _general_quadric_range(
-    a: float, b: float, c: float, d: float, e: float,
-    f_: float, g: float, h: float, j: float, k: float,
+    a: float,
+    b: float,
+    c: float,
+    d: float,
+    e: float,
+    f_: float,
+    g: float,
+    h: float,
+    j: float,
+    k: float,
 ) -> RangeFunction:
     """Build a range function for ``ax2+by2+cz2+dxy+eyz+fzx+gx+hy+jz+k``.
 
@@ -357,8 +365,16 @@ def _general_quadric_range(
             Function value.
         """
         return (
-            a * x * x + b * y * y + c * z * z + d * x * y + e * y * z + f_ * z * x
-            + g * x + h * y + j * z + k
+            a * x * x
+            + b * y * y
+            + c * z * z
+            + d * x * y
+            + e * y * z
+            + f_ * z * x
+            + g * x
+            + h * y
+            + j * z
+            + k
         )
 
     def f(lo: Sequence[float], hi: Sequence[float]) -> Range:
@@ -380,7 +396,10 @@ def _general_quadric_range(
         r = [(hi[i] - lo[i]) * 0.5 for i in range(3)]
         f0 = value(m[0], m[1], m[2])
         # gradient at the centre: 2 Q m + L
-        grad = [2.0 * (Q[i][0] * m[0] + Q[i][1] * m[1] + Q[i][2] * m[2]) + L[i] for i in range(3)]
+        grad = [
+            2.0 * (Q[i][0] * m[0] + Q[i][1] * m[1] + Q[i][2] * m[2]) + L[i]
+            for i in range(3)
+        ]
         lin = abs(grad[0]) * r[0] + abs(grad[1]) * r[1] + abs(grad[2]) * r[2]
         # quadratic remainder t^T Q t for |t_i| <= r_i
         q_min = 0.0
@@ -437,36 +456,42 @@ def surface_range_function(surface: Surface) -> RangeFunction | None:
     if type(s) is Plane:
         return _plane_range(s.a, s.b, s.c, s.d)
     if isinstance(s, Sphere):
-        return _separable_range((1.0, 1.0, 1.0), (s.x0, s.y0, s.z0), -s.radius ** 2)
+        return _separable_range((1.0, 1.0, 1.0), (s.x0, s.y0, s.z0), -(s.radius**2))
     if isinstance(s, SphereAtOrigin):
-        return _separable_range((1.0, 1.0, 1.0), (0.0, 0.0, 0.0), -s.radius ** 2)
+        return _separable_range((1.0, 1.0, 1.0), (0.0, 0.0, 0.0), -(s.radius**2))
     if isinstance(s, SphereOnXAxis):
-        return _separable_range((1.0, 1.0, 1.0), (s.x0, 0.0, 0.0), -s.radius ** 2)
+        return _separable_range((1.0, 1.0, 1.0), (s.x0, 0.0, 0.0), -(s.radius**2))
     if isinstance(s, SphereOnYAxis):
-        return _separable_range((1.0, 1.0, 1.0), (0.0, s.y0, 0.0), -s.radius ** 2)
+        return _separable_range((1.0, 1.0, 1.0), (0.0, s.y0, 0.0), -(s.radius**2))
     if isinstance(s, SphereOnZAxis):
-        return _separable_range((1.0, 1.0, 1.0), (0.0, 0.0, s.z0), -s.radius ** 2)
+        return _separable_range((1.0, 1.0, 1.0), (0.0, 0.0, s.z0), -(s.radius**2))
     if isinstance(s, CylinderParallelToXAxis):
-        return _separable_range((0.0, 1.0, 1.0), (0.0, s.y0, s.z0), -s.radius ** 2)
+        return _separable_range((0.0, 1.0, 1.0), (0.0, s.y0, s.z0), -(s.radius**2))
     if isinstance(s, CylinderParallelToYAxis):
-        return _separable_range((1.0, 0.0, 1.0), (s.x0, 0.0, s.z0), -s.radius ** 2)
+        return _separable_range((1.0, 0.0, 1.0), (s.x0, 0.0, s.z0), -(s.radius**2))
     if isinstance(s, CylinderParallelToZAxis):
-        return _separable_range((1.0, 1.0, 0.0), (s.x0, s.y0, 0.0), -s.radius ** 2)
+        return _separable_range((1.0, 1.0, 0.0), (s.x0, s.y0, 0.0), -(s.radius**2))
     if isinstance(s, CylinderOnXAxis):
-        return _separable_range((0.0, 1.0, 1.0), (0.0, 0.0, 0.0), -s.radius ** 2)
+        return _separable_range((0.0, 1.0, 1.0), (0.0, 0.0, 0.0), -(s.radius**2))
     if isinstance(s, CylinderOnYAxis):
-        return _separable_range((1.0, 0.0, 1.0), (0.0, 0.0, 0.0), -s.radius ** 2)
+        return _separable_range((1.0, 0.0, 1.0), (0.0, 0.0, 0.0), -(s.radius**2))
     if isinstance(s, CylinderOnZAxis):
-        return _separable_range((1.0, 1.0, 0.0), (0.0, 0.0, 0.0), -s.radius ** 2)
+        return _separable_range((1.0, 1.0, 0.0), (0.0, 0.0, 0.0), -(s.radius**2))
     # two-sheet cones only: the sense of one-sheet cones is not a single quadric
     if isinstance(s, (ConeParallelToXAxis, ConeOnXAxis)) and s.sheet == 0:
-        x0 = getattr(s, "x0", 0.0); y0 = getattr(s, "y0", 0.0); z0 = getattr(s, "z0", 0.0)
+        x0 = getattr(s, "x0", 0.0)
+        y0 = getattr(s, "y0", 0.0)
+        z0 = getattr(s, "z0", 0.0)
         return _separable_range((-s.t_sq, 1.0, 1.0), (x0, y0, z0), 0.0)
     if isinstance(s, (ConeParallelToYAxis, ConeOnYAxis)) and s.sheet == 0:
-        x0 = getattr(s, "x0", 0.0); y0 = getattr(s, "y0", 0.0); z0 = getattr(s, "z0", 0.0)
+        x0 = getattr(s, "x0", 0.0)
+        y0 = getattr(s, "y0", 0.0)
+        z0 = getattr(s, "z0", 0.0)
         return _separable_range((1.0, -s.t_sq, 1.0), (x0, y0, z0), 0.0)
     if isinstance(s, (ConeParallelToZAxis, ConeOnZAxis)) and s.sheet == 0:
-        x0 = getattr(s, "x0", 0.0); y0 = getattr(s, "y0", 0.0); z0 = getattr(s, "z0", 0.0)
+        x0 = getattr(s, "x0", 0.0)
+        y0 = getattr(s, "y0", 0.0)
+        z0 = getattr(s, "z0", 0.0)
         return _separable_range((1.0, 1.0, -s.t_sq), (x0, y0, z0), 0.0)
     if isinstance(s, GeneralQuadratic):
         return _general_quadric_range(s.a, s.b, s.c, s.d, s.e, s.f, s.g, s.h, s.j, s.k)
@@ -534,7 +559,10 @@ class BoxClassifier:
         return fn
 
     def classify(
-        self, region: HalfVolume | Volume | Boolean, lo: Sequence[float], hi: Sequence[float]
+        self,
+        region: HalfVolume | Volume | Boolean,
+        lo: Sequence[float],
+        hi: Sequence[float],
     ) -> int:
         """Classify a region against a box.
 
@@ -629,7 +657,9 @@ class BoxClassifier:
         return CROSSING, tuple(remaining)
 
 
-def intersection_terms(region: HalfVolume | Volume | Boolean) -> list[HalfVolume | Volume | Boolean]:
+def intersection_terms(
+    region: HalfVolume | Volume | Boolean,
+) -> list[HalfVolume | Volume | Boolean]:
     """Split a region into the terms of its top-level intersection.
 
     Parameters
@@ -648,6 +678,7 @@ def intersection_terms(region: HalfVolume | Volume | Boolean) -> list[HalfVolume
         return list(region.sub_booleans)
     return [region]
 
+
 def as_region(term: HalfVolume | Volume | Boolean) -> HalfVolume | Volume:
     """Wrap a raw :class:`Boolean` in a :class:`Volume` so CSG operators work.
 
@@ -661,12 +692,15 @@ def as_region(term: HalfVolume | Volume | Boolean) -> HalfVolume | Volume:
     HalfVolume or Volume
         The term, usable with ``&``, ``|`` and ``~``.
     """
-    
+
     if isinstance(term, Boolean):
         return Volume(term)
     return term
 
-def intersect_terms(terms: Sequence[HalfVolume | Volume | Boolean]) -> HalfVolume | Volume:
+
+def intersect_terms(
+    terms: Sequence[HalfVolume | Volume | Boolean],
+) -> HalfVolume | Volume:
     """Return the intersection of a non-empty sequence of terms as a region.
 
     Parameters
@@ -683,7 +717,9 @@ def intersect_terms(terms: Sequence[HalfVolume | Volume | Boolean]) -> HalfVolum
     if len(terms) == 1:
         region = as_region(terms[0])
     else:
-        operands = [term.boolean if isinstance(term, Volume) else term for term in terms]
+        operands = [
+            term.boolean if isinstance(term, Volume) else term for term in terms
+        ]
         region = Volume(And(operands))
 
     return region
@@ -720,7 +756,10 @@ def _plane_coefficients(term: Any) -> tuple[float, float, float, float, str] | N
 
 
 def box_minus_planar_halfspaces_is_empty(
-    terms: Sequence[Any], lo: Sequence[float], hi: Sequence[float], rel_tol: float = 1e-9
+    terms: Sequence[Any],
+    lo: Sequence[float],
+    hi: Sequence[float],
+    rel_tol: float = 1e-9,
 ) -> bool:
     """Return whether ``box & ~H_1 & ~H_2 & ...`` has no interior.
 
@@ -759,20 +798,25 @@ def box_minus_planar_halfspaces_is_empty(
         a, b, c, d = a / norm, b / norm, c / norm, d / norm
         # complement of '+' (f > 0) is n.x < d ; complement of '-' is n.x > d
         if direction == "+":
-            rows.append([a, b, c, 1.0]); rhs.append(d)
+            rows.append([a, b, c, 1.0])
+            rhs.append(d)
         else:
-            rows.append([-a, -b, -c, 1.0]); rhs.append(-d)
+            rows.append([-a, -b, -c, 1.0])
+            rhs.append(-d)
     for i in range(3):
         row = [0.0, 0.0, 0.0, 1.0]
         row[i] = -1.0
-        rows.append(row); rhs.append(-lo[i])
+        rows.append(row)
+        rhs.append(-lo[i])
         row = [0.0, 0.0, 0.0, 1.0]
         row[i] = 1.0
-        rows.append(row); rhs.append(hi[i])
+        rows.append(row)
+        rhs.append(hi[i])
 
     size = max(hi[i] - lo[i] for i in range(3))
     try:
         from scipy.optimize import linprog
+
         result = linprog(
             c=[0.0, 0.0, 0.0, -1.0],
             A_ub=np.array(rows),

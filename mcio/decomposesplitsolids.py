@@ -44,7 +44,7 @@ class SplitSolid:
     """Represent an individual sub-solid formed from geometric decomposition.
 
     Manages geometric boundaries, mapping OpenCASCADE shapes and faces to MCIO
-    half-spaces, auxiliary boundary surfaces, bounding box computations, and 
+    half-spaces, auxiliary boundary surfaces, bounding box computations, and
     CSG model generation.
 
     Parameters
@@ -52,7 +52,7 @@ class SplitSolid:
     split_solid : TopoDS_Solid or bytes
         The OpenCASCADE sub-solid shape or its binary serialization.
     faces_with_auxiliaries : dict
-        Mapping of OpenCASCADE faces (or face binaries) to lists of auxiliary 
+        Mapping of OpenCASCADE faces (or face binaries) to lists of auxiliary
         surfaces and orientations.
     decom_params : DecompositionParameters
         Configuration options controlling tolerance and decomposition behavior.
@@ -71,7 +71,7 @@ class SplitSolid:
     n_faces : int
         Number of topological faces making up the split solid.
     is_serialised : bool
-        Flag indicating if the shape objects are currently in binary 
+        Flag indicating if the shape objects are currently in binary
         serialization format.
     bounding_box : BoundingBox
         Axis-aligned bounding box of the sub-solid.
@@ -139,7 +139,7 @@ class SplitSolid:
         self._fraction_of_bounding_box: float | None = None
 
         # produce mcio half spaces for faces and for auxiliary surfaces of faces
-        for (face_ocp, auxiliary_surfaces) in faces_with_auxiliaries.items():
+        for face_ocp, auxiliary_surfaces in faces_with_auxiliaries.items():
             # get the mcio half space for the ocp face and store for later use
             mcio_halfspace_face = get_mcio_halfspace_from_ocp_face(
                 face_ocp,
@@ -153,7 +153,7 @@ class SplitSolid:
             # set up dict to store auxiliary surface half spaces
             self.face_auxiliary_surfaces_to_mcio_halfspaces[face_ocp] = {}
 
-            for (surface, orientation) in auxiliary_surfaces:
+            for surface, orientation in auxiliary_surfaces:
                 # create face for auxiliary surface
                 face_aux = BRepBuilderAPI_MakeFace(
                     surface, 0.0, 1.0, 0.0, 1.0, decom_params.make_face_tol
@@ -168,9 +168,9 @@ class SplitSolid:
                 )
 
                 # add mcio half space for auxiliary surface to dictionary
-                self.face_auxiliary_surfaces_to_mcio_halfspaces[face_ocp][
-                    face_aux
-                ] = mcio_halfspace_aux
+                self.face_auxiliary_surfaces_to_mcio_halfspaces[face_ocp][face_aux] = (
+                    mcio_halfspace_aux
+                )
                 mcio_half_spaces.append(mcio_halfspace_aux)
 
         # create mcio volume from half spaces

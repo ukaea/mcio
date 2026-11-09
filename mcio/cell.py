@@ -3,6 +3,7 @@
 Contains the :class:`Cell` class, which combines a CSG volume with a material
 and optional universe/transform information, and exports to MCNP and OpenMC.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -169,12 +170,16 @@ class Cell:
         if self._material is not None:
             density = [
                 f"{self.material.number}",
-                f"{density_fraction_modifier[self._material.density_unit]*self._material.density:.4e}",
+                f"{density_fraction_modifier[self._material.density_unit] * self._material.density:.4e}",
             ]
         else:
             density = ["0"]
 
-        header_data = {"name": self.name, "structure": self.structure, "comment": self.comment}
+        header_data = {
+            "name": self.name,
+            "structure": self.structure,
+            "comment": self.comment,
+        }
 
         # write cell importances
         importances = [
@@ -230,7 +235,7 @@ class Cell:
         cell_openmc = openmc.cell.Cell(
             region=self.volume.openmc_region if self.volume else None,
             fill=self.material.openmc_material if self.material else None,
-            name=self.name
+            name=self.name,
         )
 
         # check if this cell is a graveyard, if so set all surfaces within it

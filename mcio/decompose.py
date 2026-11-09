@@ -127,6 +127,7 @@ class Analysis:
     CAD_VALID : dict[DecompositionSolid, bool]
         Result of the OCP ``BRepCheck_Analyzer`` validity check for each solid.
     """
+
     def __init__(self, decomposition_solids: Sequence[DecompositionSolid]) -> None:
         """Initialise the Analysis and analyse the solids and surface types."""
         self.NUMBER_OF_BODIES: int = len(decomposition_solids)
@@ -385,6 +386,7 @@ class Decomposer:
         Whether to serialise the OCP objects to binary on construction (needed
         for pickling and multiprocessing), by default False
     """
+
     def __init__(
         self,
         step_file_paths: list[str] | None = None,
@@ -756,9 +758,7 @@ class Decomposer:
 
         return self._model
 
-    def tallies_from_json(
-        self, input_path: str | pathlib.Path | os.PathLike
-    ) -> None:
+    def tallies_from_json(self, input_path: str | pathlib.Path | os.PathLike) -> None:
         """Create tallies from a JSON file and add them to the model.
 
         Each key of the JSON is a label matched against the structure tree of
@@ -1035,7 +1035,6 @@ class Decomposer:
 
         # for single core with no debugging, save all failed solids to step
         if not debug and results_with_exceptions:
-
             msgs = ""
             for i, decomposition_solid, exception in results_with_exceptions:
                 msg = f" - solid_{i} failed - see logger file for exception\n"
@@ -1161,9 +1160,7 @@ class Decomposer:
 
     @function_timer
     def _generate_mcio_model(
-        self,
-        surface_number_min: int | None = None,
-        cell_number_min: int | None = None
+        self, surface_number_min: int | None = None, cell_number_min: int | None = None
     ) -> Model:
         """Generate the MCIO model from the decomposed and void cells.
 
@@ -1255,7 +1252,7 @@ class Decomposer:
             tallies=tallies,
             summary_data=summary_data,
             surface_number_min=surface_number_min,
-            cell_number_min=cell_number_min
+            cell_number_min=cell_number_min,
         )
 
         if self.universe:
@@ -1286,7 +1283,9 @@ class Decomposer:
             The red, green and blue values, or (-1, -1, -1) if no colour is set.
         """
         colour_surf = Quantity_ColorRGBA()
-        if colour_tool.GetColor_s(ref_label, XCAFDoc_ColorSurf, colour_surf) or colour_tool.GetColor_s(label, XCAFDoc_ColorSurf, colour_surf):
+        if colour_tool.GetColor_s(
+            ref_label, XCAFDoc_ColorSurf, colour_surf
+        ) or colour_tool.GetColor_s(label, XCAFDoc_ColorSurf, colour_surf):
             rgb = colour_surf.GetRGB()
             red, green, blue = rgb.Values(Quantity_TOC_sRGB)
             return round(red * 255), round(green * 255), round(blue * 255)
@@ -1347,10 +1346,14 @@ class Decomposer:
             # log each file loading
             logger.info(f"[LOADING] - loading step file {i} {step_file_path}")
 
-            step_file_reader: list[STEPFileReader] = STEPFileReader(step_file_path, self.decom_params)
+            step_file_reader: list[STEPFileReader] = STEPFileReader(
+                step_file_path, self.decom_params
+            )
 
             for step_solid in step_file_reader.solids:
-                logger.debug(f'COLOUR ASSIGNMENT - {step_solid.structure} r={step_solid.colour.red} r={step_solid.colour.green} r={step_solid.colour.blue}')
+                logger.debug(
+                    f"COLOUR ASSIGNMENT - {step_solid.structure} r={step_solid.colour.red} r={step_solid.colour.green} r={step_solid.colour.blue}"
+                )
 
                 material = (
                     _material_lookup(

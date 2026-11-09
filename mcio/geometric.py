@@ -50,9 +50,7 @@ def check_point_on_axis(x0: float, y0: float, z0: float, tolerance: float) -> st
         return "off_axis"
 
 
-def check_vector_on_axis(
-    u0: float, v0: float, w0: float, tol_axis: float
-) -> str:
+def check_vector_on_axis(u0: float, v0: float, w0: float, tol_axis: float) -> str:
     """Check if a direction vector lies along a primary axis within tolerance.
 
     Parameters
@@ -231,9 +229,7 @@ def calculate_plane_from_three_points(
     normal = np.cross(vec_1, vec_2)
 
     # calculate the general parameters for a plane
-    a, b, c, d = calculate_plane_parameters_from_point_and_normal(
-        x0, y0, z0, *normal
-    )
+    a, b, c, d = calculate_plane_parameters_from_point_and_normal(x0, y0, z0, *normal)
 
     return a, b, c, d
 
@@ -264,9 +260,7 @@ def angle_between_vectors(
 
     # calculate the angle between the vectors in radians, correcting for rounding errors passed to arccos
     angle = np.arccos(
-        np.round(
-            dot_product / (magnitude_vec_1 * magnitude_vec_2), decimals=6
-        )
+        np.round(dot_product / (magnitude_vec_1 * magnitude_vec_2), decimals=6)
     )
 
     # return the angle between vectors in radians
@@ -305,9 +299,7 @@ def distance_between_points(
     return distance
 
 
-def values_within_tolerance(
-    val_1: float, val_2: float, tolerance: float
-) -> bool:
+def values_within_tolerance(val_1: float, val_2: float, tolerance: float) -> bool:
     """Check if two values are within a given absolute tolerance of each other.
 
     Parameters
@@ -450,15 +442,9 @@ class BoundingBox:
     @property
     def radius_enclosure(self) -> float:
         """float: Maximum half-diagonal across major 2D projection planes."""
-        radius_xy = (
-            (self._x_length / 2.0) ** 2 + (self._y_length / 2.0) ** 2
-        ) ** 0.5
-        radius_xz = (
-            (self._x_length / 2.0) ** 2 + (self._z_length / 2.0) ** 2
-        ) ** 0.5
-        radius_yz = (
-            (self._y_length / 2.0) ** 2 + (self._z_length / 2.0) ** 2
-        ) ** 0.5
+        radius_xy = ((self._x_length / 2.0) ** 2 + (self._y_length / 2.0) ** 2) ** 0.5
+        radius_xz = ((self._x_length / 2.0) ** 2 + (self._z_length / 2.0) ** 2) ** 0.5
+        radius_yz = ((self._y_length / 2.0) ** 2 + (self._z_length / 2.0) ** 2) ** 0.5
 
         return max([radius_xy, radius_xz, radius_yz])
 
@@ -546,9 +532,7 @@ class BoundingBox:
             A new cubic BoundingBox instance.
         """
         # Find longest length
-        max_length_halved = (
-            max(self._x_length, self._y_length, self._z_length) / 2.0
-        )
+        max_length_halved = max(self._x_length, self._y_length, self._z_length) / 2.0
 
         # create new bounding box with all length equal to the maximum length
         bounding_box_cubic = BoundingBox(
@@ -736,27 +720,15 @@ class BoundingBox:
             Dictionary containing the split child BoundingBox instances.
         """
         tol = 1e-6
-        x_y_lenghts_equal = values_within_tolerance(
-            self._x_length, self._y_length, tol
-        )
-        x_z_lengths_equal = values_within_tolerance(
-            self._x_length, self._z_length, tol
-        )
-        y_z_lengths_equal = values_within_tolerance(
-            self._y_length, self._z_length, tol
-        )
+        x_y_lenghts_equal = values_within_tolerance(self._x_length, self._y_length, tol)
+        x_z_lengths_equal = values_within_tolerance(self._x_length, self._z_length, tol)
+        y_z_lengths_equal = values_within_tolerance(self._y_length, self._z_length, tol)
 
         max_length = max(self._x_length, self._y_length, self._z_length)
 
-        x_full_length = values_within_tolerance(
-            self._x_length, max_length, tol
-        )
-        y_full_length = values_within_tolerance(
-            self._y_length, max_length, tol
-        )
-        z_full_length = values_within_tolerance(
-            self._z_length, max_length, tol
-        )
+        x_full_length = values_within_tolerance(self._x_length, max_length, tol)
+        y_full_length = values_within_tolerance(self._y_length, max_length, tol)
+        z_full_length = values_within_tolerance(self._z_length, max_length, tol)
 
         # case where px split required (square or x is longest length)
         if (x_y_lenghts_equal and x_z_lengths_equal) or x_full_length:
@@ -920,9 +892,7 @@ class BoundingBox:
         for split in range(n_splits):
             bounding_box_results: list[BoundingBox] = []
             for bounding_box in bounding_boxes:
-                bounding_box_results.extend(
-                    bounding_box.split_to_halves().values()
-                )
+                bounding_box_results.extend(bounding_box.split_to_halves().values())
             bounding_boxes = bounding_box_results
 
         return bounding_boxes
@@ -1005,9 +975,17 @@ def obbs_overlap(
         aRk = abs_R[keep]
         ak = a[keep]
         tk = t[keep]
-        ra = ak[:, i1, np.newaxis] * aRk[:, i2, :] + ak[:, i2, np.newaxis] * aRk[:, i1, :]
-        rb = b[i1][np.newaxis, np.newaxis, :] * aRk[:, :, i2] + b[i2][np.newaxis, np.newaxis, :] * aRk[:, :, i1]
-        sep = np.abs(tk[:, i2, np.newaxis] * Rk[:, i1, :] - tk[:, i1, np.newaxis] * Rk[:, i2, :])
+        ra = (
+            ak[:, i1, np.newaxis] * aRk[:, i2, :]
+            + ak[:, i2, np.newaxis] * aRk[:, i1, :]
+        )
+        rb = (
+            b[i1][np.newaxis, np.newaxis, :] * aRk[:, :, i2]
+            + b[i2][np.newaxis, np.newaxis, :] * aRk[:, :, i1]
+        )
+        sep = np.abs(
+            tk[:, i2, np.newaxis] * Rk[:, i1, :] - tk[:, i1, np.newaxis] * Rk[:, i2, :]
+        )
         overlap[keep] = np.all(sep <= ra + rb, axis=(1, 2))
 
     return overlap

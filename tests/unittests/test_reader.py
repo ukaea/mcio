@@ -16,9 +16,9 @@ class MCIOUnitTestReaderSurfaceTypes(unittest.TestCase):
                 surface.number = 1
                 written = surface.mcnp_card.as_string.split()[1]
                 # planes defined by three points are written as a general plane
-                expected = 'P' if mnemonic == 'P3P' else mnemonic
+                expected = "P" if mnemonic == "P3P" else mnemonic
                 self.assertEqual(written, expected)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

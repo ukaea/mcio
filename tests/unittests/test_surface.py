@@ -34,7 +34,6 @@ from mcio.surface import (
 
 
 class TestPlaneSurfaces(unittest.TestCase):
-
     def setUp(self):
         self.plane = Plane(a=1.0, b=0.0, c=0.0, d=5.0)
         self.plane.number = 1
@@ -133,7 +132,6 @@ class TestPlaneSurfaces(unittest.TestCase):
 
 
 class TestSphereSurfaces(unittest.TestCase):
-
     def setUp(self):
         self.sphere = Sphere(x0=1.0, y0=2.0, z0=3.0, radius=5.0)
         self.sphere.number = 1
@@ -217,7 +215,6 @@ class TestSphereSurfaces(unittest.TestCase):
 
 
 class TestCylinderSurfaces(unittest.TestCase):
-
     def setUp(self):
         self.cyl_x = CylinderParallelToXAxis(y0=1.0, z0=2.0, radius=3.0)
         self.cyl_x.number = 1
@@ -314,21 +311,14 @@ class TestCylinderSurfaces(unittest.TestCase):
 
 
 class TestConeSurfaces(unittest.TestCase):
-
     def setUp(self):
-        self.cone_x = ConeParallelToXAxis(
-            x0=1.0, y0=2.0, z0=3.0, t_sq=0.5, sheet=1
-        )
+        self.cone_x = ConeParallelToXAxis(x0=1.0, y0=2.0, z0=3.0, t_sq=0.5, sheet=1)
         self.cone_x.number = 1
 
-        self.cone_y = ConeParallelToYAxis(
-            x0=1.0, y0=2.0, z0=3.0, t_sq=0.5, sheet=-1
-        )
+        self.cone_y = ConeParallelToYAxis(x0=1.0, y0=2.0, z0=3.0, t_sq=0.5, sheet=-1)
         self.cone_y.number = 2
 
-        self.cone_z = ConeParallelToZAxis(
-            x0=1.0, y0=2.0, z0=3.0, t_sq=0.5, sheet=0
-        )
+        self.cone_z = ConeParallelToZAxis(x0=1.0, y0=2.0, z0=3.0, t_sq=0.5, sheet=0)
         self.cone_z.number = 3
 
         self.cone_on_x = ConeOnXAxis(x0=1.0, t_sq=0.25, sheet=1)
@@ -456,7 +446,6 @@ class TestConeSurfaces(unittest.TestCase):
 
 
 class TestQuadraticSurfaces(unittest.TestCase):
-
     def setUp(self):
         self.ellipsoid = Ellipsoid(
             a=1.0,
@@ -555,21 +544,14 @@ class TestQuadraticSurfaces(unittest.TestCase):
 
 
 class TestToriSurfaces(unittest.TestCase):
-
     def setUp(self):
-        self.tori_x = ToriParralleltoXAxis(
-            x0=1.0, y0=2.0, z0=3.0, a=10.0, b=5.0, c=2.0
-        )
+        self.tori_x = ToriParralleltoXAxis(x0=1.0, y0=2.0, z0=3.0, a=10.0, b=5.0, c=2.0)
         self.tori_x.number = 1
 
-        self.tori_y = ToriParralleltoYAxis(
-            x0=1.0, y0=2.0, z0=3.0, a=10.0, b=5.0, c=2.0
-        )
+        self.tori_y = ToriParralleltoYAxis(x0=1.0, y0=2.0, z0=3.0, a=10.0, b=5.0, c=2.0)
         self.tori_y.number = 2
 
-        self.tori_z = ToriParralleltoZAxis(
-            x0=1.0, y0=2.0, z0=3.0, a=10.0, b=5.0, c=2.0
-        )
+        self.tori_z = ToriParralleltoZAxis(x0=1.0, y0=2.0, z0=3.0, a=10.0, b=5.0, c=2.0)
         self.tori_z.number = 3
 
     def test_surface_params_tori_parallel_to_xaxis(self):

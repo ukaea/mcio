@@ -33,23 +33,36 @@ class MCIOUnitTestTally(unittest.TestCase, CustomAssertions):
         tally_flux = mcio.tally.VolumeFluenceTally(cells=[cell_sph, cell_v])
         tally_surfflux = mcio.tally.SurfaceFluenceTally(surfaces=[surf_sphere])
         tally_current = mcio.tally.SurfaceCurrent(surfaces=[surf_sphere])
-        tally_dose = mcio.tally.VolumeFluenceTally(cells=[cell_sph,cell_v], 
-                                                dose_conversion_factors=[[5, 10, 20], [0.15, 0.30, 0.45]],
-                                                comment='Dose Tally',
-                                                energies=[5.,10.,20.])
-        tally_mesh = mcio.tally.FluenceMeshTally(x_min=-50, x_max=50, y_min=-40, y_max=40, z_min=-30, z_max=30,
-                                                x_ints=10, y_ints=8, z_ints=6)
+        tally_dose = mcio.tally.VolumeFluenceTally(
+            cells=[cell_sph, cell_v],
+            dose_conversion_factors=[[5, 10, 20], [0.15, 0.30, 0.45]],
+            comment="Dose Tally",
+            energies=[5.0, 10.0, 20.0],
+        )
+        tally_mesh = mcio.tally.FluenceMeshTally(
+            x_min=-50,
+            x_max=50,
+            y_min=-40,
+            y_max=40,
+            z_min=-30,
+            z_max=30,
+            x_ints=10,
+            y_ints=8,
+            z_ints=6,
+        )
 
         tally_surfflux.mcnp.tally_divisor = 1
         tally_flux.mcnp.multiplier = 2
-        tally_mesh.mcnp.dose_interpolation = 'linear-linear'
-        tally_mesh.openmc_params.dose_interpolation = 'histogram'
+        tally_mesh.mcnp.dose_interpolation = "linear-linear"
+        tally_mesh.openmc_params.dose_interpolation = "histogram"
 
-        sph_model = mcio.model.Model(cells=[cell_sph, cell_v, cell_g], tallies=[tally_flux, tally_surfflux, tally_current, 
-                                    tally_dose, tally_mesh])
-        sph_model.mcnp.modes = ['neutron']
+        sph_model = mcio.model.Model(
+            cells=[cell_sph, cell_v, cell_g],
+            tallies=[tally_flux, tally_surfflux, tally_current, tally_dose, tally_mesh],
+        )
+        sph_model.mcnp.modes = ["neutron"]
 
-        sph_model.write_mcnp(self.temp_dir / 'sph_model.mcnp')
+        sph_model.write_mcnp(self.temp_dir / "sph_model.mcnp")
         if HAS_OPENMC:
             sph_model.write_openmc(self.temp_dir)
 
@@ -61,24 +74,26 @@ class MCIOUnitTestTally(unittest.TestCase, CustomAssertions):
         with open(filename) as f:
             lines = f.read().splitlines()
 
-        start = next(
-            i for i, line in enumerate(lines)
-            if start_marker in line
-        )
+        start = next(i for i, line in enumerate(lines) if start_marker in line)
 
         end = next(
-            i for i, line in enumerate(lines[start + 1:], start + 1)
+            i
+            for i, line in enumerate(lines[start + 1 :], start + 1)
             if end_marker in line
         )
 
         return "".join(lines[start:end])
 
     def test_mcnp_tally(self):
-        reference_file = Path(__file__).parent / 'sph_model' / 'sph_model.mcnp'
-        generated_file = self.temp_dir / 'sph_model.mcnp'
+        reference_file = Path(__file__).parent / "sph_model" / "sph_model.mcnp"
+        generated_file = self.temp_dir / "sph_model.mcnp"
 
-        generated = self.get_section(generated_file, "C ====== TALLIES", "C ====== RUN PARAMETERS")
-        reference = self.get_section(reference_file, "C ====== TALLIES", "C ====== RUN PARAMETERS")
+        generated = self.get_section(
+            generated_file, "C ====== TALLIES", "C ====== RUN PARAMETERS"
+        )
+        reference = self.get_section(
+            reference_file, "C ====== TALLIES", "C ====== RUN PARAMETERS"
+        )
 
         self.assertEqual(generated, reference)
 
@@ -102,7 +117,9 @@ class MCIOUnitTestTally(unittest.TestCase, CustomAssertions):
             id1 = elem1.attrib.get("id")
             id2 = elem2.attrib.get("id")
             if id1 and id2:
-                mapping[id2] = id1  # Maps generated ID back to reference ID for text matching
+                mapping[id2] = (
+                    id1  # Maps generated ID back to reference ID for text matching
+                )
         return mapping
 
     def compare_elements(self, e1, e2, global_map):
@@ -149,7 +166,7 @@ class MCIOUnitTestTally(unittest.TestCase, CustomAssertions):
 
     @requires_openmc
     def test_openmc_tally(self):
-        reference_file = Path(__file__).parent / 'sph_model' / 'tallies.xml'
-        generated_file = self.temp_dir / 'tallies.xml'
+        reference_file = Path(__file__).parent / "sph_model" / "tallies.xml"
+        generated_file = self.temp_dir / "tallies.xml"
 
         self.compare_xml(reference_file, generated_file)

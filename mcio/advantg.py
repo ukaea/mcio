@@ -3,6 +3,7 @@
 Contains classes for writing ADVANTG text input files: :class:`AdvantgCard`,
 :class:`AdvantgHeader` and the main :class:`Advantg` parameter container.
 """
+
 from __future__ import annotations
 
 import os

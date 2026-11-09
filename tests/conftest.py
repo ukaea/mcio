@@ -1,5 +1,4 @@
-"""Shared pytest configuration for the mcio test suite.
-"""
+"""Shared pytest configuration for the mcio test suite."""
 
 import os
 import sys
@@ -26,10 +25,10 @@ def pytest_configure(config):
     ``MCIO_REQUIRE_OPENMC=1`` so a broken openmc install fails loudly there
     instead of silently skipping those tests.
     """
-    if os.environ.get('MCIO_REQUIRE_OPENMC', '').lower() in ('1', 'true', 'yes'):
+    if os.environ.get("MCIO_REQUIRE_OPENMC", "").lower() in ("1", "true", "yes"):
         try:
             import openmc  # noqa: F401
         except Exception as error:
             raise pytest.UsageError(
-                f'MCIO_REQUIRE_OPENMC is set but openmc cannot be imported: {error}'
+                f"MCIO_REQUIRE_OPENMC is set but openmc cannot be imported: {error}"
             ) from error

@@ -16,7 +16,9 @@ class Universe:
         Transform applied to the universe, by default None
     """
 
-    def __init__(self, number: int | None = None, transform: Transform | None = None) -> None:
+    def __init__(
+        self, number: int | None = None, transform: Transform | None = None
+    ) -> None:
         """Initialise the Universe."""
         self.number: int | None = number
         self.transform: Transform | None = transform
@@ -37,4 +39,3 @@ class UniverseFill:
         """Initialise the UniverseFill."""
         self.universe: Universe = universe
         self.transform: Transform | None = transform
-

@@ -425,8 +425,12 @@ class VoidOctreeBase:
         hi = np.array(self.bounding_box.maximums, dtype=float)
 
         # filter 1: AABB overlap (strict, so touching boxes do not count)
-        idx = np.fromiter(parent_candidates.keys(), dtype=int, count=len(parent_candidates))
-        mask = np.all(data.aabb_lo[idx] < hi, axis=1) & np.all(data.aabb_hi[idx] > lo, axis=1)
+        idx = np.fromiter(
+            parent_candidates.keys(), dtype=int, count=len(parent_candidates)
+        )
+        mask = np.all(data.aabb_lo[idx] < hi, axis=1) & np.all(
+            data.aabb_hi[idx] > lo, axis=1
+        )
         idx = idx[mask]
 
         # filter 2: OBB overlap (separating axis test against the octant box),
@@ -444,7 +448,9 @@ class VoidOctreeBase:
                 )
                 if not mask.all():
                     rejected = set(test[~mask].tolist())
-                    idx = np.array([i for i in idx.tolist() if i not in rejected], dtype=int)
+                    idx = np.array(
+                        [i for i in idx.tolist() if i not in rejected], dtype=int
+                    )
 
         use_pruning = bool(getattr(params, "void_use_halfspace_pruning", False))
         lo_t = lo.tolist()
@@ -710,9 +716,7 @@ class VoidOctreeBase:
 
         for i, void in enumerate(voids, start=1):
             bb = void.bounding_box
-            cell_name = (
-                f"void_cell_{i}_of_{n_voids}"
-            )
+            cell_name = f"void_cell_{i}_of_{n_voids}"
             cell_comment = (
                 f"n_split_solids = {len(void._candidates)} "
                 f"n_surfaces = {void.n_terms} "
@@ -853,7 +857,9 @@ class VoidOctreeBase:
         s_x_min, s_x_max, s_y_min, s_y_max, s_z_min, s_z_max = shared
         return +s_x_min & -s_x_max & +s_y_min & -s_y_max & +s_z_min & -s_z_max
 
-    def _generate_bounding_box(self, items_with_bounding_boxes: list[Any]) -> BoundingBox:
+    def _generate_bounding_box(
+        self, items_with_bounding_boxes: list[Any]
+    ) -> BoundingBox:
         """Compute a box enclosing a collection of items.
 
         If ``self._make_square`` is set, all three lengths are set to the longest
@@ -1175,7 +1181,9 @@ class VoidOctreeFaces(VoidOctreeBase):
             np.all(face_lo - tol < hi, axis=1) & np.all(face_hi + tol > lo, axis=1)
         )[0]
         near_faces = tuple(
-            int(f) for f in near if _distance_between_shapes(faces[f], box_ocp.shape) < tol
+            int(f)
+            for f in near
+            if _distance_between_shapes(faces[f], box_ocp.shape) < tol
         )
         if near_faces:
             self._near_faces[index] = near_faces
@@ -1250,8 +1258,12 @@ class VoidOctreeFaces(VoidOctreeBase):
             faces.extend(face_list)
 
         step_file_writer = STEPFileWriter(self.decom_params)
-        step_file_writer.add_solids([ocp_box_from_bounding_box(self.bounding_box)], "void")
-        step_file_writer.add_solids([ss.split_solid for ss in self.split_solids], "split_solids")
+        step_file_writer.add_solids(
+            [ocp_box_from_bounding_box(self.bounding_box)], "void"
+        )
+        step_file_writer.add_solids(
+            [ss.split_solid for ss in self.split_solids], "split_solids"
+        )
         if faces:
             step_file_writer.add_solids(faces, "faces")
         step_file_writer.write(output_path, enumerate_files=True)

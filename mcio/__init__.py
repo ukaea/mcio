@@ -136,7 +136,7 @@ try:
     )
 
 except ModuleNotFoundError as e:
-    logger.warning('[PACKAGE UNAVAILABLE - unable to load OCP]')
+    logger.warning("[PACKAGE UNAVAILABLE - unable to load OCP]")
     logger.warning(e)
 
 # check for optional packages - openmc

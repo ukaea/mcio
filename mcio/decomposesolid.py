@@ -212,7 +212,7 @@ def _generate_mcio_cells(
         )
         cell.name = decomposition_solid.name
         cell.comment = f"cell number {i} of {n_solids} : {location}"
-        cell.structure = '/'.join(decomposition_solid.structure_in_input_file)
+        cell.structure = "/".join(decomposition_solid.structure_in_input_file)
 
         # if user requires, set volume on each cell
         if decom_params.model_set_output_cell_vols:
@@ -279,7 +279,6 @@ class DecompositionSolid:
         serialise: bool = False,
         surfaces_generated: dict[Any, Any] | None = None,
     ) -> None:
-
         """Initialise the DecompositionSolid, applying any requested shape cleanup."""
         # set input variables
         self._solid_original: TopoDS_Solid | bytes = solid_original
@@ -329,9 +328,7 @@ class DecompositionSolid:
 
         # to store mcio cell and void octree
         self._cell: Cell | None = None
-        self._void_octree: VoidOctreeFaces | VoidOctreeSplitSolids | None = (
-            None
-        )
+        self._void_octree: VoidOctreeFaces | VoidOctreeSplitSolids | None = None
 
         # set up variables for quality assurance
         self._volume_original_solid: float | None = None
@@ -719,7 +716,7 @@ class DecompositionSolid:
             universe=self.universe,
             universe_fill=self.universe_fill,
             name=self.name,
-            structure=self.structure_in_input_file
+            structure=self.structure_in_input_file,
         )
 
         # return self - this is required when using multiprocessing to pass

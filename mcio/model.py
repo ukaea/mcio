@@ -4,6 +4,7 @@ Contains the :class:`Model` class, which numbers cells, surfaces, materials,
 transforms, universes and tallies, and writes the geometry as MCNP, Serpent2,
 OpenMC or GDML input.
 """
+
 from __future__ import annotations
 
 import datetime
@@ -73,10 +74,19 @@ class Model:
         Extra label/value pairs for the MCNP summary header, by default None
     """
 
-    def __init__(self, cells: list[Cell] | None = None, tallies: list[Tally] | None = None, source: Source | None = None, 
-                 mcnp_run_parameters: MCNPRunParameters | None = None, cell_number_min: int | None = None, surface_number_min: int | None = None, 
-                 tally_number_min: int | None = None, keep_surface_numbers: bool = True,
-                 keep_cell_numbers: bool = True, summary_data: dict[str, Any] | None = None) -> None:
+    def __init__(
+        self,
+        cells: list[Cell] | None = None,
+        tallies: list[Tally] | None = None,
+        source: Source | None = None,
+        mcnp_run_parameters: MCNPRunParameters | None = None,
+        cell_number_min: int | None = None,
+        surface_number_min: int | None = None,
+        tally_number_min: int | None = None,
+        keep_surface_numbers: bool = True,
+        keep_cell_numbers: bool = True,
+        summary_data: dict[str, Any] | None = None,
+    ) -> None:
         """Initialise the Model and assign numbers."""
         self.cells: list[Cell] = cells
         self._tallies: list[Tally] = tallies if tallies else []
@@ -86,7 +96,9 @@ class Model:
         self._materials: dict[str, Material] = {}
         self._transforms: set[Transform] = set()
         self._universes: set[Universe] = set()
-        self.mcnp: MCNPRunParameters = mcnp_run_parameters if mcnp_run_parameters else MCNPRunParameters()
+        self.mcnp: MCNPRunParameters = (
+            mcnp_run_parameters if mcnp_run_parameters else MCNPRunParameters()
+        )
         self._summary_data: dict[str, Any] = summary_data if summary_data else {}
         self._cell_number_min: int = cell_number_min if cell_number_min else 1
         self._surface_number_min: int = surface_number_min if surface_number_min else 1
@@ -112,7 +124,7 @@ class Model:
             Minimum cell number.
         """
         return self._cell_number_min
-    
+
     @cell_number_min.setter
     def cell_number_min(self, cell_number_min: int) -> None:
         """Set the lowest cell number and renumber if the model has cells.
@@ -136,7 +148,7 @@ class Model:
             Minimum surface number.
         """
         return self._surface_number_min
-    
+
     @surface_number_min.setter
     def surface_number_min(self, surface_number_min: int) -> None:
         """Set the lowest surface number and renumber if the model has cells.
@@ -194,7 +206,7 @@ class Model:
             Collection wrapping the internal material dictionary.
         """
         return Materials(self._materials)
-    
+
     def add_materials(self, materials: Any) -> None:
         """Add materials to the model and renumber.
 
@@ -219,7 +231,7 @@ class Model:
 
         # re-assign numbers to cells, surfaces and tallies
         self._asign_numbers()
-    
+
     def _asign_numbers_tallies(self) -> None:
         """Number tallies sequentially from the minimum tally number."""
         # assign tally numbers
@@ -261,13 +273,21 @@ class Model:
 
             # check that next number to assign is not already in use
             while next_cell_number in cell_numbers_assigned:
-                next_cell_number +=1
+                next_cell_number += 1
 
             # surfaces, replace duplicate surfaces and then collect instances with unique parameters
             cell.volume.replace_duplicate_surfaces(self._surfaces)
 
-            self._surfaces |= {surface.__hash_string__(): surface for surface in cell.volume.surfaces if isinstance(surface, Surface)}
-            self._macrobodies |= {macrobody for macrobody in cell.volume.surfaces if isinstance(macrobody, Macrobody)}
+            self._surfaces |= {
+                surface.__hash_string__(): surface
+                for surface in cell.volume.surfaces
+                if isinstance(surface, Surface)
+            }
+            self._macrobodies |= {
+                macrobody
+                for macrobody in cell.volume.surfaces
+                if isinstance(macrobody, Macrobody)
+            }
 
             # collect Material instances
             if not cell.material:
@@ -347,72 +367,81 @@ class Model:
             The full MCNP input.
         """
         # set up string for output
-        output = ''
+        output = ""
 
         # write messages
         for mcnp_card in self.mcnp.messages:
-            output += mcnp_card.as_string + '\n'
+            output += mcnp_card.as_string + "\n"
 
         # write summary box
         n_cells = len(self.cells)
         n_cells_with_mats = len([cell for cell in self.cells if cell.material])
         n_cells_with_voids = n_cells - n_cells_with_mats
 
-        self._summary_data['date created'] = datetime.datetime.today().strftime('%d/%m/%Y')
-        self._summary_data['time created'] = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-4]
-        self._summary_data['material cells'] = n_cells_with_mats
-        self._summary_data['void_cells'] = n_cells_with_voids
-        self._summary_data['total cells'] = n_cells
-        self._summary_data['total surfaces'] = len(self._surfaces)
-        output += MCNPHeader('SUMMARY', data_pairs=self._summary_data).as_string
+        self._summary_data["date created"] = datetime.datetime.today().strftime(
+            "%d/%m/%Y"
+        )
+        self._summary_data["time created"] = datetime.datetime.now().strftime(
+            "%H:%M:%S.%f"
+        )[:-4]
+        self._summary_data["material cells"] = n_cells_with_mats
+        self._summary_data["void_cells"] = n_cells_with_voids
+        self._summary_data["total cells"] = n_cells
+        self._summary_data["total surfaces"] = len(self._surfaces)
+        output += MCNPHeader("SUMMARY", data_pairs=self._summary_data).as_string
 
         # write cell definitions
-        output += MCNPHeader('CELLS').as_string
+        output += MCNPHeader("CELLS").as_string
         for cell in self.cells:
             # assign mcnp run parameters
-            output += f'{cell.mcnp_card.as_string}'
-        output += '\n'
+            output += f"{cell.mcnp_card.as_string}"
+        output += "\n"
 
         # surfaces and macrobodies section
-        output += MCNPHeader('SURFACES').as_string
+        output += MCNPHeader("SURFACES").as_string
         surfaces_sorted = _sort_surfaces_by_type(self._surfaces.values())
         for surface in surfaces_sorted:
-            output += f'{surface.mcnp_card.as_string}'
+            output += f"{surface.mcnp_card.as_string}"
         for macrobody in self._macrobodies:
-            output += f'{macrobody.mcnp_card.as_string}'
-        output += '\n'
+            output += f"{macrobody.mcnp_card.as_string}"
+        output += "\n"
 
         # materials
-        if self._materials: output += MCNPHeader('MATERIALS').as_string
+        if self._materials:
+            output += MCNPHeader("MATERIALS").as_string
         materials_lookup_by_number = {m.number: m for m in self._materials.values()}
         for key in sorted(materials_lookup_by_number):
-            output += f'{materials_lookup_by_number[key].mcnp_card.as_string}'
+            output += f"{materials_lookup_by_number[key].mcnp_card.as_string}"
 
         # transforms
-        if self._transforms: output += MCNPHeader('TRANSFORMS').as_string
+        if self._transforms:
+            output += MCNPHeader("TRANSFORMS").as_string
         for transform in self._transforms:
-            output += f'{transform.mcnp_card.as_string}'
-        
+            output += f"{transform.mcnp_card.as_string}"
+
         # source
-        output += MCNPHeader('SOURCE').as_string
+        output += MCNPHeader("SOURCE").as_string
         if self.source is not None:
             output += self.source.mcnp_card.as_string
 
         # tallies
-        if self._tallies: output += MCNPHeader('TALLIES').as_string
+        if self._tallies:
+            output += MCNPHeader("TALLIES").as_string
         tallies = []
         for tally in self._tallies:
             tallies.append(tally.mcnp_card.as_string)
-        output += ('C ' + '-' * formatting.MCNP_MAX_CHARS + '\n').join(tallies)
+        output += ("C " + "-" * formatting.MCNP_MAX_CHARS + "\n").join(tallies)
 
         # run parameters
-        output += MCNPHeader('RUN PARAMETERS').as_string
+        output += MCNPHeader("RUN PARAMETERS").as_string
         output += self.mcnp.mcnp_card.as_string
 
         return output
 
-    @check_folder_exists_for_file_path('filepath')
-    def write_mcnp(self, filepath: str | os.PathLike=os.path.join('output', 'model.i')) -> None:
+    @check_folder_exists_for_file_path("filepath")
+    def write_mcnp(
+        self, filepath: str | os.PathLike = os.path.join("output", "model.i")
+    ) -> None:
         """Write the model as an MCNP input file.
 
         The parent folder of ``filepath`` is created if it does not exist.
@@ -422,14 +451,16 @@ class Model:
         filepath : str | os.PathLike, optional
             Output file path, by default 'output/model.i'
         """
-        logger.debug('model - writing mcnp model in write_mcnp')
-        
+        logger.debug("model - writing mcnp model in write_mcnp")
+
         time_start = time.time()
-        with open(filepath, 'w') as output_file:
+        with open(filepath, "w") as output_file:
             output_file.write(self.mcnp_string)
         time_total = time.time() - time_start
 
-        logger.info(f'mcnp model written to: {filepath} - time taken = {time_total:.2e}')
+        logger.info(
+            f"mcnp model written to: {filepath} - time taken = {time_total:.2e}"
+        )
 
     @property
     def serpent_string(self) -> str:
@@ -441,17 +472,17 @@ class Model:
             Serpent2 surface and cell definitions.
         """
         # set up string for output
-        output = ''
+        output = ""
 
         # write surfaces
-        output += SerpentHeader('SURFACE DEFINITIONS').as_string
+        output += SerpentHeader("SURFACE DEFINITIONS").as_string
         for surface in self._surfaces:
-            output += f'{surface.serpent_card.as_string}'
+            output += f"{surface.serpent_card.as_string}"
 
         # write cells
-        output += SerpentHeader('CELL DEFINITIONS').as_string
+        output += SerpentHeader("CELL DEFINITIONS").as_string
         for cell in self.cells:
-            output += f'{cell.serpent_card.as_string}'
+            output += f"{cell.serpent_card.as_string}"
 
         return output
 
@@ -463,7 +494,7 @@ class Model:
         output_filename : str | os.PathLike
             Output file path.
         """
-        with open(output_filename, 'w') as output_file:
+        with open(output_filename, "w") as output_file:
             output_file.write(self.serpent_string)
 
     @property
@@ -483,8 +514,10 @@ class Model:
             return self._openmc_model
 
         if openmc is None:
-            msg = ('writing OpenMC models requires the OpenMC Python API, see '
-                   'https://docs.openmc.org/en/stable/quickinstall.html')
+            msg = (
+                "writing OpenMC models requires the OpenMC Python API, see "
+                "https://docs.openmc.org/en/stable/quickinstall.html"
+            )
             logger.error(msg)
             raise ImportError(msg)
 
@@ -495,13 +528,15 @@ class Model:
         settings = openmc.settings.Settings()
         settings.batches = 10
         settings.particles = int(1e7)
-        settings.run_mode = 'fixed source'
+        settings.run_mode = "fixed source"
         settings.max_lost_particles = 100
 
         # add default source
         dist_point = openmc.stats.Point(xyz=(1e-8, 1e-8, 1e-8))
         monoenergetic = openmc.Discrete(x=[1.0], p=[1.0])
-        settings.source = openmc.IndependentSource(space=dist_point, energy=monoenergetic)
+        settings.source = openmc.IndependentSource(
+            space=dist_point, energy=monoenergetic
+        )
 
         # geometry
         geometry = openmc.geometry.Geometry(openmc_cells)
@@ -509,14 +544,18 @@ class Model:
 
         # empty tally list
         tallies = openmc.Tallies([tally.openmc_tally for tally in self._tallies])
-        
+
         # model
-        self._openmc_model = openmc.model.Model(geometry=geometry, settings=settings, tallies=tallies)
+        self._openmc_model = openmc.model.Model(
+            geometry=geometry, settings=settings, tallies=tallies
+        )
 
         # return model
         return self._openmc_model
 
-    def write_openmc(self, output_folder: str | os.PathLike=os.path.join('output', 'openmc')) -> None:
+    def write_openmc(
+        self, output_folder: str | os.PathLike = os.path.join("output", "openmc")
+    ) -> None:
         """Export the OpenMC model as xml files.
 
         Parameters
@@ -524,11 +563,13 @@ class Model:
         output_folder : str | os.PathLike, optional
             Output folder, by default 'output/openmc'
         """
-        logger.debug('model - writing openmc file in write_openmc')
+        logger.debug("model - writing openmc file in write_openmc")
         time_start = time.time()
         self.openmc_model.export_to_xml(output_folder)
         time_total = time.time() - time_start
-        logger.info(f'openmc model written to: {output_folder} - time taken = {time_total:.2e}')
+        logger.info(
+            f"openmc model written to: {output_folder} - time taken = {time_total:.2e}"
+        )
 
     @property
     def gdml_string(self) -> str:
@@ -540,15 +581,17 @@ class Model:
             GDML xml string.
         """
         # create material XML tags
-        root_attributes = {'xmls:gdml': 'http://cern.ch/2001/Schemas/GDML',
-                           'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/afs/cern.ch/sw/lcg/app/releases/GDML/pro/schema/gdml_2.0.xsd'}
-        root_tag = XMLTag('gdml', attributes=root_attributes)
+        root_attributes = {
+            "xmls:gdml": "http://cern.ch/2001/Schemas/GDML",
+            "xmlns:xsi": 'http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/afs/cern.ch/sw/lcg/app/releases/GDML/pro/schema/gdml_2.0.xsd',
+        }
+        root_tag = XMLTag("gdml", attributes=root_attributes)
 
         # material tag
-        materials_tag = XMLTag('materials')
+        materials_tag = XMLTag("materials")
         root_tag.add_child(materials_tag)
 
-        # write isotopes and 
+        # write isotopes and
         root_tag.add_child(self.materials.gdml_xml_tag)
 
         # return root tag as string
@@ -562,7 +605,7 @@ class Model:
         output_filename : str | os.PathLike
             Output file path.
         """
-        with open(output_filename, 'w') as output_file:
+        with open(output_filename, "w") as output_file:
             output_file.write(self.gdml_string)
 
     def __and__(self, other_model: Model) -> None:

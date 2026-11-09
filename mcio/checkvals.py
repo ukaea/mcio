@@ -3,6 +3,7 @@
 Contains custom exceptions, numeric-to-string conversion helpers, option and
 type validators, and decorators enforcing argument types on setter methods.
 """
+
 from __future__ import annotations
 
 import functools
@@ -72,15 +73,11 @@ def number_to_string(var: Any, dp: int = 6) -> str | Any:
         return f"{var:.{dp}f}"
 
     # if is not numeric, the raise exception
-    msg = (
-        f"variable in list is neither str, int or float" f" and its type is {type(var)}"
-    )
+    msg = f"variable in list is neither str, int or float and its type is {type(var)}"
     raise TypeError(msg)
 
 
-def numbers_to_strings(
-    list_of_vars: Sequence[Any], dp: int = 6
-) -> list[str | Any]:
+def numbers_to_strings(list_of_vars: Sequence[Any], dp: int = 6) -> list[str | Any]:
     """Convert a sequence of numeric values to formatted strings.
 
     Parameters

@@ -76,6 +76,7 @@ def start_multiprocess_logging() -> tuple[MPQueue, logging.handlers.QueueListene
 
     return log_queue, listener
 
+
 def restore_main_process_logging() -> None:
     """Restore the original file handler on the ``mcio`` logger.
 
@@ -84,6 +85,7 @@ def restore_main_process_logging() -> None:
     logging normally.
     """
     from mcio import LOGGER_FILE_HANDLER
+
     logger = logging.getLogger("mcio")
 
     # Remove QueueHandler(s)
@@ -94,6 +96,7 @@ def restore_main_process_logging() -> None:
     # Reattach the original file handler
     if LOGGER_FILE_HANDLER not in logger.handlers:
         logger.addHandler(LOGGER_FILE_HANDLER)
+
 
 def configure_worker_logger(log_queue: MPQueue) -> None:
     """Configure the ``mcio`` logger in a worker process to log via a queue.
@@ -106,7 +109,7 @@ def configure_worker_logger(log_queue: MPQueue) -> None:
     log_queue : MPQueue
         Queue returned by :func:`start_multiprocess_logging` in the main process.
     """
-# Suppress native C++ crash dialog boxes on Windows
+    # Suppress native C++ crash dialog boxes on Windows
     if sys.platform == "win32":
         # SEM_FAILCRITICALERRORS (0x0001) | SEM_NOGPFAULTERRORBOX (0x0002)
         ctypes.windll.kernel32.SetErrorMode(0x0001 | 0x0002)
@@ -127,4 +130,3 @@ def configure_worker_logger(log_queue: MPQueue) -> None:
     queue_handler = BlockingQueueHandler(log_queue)
     logger.addHandler(queue_handler)
     logger.setLevel(logging.INFO)
-

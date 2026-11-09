@@ -5,6 +5,7 @@ parameters, exploring/down-casting OCP shapes, loading STEP files (with names,
 colours and assembly structure) via :class:`STEPFileReader`, writing STEP
 assemblies via :class:`STEPFileWriter`, and exporting STL meshes.
 """
+
 from __future__ import annotations
 
 import os
@@ -22,7 +23,7 @@ from rich.progress import (
 )
 from tqdm.notebook import tqdm as tqdm_notebook
 
-# import first to allow logging of optional modules 
+# import first to allow logging of optional modules
 from mcio import logger
 
 try:
@@ -89,29 +90,33 @@ try:
         XCAFPrs_Style,
     )
 
-    TOP_ABS_SHAPES: tuple[TopAbs_ShapeEnum, ...] = (TopAbs_COMPOUND,
-                        TopAbs_COMPSOLID,
-                        TopAbs_SOLID,
-                        TopAbs_SHELL,
-                        TopAbs_FACE,
-                        TopAbs_WIRE,
-                        TopAbs_EDGE,
-                        TopAbs_VERTEX,
-                        TopAbs_SHAPE)
+    TOP_ABS_SHAPES: tuple[TopAbs_ShapeEnum, ...] = (
+        TopAbs_COMPOUND,
+        TopAbs_COMPSOLID,
+        TopAbs_SOLID,
+        TopAbs_SHELL,
+        TopAbs_FACE,
+        TopAbs_WIRE,
+        TopAbs_EDGE,
+        TopAbs_VERTEX,
+        TopAbs_SHAPE,
+    )
 
-    TOPODS_CAST_METHODS: dict[TopAbs_ShapeEnum, Callable[[TopoDS_Shape], Any]] = {TopAbs_COMPOUND: TopoDS.Compound_s,
-                                 TopAbs_COMPSOLID: TopoDS.CompSolid_s,
-                                 TopAbs_SOLID: TopoDS.Solid_s,
-                                 TopAbs_SHELL: TopoDS.Shell_s,
-                                 TopAbs_FACE: TopoDS.Face_s,
-                                 TopAbs_WIRE: TopoDS.Wire_s,
-                                 TopAbs_EDGE: TopoDS.Edge_s,
-                                 TopAbs_VERTEX: TopoDS.Vertex_s,
-                                 TopAbs_SHAPE: lambda shape: shape}
+    TOPODS_CAST_METHODS: dict[TopAbs_ShapeEnum, Callable[[TopoDS_Shape], Any]] = {
+        TopAbs_COMPOUND: TopoDS.Compound_s,
+        TopAbs_COMPSOLID: TopoDS.CompSolid_s,
+        TopAbs_SOLID: TopoDS.Solid_s,
+        TopAbs_SHELL: TopoDS.Shell_s,
+        TopAbs_FACE: TopoDS.Face_s,
+        TopAbs_WIRE: TopoDS.Wire_s,
+        TopAbs_EDGE: TopoDS.Edge_s,
+        TopAbs_VERTEX: TopoDS.Vertex_s,
+        TopAbs_SHAPE: lambda shape: shape,
+    }
 
 except Exception as e:
-    logger.warning('failed to load OCP')
-    logger.warning(f'{e}')
+    logger.warning("failed to load OCP")
+    logger.warning(f"{e}")
 
 if TYPE_CHECKING:
     from OCP.Geom import Geom_Surface
@@ -124,7 +129,7 @@ from .profile import function_timer
 from .utils import check_folder_exists_for_file_path, in_notebook
 
 
-def _create_ocp_compound(shapes_to_add: list[TopoDS_Shape]=[]) -> TopoDS_Compound:
+def _create_ocp_compound(shapes_to_add: list[TopoDS_Shape] = []) -> TopoDS_Compound:
     """Create an OCP compound containing the given shapes.
 
     Parameters
@@ -143,7 +148,7 @@ def _create_ocp_compound(shapes_to_add: list[TopoDS_Shape]=[]) -> TopoDS_Compoun
     # make a compound
     compound: TopoDS_Compound = TopoDS_Compound()
     builder.MakeCompound(compound)
-    
+
     # add shapes to compound
     for shape in shapes_to_add:
         builder.Add(compound, shape)
@@ -151,7 +156,10 @@ def _create_ocp_compound(shapes_to_add: list[TopoDS_Shape]=[]) -> TopoDS_Compoun
     # return the compound
     return compound
 
-def create_ocp_document(document_name: str, decom_params: DecompositionParameters) -> TDocStd_Document:
+
+def create_ocp_document(
+    document_name: str, decom_params: DecompositionParameters
+) -> TDocStd_Document:
     """Create an OCP ``TDocStd_Document`` XCAF document.
 
     The document length unit is set from ``decom_params.doc_unit_in_metres`` and
@@ -185,6 +193,7 @@ def create_ocp_document(document_name: str, decom_params: DecompositionParameter
     # return the document
     return doc
 
+
 def _set_ocp_interface_static(parameter_label: str, parameter: float | str) -> None:
     """Set an OCCT ``Interface_Static`` parameter if not already set.
 
@@ -216,21 +225,24 @@ def _set_ocp_interface_static(parameter_label: str, parameter: float | str) -> N
         param_get_function = Interface_Static.CVal_s
         param_set_function = Interface_Static.SetCVal_s
     else:
-        msg = f'required type for InterfaceStatic parameter is int, float or str, not type {type(parameter)}'
+        msg = f"required type for InterfaceStatic parameter is int, float or str, not type {type(parameter)}"
         raise Exception(msg)
-    
+
     # check if parameter already set, else set its value
     if param_get_function(parameter_label) == parameter:
         pass
     elif param_set_function(parameter_label, parameter):
-        msg = f'[OK] parameter_label {parameter_label} set to {parameter}'
+        msg = f"[OK] parameter_label {parameter_label} set to {parameter}"
         logger.info(msg)
     else:
-        msg = f'[ERROR] unable to set {parameter_label} to {parameter}'
+        msg = f"[ERROR] unable to set {parameter_label} to {parameter}"
         logger.fatal(msg)
         raise ValueError(msg)
 
-def _get_ocp_interface_static(parameter_label: str, parameter_type: type[int | float | str]) -> int | float | str:
+
+def _get_ocp_interface_static(
+    parameter_label: str, parameter_type: type[int | float | str]
+) -> int | float | str:
     """Get the value of an OCCT ``Interface_Static`` parameter.
 
     Parameters
@@ -259,12 +271,15 @@ def _get_ocp_interface_static(parameter_label: str, parameter_type: type[int | f
     elif parameter_type == str:
         param_get_function = Interface_Static.CVal_s
     else:
-        msg = f'required type for InterfaceStatic parameter is int, float or str, not type {type(parameter_type)}'
+        msg = f"required type for InterfaceStatic parameter is int, float or str, not type {type(parameter_type)}"
         raise Exception(msg)
-    
+
     return param_get_function(parameter_label)
 
-def extract_ocp_shape_type_from_shape(shape: TopoDS_Shape, shape_type: TopAbs_ShapeEnum, cast_from_shape: bool=True) -> list[TopoDS_Shape]:
+
+def extract_ocp_shape_type_from_shape(
+    shape: TopoDS_Shape, shape_type: TopAbs_ShapeEnum, cast_from_shape: bool = True
+) -> list[TopoDS_Shape]:
     """Extract all sub-shapes of a given type from a shape.
 
     Parameters
@@ -287,7 +302,7 @@ def extract_ocp_shape_type_from_shape(shape: TopoDS_Shape, shape_type: TopAbs_Sh
     Exception
         If ``shape_type`` is not a supported ``TopAbs`` shape type.
     """
-    # check if shape type in accepted list    
+    # check if shape type in accepted list
     if shape_type in TOP_ABS_SHAPES:
         # extract shape type from shape and return in a list
         explorer: TopExp_Explorer = TopExp_Explorer(shape, shape_type)
@@ -302,8 +317,9 @@ def extract_ocp_shape_type_from_shape(shape: TopoDS_Shape, shape_type: TopAbs_Sh
             results_cast = [TOPODS_CAST_METHODS[shape_type](r) for r in results]
             return results_cast
     else:
-        msg = f'shape type is not in TOPODS_CAST_METHODS - {shape_type}'
+        msg = f"shape type is not in TOPODS_CAST_METHODS - {shape_type}"
         raise Exception(msg)
+
 
 # def save_ocp_doc_to_step(doc, output_path, decom_params):
 #     # initialise controller
@@ -315,7 +331,7 @@ def extract_ocp_shape_type_from_shape(shape: TopoDS_Shape, shape_type: TopAbs_Sh
 #     # _set_ocp_interface_static('write.step.schema', 'AP214IS')
 #     # _set_ocp_interface_static('write.step.color.mode', 1)
 
-#     # write files 
+#     # write files
 #     writer = STEPCAFControl_Writer()
 #     XCAFDoc_DocumentTool.SetLengthUnit_s(doc, decom_params.DOC_UNIT_IN_METRES)
 #     writer.SetColorMode(True)
@@ -337,9 +353,9 @@ def extract_ocp_shape_type_from_shape(shape: TopoDS_Shape, shape_type: TopAbs_Sh
 # @check_folder_exists_for_file_path("output_path")
 # def save_ocp_shapes_to_step(
 #         shapes: list["TopoDS_Shape"],
-#         output_path: str, 
-#         decom_params: DecompositionParameters, 
-#         enumerate_files=False, 
+#         output_path: str,
+#         decom_params: DecompositionParameters,
+#         enumerate_files=False,
 #         compound_labels: dict["TopoDS_Shape": str]={}) -> os.PathLike:
 
 #     # check output folder exists
@@ -353,7 +369,7 @@ def extract_ocp_shape_type_from_shape(shape: TopoDS_Shape, shape_type: TopAbs_Sh
 #         folder, filename = os.path.split(output_path)
 #         n_files = len([f for f in os.listdir(folder) if os.path.isfile(os.path.join(folder, f))])
 #         output_path = os.path.join(folder, f'{n_files+1:0>6}_{filename}')
-    
+
 #     # save to file
 #     doc = create_ocp_document('output_shape', decom_params)
 #     shape_tool = XCAFDoc_DocumentTool.ShapeTool_s(doc.Main())
@@ -366,13 +382,15 @@ def extract_ocp_shape_type_from_shape(shape: TopoDS_Shape, shape_type: TopAbs_Sh
 
 #     return output_path
 
+
 def save_ocp_shapes_to_stl(
-        shapes: list[TopoDS_Shape],
-        output_path: str,
-        linear_deflection: float = 0.1,
-        angular_deflection: float = 0.1,
-        relative: bool = True,
-        enumerate_files: bool = False) -> None:
+    shapes: list[TopoDS_Shape],
+    output_path: str,
+    linear_deflection: float = 0.1,
+    angular_deflection: float = 0.1,
+    relative: bool = True,
+    enumerate_files: bool = False,
+) -> None:
     """Mesh shapes and save them to an STL file.
 
     Multiple shapes are combined into a single compound before meshing with
@@ -403,11 +421,10 @@ def save_ocp_shapes_to_stl(
     # Optional file enumeration
     if enumerate_files:
         folder, filename = os.path.split(output_path)
-        n_files = len([
-            f for f in os.listdir(folder)
-            if os.path.isfile(os.path.join(folder, f))
-        ])
-        output_path = os.path.join(folder, f'{n_files+1:0>6}_{filename}')
+        n_files = len(
+            [f for f in os.listdir(folder) if os.path.isfile(os.path.join(folder, f))]
+        )
+        output_path = os.path.join(folder, f"{n_files + 1:0>6}_{filename}")
 
     # If multiple shapes → export as a compound
     if len(shapes) == 1:
@@ -429,7 +446,7 @@ def save_ocp_shapes_to_stl(
         linear_deflection,
         relative,
         angular_deflection,
-        True  # parallel meshing
+        True,  # parallel meshing
     )
     mesh.Perform()
 
@@ -442,7 +459,11 @@ def save_ocp_shapes_to_stl(
 
 
 @function_timer
-def load_ocp_step_to_doc(input_paths: list[str], decom_params: DecompositionParameters, document_label: str='input_step_data') -> TDocStd_Document:
+def load_ocp_step_to_doc(
+    input_paths: list[str],
+    decom_params: DecompositionParameters,
+    document_label: str = "input_step_data",
+) -> TDocStd_Document:
     """Load one or more STEP files into a single XCAF document.
 
     Names, colours, layers and properties are read. Progress is shown with a
@@ -468,24 +489,27 @@ def load_ocp_step_to_doc(input_paths: list[str], decom_params: DecompositionPara
         If a STEP file fails to read or to transfer to the document.
     """
     # output to logger
-    logger.info(f'[LOADING] - loading step file from {len(input_paths)} file' + ('s' if len(input_paths) > 1 else ''))
+    logger.info(
+        f"[LOADING] - loading step file from {len(input_paths)} file"
+        + ("s" if len(input_paths) > 1 else "")
+    )
 
     # initialise step caf controller
     STEPCAFControl_Controller.Init_s()
 
-    # set input parameters 
+    # set input parameters
     # ensure that sub shape names are loaded correctly
-    _set_ocp_interface_static('read.stepcaf.subshapes.name', 1)
+    _set_ocp_interface_static("read.stepcaf.subshapes.name", 1)
     # _set_ocp_interface_static('read.step.product.context', 1)
     # _set_ocp_interface_static('read.step.product.mode', 1)
-    _set_ocp_interface_static('read.surfacecurve.mode', 0)
+    _set_ocp_interface_static("read.surfacecurve.mode", 0)
 
     # _set_ocp_interface_static('read.step.shape.relationship', 1)
     # _set_ocp_interface_static('read.step.shape.repr_level', 1)
     # _set_ocp_interface_static('read.step.nonmanifold', 1)
 
     # _set_ocp_interface_static('read.step.nonmanifold', 0)
-    
+
     # set precision and surface curve modes - reduces chance of introduced periodic surfaces
     # _set_ocp_interface_static('read.step.schema', 3)
 
@@ -514,11 +538,11 @@ def load_ocp_step_to_doc(input_paths: list[str], decom_params: DecompositionPara
     # create_document
     doc = create_ocp_document(document_label, decom_params)
 
-    desc_stage = '[Loading STEP files]'
+    desc_stage = "[Loading STEP files]"
     is_notebook_env = in_notebook()
 
     if is_notebook_env:
-        desc_tqdm = f'{desc_stage: <30}'
+        desc_tqdm = f"{desc_stage: <30}"
         pbar = tqdm_notebook(total=len(input_paths), desc=desc_tqdm, unit="file")
 
         def update_progress() -> None:
@@ -530,7 +554,7 @@ def load_ocp_step_to_doc(input_paths: list[str], decom_params: DecompositionPara
             pbar.close()
 
     else:
-        desc = f'[cyan]{desc_stage: <30}[/cyan]'
+        desc = f"[cyan]{desc_stage: <30}[/cyan]"
         progress = Progress(
             TextColumn(desc),
             BarColumn(),
@@ -551,11 +575,10 @@ def load_ocp_step_to_doc(input_paths: list[str], decom_params: DecompositionPara
             """Stop the rich progress bar."""
             progress.stop()
 
-
     # iterate over all step files for input
     for i, step_file_path in enumerate(input_paths, start=1):
         # log each file loading
-        logger.info(f'[LOADING] - loading step file {i} {step_file_path}')
+        logger.info(f"[LOADING] - loading step file {i} {step_file_path}")
 
         # create a reader for each step file
         reader = STEPCAFControl_Reader()
@@ -565,20 +588,20 @@ def load_ocp_step_to_doc(input_paths: list[str], decom_params: DecompositionPara
         # reader.SetPropsMode(True)
 
         # shape_from_step_file = ocp_load_step_file(step_file_path)
-        if (reader.ReadFile(step_file_path) == IFSelect_RetDone):
-            msg = f'[OK] STEP file loaded : {step_file_path}'
+        if reader.ReadFile(step_file_path) == IFSelect_RetDone:
+            msg = f"[OK] STEP file loaded : {step_file_path}"
             logger.info(msg)
         else:
-            msg = f'[ERROR] STEP file failed to load : {step_file_path}'
+            msg = f"[ERROR] STEP file failed to load : {step_file_path}"
             logger.fatal(msg)
             raise Exception(msg)
 
         # transfer to document
         if reader.Transfer(doc):
-            msg = f'[OK] transfered to document : {step_file_path}'
+            msg = f"[OK] transfered to document : {step_file_path}"
             logger.info(msg)
         else:
-            msg = f'[ERROR] failed to transfer to document : {step_file_path}'
+            msg = f"[ERROR] failed to transfer to document : {step_file_path}"
             logger.fatal(msg)
             raise Exception(msg)
 
@@ -610,41 +633,50 @@ class STEPSolid:
         Names of the assembly tree nodes leading to the solid.
     """
 
-    def __init__(self, solid: TopoDS_Solid, colour_rgb: ColourRGB, structure: list[str]) -> None:
+    def __init__(
+        self, solid: TopoDS_Solid, colour_rgb: ColourRGB, structure: list[str]
+    ) -> None:
         """Initialise the STEPSolid."""
         self.solid: TopoDS_Solid = solid
         self.colour: ColourRGB = colour_rgb
         self.structure: list[str] = structure
 
+
 class STEPFileReader:
-    def __init__(self, file_path: os.PathLike, decom_params: DecompositionParameters=None) -> None:
+    def __init__(
+        self, file_path: os.PathLike, decom_params: DecompositionParameters = None
+    ) -> None:
         # decomposition parameters
         self.file_path: os.PathLike = file_path
-        self.decom_params: list[DecompositionParameters] = decom_params if decom_params else DecompositionParameters()
-        
+        self.decom_params: list[DecompositionParameters] = (
+            decom_params if decom_params else DecompositionParameters()
+        )
+
         # set up document, shape / colour tools and xcaf explorer
         self.doc = self._transfer_from_step()
         self.colour_tool = XCAFDoc_DocumentTool.ColorTool_s(self.doc.Main())
         self.shape_tool = XCAFDoc_DocumentTool.ShapeTool_s(self.doc.Main())
-        
+
         # set up XCAF document explorer
-        self.doc_exp = XCAFPrs_DocumentExplorer(self.doc, XCAFPrs_DocumentExplorerFlags_None)
+        self.doc_exp = XCAFPrs_DocumentExplorer(
+            self.doc, XCAFPrs_DocumentExplorerFlags_None
+        )
         self.solids: list[STEPSolid] = self._extract_solids()
 
     def _transfer_from_step(self):
         # initialise step caf controller
         STEPCAFControl_Controller.Init_s()
 
-        # set input parameters 
+        # set input parameters
         # ensure that sub shape names are loaded correctly
-        _set_ocp_interface_static('read.stepcaf.subshapes.name', 1)
-        _set_ocp_interface_static('read.surfacecurve.mode', 0)
+        _set_ocp_interface_static("read.stepcaf.subshapes.name", 1)
+        _set_ocp_interface_static("read.surfacecurve.mode", 0)
 
         # create_document
         doc = create_ocp_document("input_step_data", self.decom_params)
-        
+
         # log each file loading
-        logger.info(f'[LOADING] - loading step file {self.file_path}')
+        logger.info(f"[LOADING] - loading step file {self.file_path}")
 
         # create a reader for each step file
         reader = STEPCAFControl_Reader()
@@ -654,20 +686,20 @@ class STEPFileReader:
         # reader.SetPropsMode(True)
 
         # shape_from_step_file = ocp_load_step_file(step_file_path)
-        if (reader.ReadFile(self.file_path) == IFSelect_RetDone):
-            msg = f'[OK] STEP file loaded : {self.file_path}'
+        if reader.ReadFile(self.file_path) == IFSelect_RetDone:
+            msg = f"[OK] STEP file loaded : {self.file_path}"
             logger.info(msg)
         else:
-            msg = f'[ERROR] STEP file failed to load : {self.file_path}'
+            msg = f"[ERROR] STEP file failed to load : {self.file_path}"
             logger.fatal(msg)
             raise Exception(msg)
 
         # transfer to document
         if reader.Transfer(doc):
-            msg = f'[OK] transfered to document : {self.file_path}'
+            msg = f"[OK] transfered to document : {self.file_path}"
             logger.info(msg)
         else:
-            msg = f'[ERROR] failed to transfer to document : {self.file_path}'
+            msg = f"[ERROR] failed to transfer to document : {self.file_path}"
             logger.fatal(msg)
             raise Exception(msg)
 
@@ -679,12 +711,21 @@ class STEPFileReader:
 
         # instance (label) colours are checked before part (ref_label) colours, so that a colour set on
         # an instance overrides the colour of the part it uses
-        if colour_tool.GetColor_s(label, XCAFDoc_ColorGen, colour) or colour_tool.GetColor_s(ref_label, XCAFDoc_ColorGen, colour) or colour_tool.GetColor_s(label, XCAFDoc_ColorSurf, colour) or colour_tool.GetColor_s(ref_label, XCAFDoc_ColorSurf, colour):
+        if (
+            colour_tool.GetColor_s(label, XCAFDoc_ColorGen, colour)
+            or colour_tool.GetColor_s(ref_label, XCAFDoc_ColorGen, colour)
+            or colour_tool.GetColor_s(label, XCAFDoc_ColorSurf, colour)
+            or colour_tool.GetColor_s(ref_label, XCAFDoc_ColorSurf, colour)
+        ):
             rgb = colour.GetRGB()
             red, green, blue = rgb.Values(Quantity_TOC_sRGB)
-            red_rounded, green_rounded, blue_rounded =  round(red*255), round(green*255), round(blue*255)
+            red_rounded, green_rounded, blue_rounded = (
+                round(red * 255),
+                round(green * 255),
+                round(blue * 255),
+            )
         else:
-            red_rounded, green_rounded, blue_rounded =  -1, -1, -1
+            red_rounded, green_rounded, blue_rounded = -1, -1, -1
 
         return ColourRGB(red=red_rounded, green=green_rounded, blue=blue_rounded)
 
@@ -705,14 +746,22 @@ class STEPFileReader:
             node_depth = self.doc_exp.CurrentDepth() + 1
 
             # set up string to print location in structure tree
-            node_name_with_depth = TCollection_ExtendedString((self.doc_exp.CurrentDepth()+2), '-')
+            node_name_with_depth = TCollection_ExtendedString(
+                (self.doc_exp.CurrentDepth() + 2), "-"
+            )
 
             # get the node name
             node_name = TDataStd_Name()
 
             # if (node.RefLabel.FindAttribute(TDataStd_Name.GetID_s(), node_name) or node.Label.FindAttribute(TDataStd_Name.GetID_s(), node_name)):
-            if node.RefLabel.FindAttribute(TDataStd_Name.GetID_s(), node_name) | node.Label.FindAttribute(TDataStd_Name.GetID_s(), node_name):
-                node_name_with_depth = node_name_with_depth + node_name.Get() + TCollection_ExtendedString(f' [{node_type.name}]')
+            if node.RefLabel.FindAttribute(
+                TDataStd_Name.GetID_s(), node_name
+            ) | node.Label.FindAttribute(TDataStd_Name.GetID_s(), node_name):
+                node_name_with_depth = (
+                    node_name_with_depth
+                    + node_name.Get()
+                    + TCollection_ExtendedString(f" [{node_type.name}]")
+                )
 
             # conver the node name to a python string
             node_name_as_string = TCollection_AsciiString(node_name.Get()).ToCString()
@@ -723,12 +772,12 @@ class STEPFileReader:
             elif node_depth == len(structure):
                 structure[-1] = node_name_as_string
             else:
-                structure = structure[:node_depth-1]
+                structure = structure[: node_depth - 1]
                 structure.append(node_name_as_string)
 
             # checks if node is assembly
             if node.IsAssembly:
-                logger.debug('/'.join(structure) + ' [Assembly]')
+                logger.debug("/".join(structure) + " [Assembly]")
 
             # case if node is a solid
             elif node_type == TopAbs_SOLID or node_type == TopAbs_COMPSOLID:
@@ -740,8 +789,11 @@ class STEPFileReader:
                 if colour.red == -1:
                     colour = _colour_rgb_from_style(node.Style) or colour
                 # colour = _colour_rgb_from_style(node.Style) or ColourRGB(red=-1, green=-1, blue=-1)
-                
-                logger.debug('/'.join(structure) + f' [{colour.red:< 4}{colour.green:< 4}{colour.blue:< 4}] [{node_type}]')
+
+                logger.debug(
+                    "/".join(structure)
+                    + f" [{colour.red:< 4}{colour.green:< 4}{colour.blue:< 4}] [{node_type}]"
+                )
 
                 solid = STEPSolid(
                     solid=downcast_ocp_shape(node_shape),
@@ -754,18 +806,20 @@ class STEPFileReader:
             elif node_type == TopAbs_COMPOUND:
                 # loop over sub shapes of current node
                 sub_shape_labels = TDF_LabelSequence()
-                
+
                 # collect sub shapes which are solids or compsolids
                 sub_shapes_solids_or_compsolids = []
                 sub_shapes_non_solids_or_compsolids = []
 
                 # get sub shape labels
                 self.shape_tool.GetSubShapes_s(node.RefLabel, sub_shape_labels)
-                    
+
                 for sub_shape_label in sub_shape_labels:
                     # set up string to store sub shape locations and names
-                    sub_shape_name_with_depth = TCollection_ExtendedString((self.doc_exp.CurrentDepth()+3), '-')
-                    
+                    sub_shape_name_with_depth = TCollection_ExtendedString(
+                        (self.doc_exp.CurrentDepth() + 3), "-"
+                    )
+
                     # get the sub shape
                     sub_shape = self.shape_tool.GetShape_s(sub_shape_label)
                     sub_shape_type = sub_shape.ShapeType()
@@ -779,37 +833,54 @@ class STEPFileReader:
                     # print(sub_shape.ShapeType())
 
                     # check if sub shape is a solid
-                    if sub_shape.ShapeType() == TopAbs_SOLID or sub_shape.ShapeType() == TopAbs_COMPSOLID:
+                    if (
+                        sub_shape.ShapeType() == TopAbs_SOLID
+                        or sub_shape.ShapeType() == TopAbs_COMPSOLID
+                    ):
                         # get the node name
                         sub_shape_name = TDataStd_Name()
-                        if (sub_shape_label.FindAttribute(TDataStd_Name.GetID_s(), sub_shape_name)):
-                            sub_shape_name_with_depth = sub_shape_name_with_depth + sub_shape_name.Get() + TCollection_ExtendedString(f' [{sub_shape.ShapeType().name}]')
+                        if sub_shape_label.FindAttribute(
+                            TDataStd_Name.GetID_s(), sub_shape_name
+                        ):
+                            sub_shape_name_with_depth = (
+                                sub_shape_name_with_depth
+                                + sub_shape_name.Get()
+                                + TCollection_ExtendedString(
+                                    f" [{sub_shape.ShapeType().name}]"
+                                )
+                            )
 
                         # get the sub structure
                         sub_structure = [*structure, sub_shape_name.Get().ToExtString()]
 
                         # get the shapes colour if it has one
-                        colour = self._get_colour(sub_shape_label, sub_shape_label, self.colour_tool)
+                        colour = self._get_colour(
+                            sub_shape_label, sub_shape_label, self.colour_tool
+                        )
 
                         # log solid extraction
-                        logger.debug('/'.join(sub_structure) + f'[{colour.red:< 4}{colour.green:< 4}{colour.blue:< 4}] [{node_type} / sub-shape]')
+                        logger.debug(
+                            "/".join(sub_structure)
+                            + f"[{colour.red:< 4}{colour.green:< 4}{colour.blue:< 4}] [{node_type} / sub-shape]"
+                        )
 
                         # apply node transform to the sub solids
                         transform_to_apply = node.Location.Transformation()
-                        sub_shape_transformed = BRepBuilderAPI_Transform(sub_shape, transform_to_apply, True).Shape()
+                        sub_shape_transformed = BRepBuilderAPI_Transform(
+                            sub_shape, transform_to_apply, True
+                        ).Shape()
 
                         solid = STEPSolid(
-                                solid=downcast_ocp_shape(sub_shape_transformed),
-                                colour_rgb=colour,
-                                structure=[s for s in sub_structure],
-                            )
+                            solid=downcast_ocp_shape(sub_shape_transformed),
+                            colour_rgb=colour,
+                            structure=[s for s in sub_structure],
+                        )
 
                         solids.append(solid)
-                
+
             self.doc_exp.Next()
 
         return solids
-
 
 
 def _colour_rgb_from_quantity(colour: Quantity_Color) -> ColourRGB:
@@ -829,7 +900,9 @@ def _colour_rgb_from_quantity(colour: Quantity_Color) -> ColourRGB:
         Colour with components rounded to integers in 0 - 255.
     """
     red, green, blue = colour.Values(Quantity_TOC_sRGB)
-    return ColourRGB(red=round(red * 255), green=round(green * 255), blue=round(blue * 255))
+    return ColourRGB(
+        red=round(red * 255), green=round(green * 255), blue=round(blue * 255)
+    )
 
 
 def _colour_rgb_from_style(style: XCAFPrs_Style) -> ColourRGB | None:
@@ -850,7 +923,9 @@ def _colour_rgb_from_style(style: XCAFPrs_Style) -> ColourRGB | None:
     return None
 
 
-def _common_face_colour(solid: TopoDS_Shape, sub_styles: XCAFPrs_IndexedDataMapOfShapeStyle) -> ColourRGB | None:
+def _common_face_colour(
+    solid: TopoDS_Shape, sub_styles: XCAFPrs_IndexedDataMapOfShapeStyle
+) -> ColourRGB | None:
     """Return the colour shared by the coloured faces of a solid.
 
     Parameters
@@ -880,7 +955,9 @@ def _common_face_colour(solid: TopoDS_Shape, sub_styles: XCAFPrs_IndexedDataMapO
         red, green, blue = colours.pop()
         return ColourRGB(red=red, green=green, blue=blue)
     if len(colours) > 1:
-        logger.warning(f'solid has faces of {len(colours)} different colours; no face colour used')
+        logger.warning(
+            f"solid has faces of {len(colours)} different colours; no face colour used"
+        )
     return None
 
 
@@ -926,7 +1003,7 @@ def _label_name(label: TDF_Label) -> str:
     # check the attribute exists first: FindAttribute can crash (in OCP) on a
     # label without a name attribute
     if label.IsNull() or not label.IsAttribute(TDataStd_Name.GetID_s()):
-        return ''
+        return ""
     name = TDataStd_Name()
     label.FindAttribute(TDataStd_Name.GetID_s(), name)
     return TCollection_AsciiString(name.Get()).ToCString()
@@ -948,7 +1025,9 @@ def _shape_key(shape: TopoDS_Shape) -> tuple[int, int]:
     return (hash(shape.TShape()), hash(shape.Location()))
 
 
-def _sub_shape_names(shape_tool: XCAFDoc_ShapeTool, label: TDF_Label) -> dict[tuple[int, int], str]:
+def _sub_shape_names(
+    shape_tool: XCAFDoc_ShapeTool, label: TDF_Label
+) -> dict[tuple[int, int], str]:
     """Return the names of the labelled sub-shapes of a shape label.
 
     Parameters
@@ -990,7 +1069,9 @@ def downcast_ocp_shape(shape: TopoDS_Shape) -> TopoDS_Shape:
         The shape cast to its specific TopoDS subclass.
     """
 
-    casting_method_loopuk: dict[TopAbs_ShapeEnum, Callable[[TopoDS_Shape], TopoDS_Shape]] = {
+    casting_method_loopuk: dict[
+        TopAbs_ShapeEnum, Callable[[TopoDS_Shape], TopoDS_Shape]
+    ] = {
         TopAbs_COMPOUND: TopoDS.Compound_s,
         TopAbs_COMPSOLID: TopoDS.CompSolid_s,
         TopAbs_SOLID: TopoDS.Solid_s,
@@ -998,10 +1079,11 @@ def downcast_ocp_shape(shape: TopoDS_Shape) -> TopoDS_Shape:
         TopAbs_FACE: TopoDS.Face_s,
         TopAbs_WIRE: TopoDS.Wire_s,
         TopAbs_EDGE: TopoDS.Edge_s,
-        TopAbs_VERTEX: TopoDS.Vertex_s
+        TopAbs_VERTEX: TopoDS.Vertex_s,
     }
 
     return casting_method_loopuk[shape.ShapeType()](shape)
+
 
 class STEPFileWriter:
     """Build an XCAF assembly of named, coloured solids and write it to STEP.
@@ -1016,12 +1098,20 @@ class STEPFileWriter:
     def __init__(self, decom_params: DecompositionParameters | None = None) -> None:
         """Initialise the STEPFileWriter and its empty root assembly."""
         # decomposition parameters
-        self.decom_params: DecompositionParameters = decom_params if decom_params else DecompositionParameters()
+        self.decom_params: DecompositionParameters = (
+            decom_params if decom_params else DecompositionParameters()
+        )
 
         # set up document, shape and colours tool
-        self._doc: TDocStd_Document = create_ocp_document('output_shape', self.decom_params)
-        self._shape_tool: XCAFDoc_ShapeTool = XCAFDoc_DocumentTool.ShapeTool_s(self._doc.Main())
-        self._colour_tool: XCAFDoc_ColorTool = XCAFDoc_DocumentTool.ColorTool_s(self._doc.Main())
+        self._doc: TDocStd_Document = create_ocp_document(
+            "output_shape", self.decom_params
+        )
+        self._shape_tool: XCAFDoc_ShapeTool = XCAFDoc_DocumentTool.ShapeTool_s(
+            self._doc.Main()
+        )
+        self._colour_tool: XCAFDoc_ColorTool = XCAFDoc_DocumentTool.ColorTool_s(
+            self._doc.Main()
+        )
 
         # store all shapes and their labels, if duplicate, don't generate new label or colours will be messed up
         self._shape_labels: dict[TopoDS_Shape, TDF_Label] = {}
@@ -1034,7 +1124,9 @@ class STEPFileWriter:
         # add root compound to document at top level
         self._root_label: TDF_Label = self._shape_tool.NewShape()
 
-    def _add_shape_to_assembly(self, shape: TopoDS_Shape, label: str, rgb: list[int] | None = None) -> None:
+    def _add_shape_to_assembly(
+        self, shape: TopoDS_Shape, label: str, rgb: list[int] | None = None
+    ) -> None:
         """Add a shape to the document as a named component of the root assembly.
 
         Parameters
@@ -1054,10 +1146,14 @@ class STEPFileWriter:
 
         # add the componet to the root assembly
         identity_loc = TopLoc_Location()
-        instance_label = self._shape_tool.AddComponent(self._root_label, part_label, identity_loc)
+        instance_label = self._shape_tool.AddComponent(
+            self._root_label, part_label, identity_loc
+        )
         TDataStd_Name.Set_s(instance_label, TCollection_ExtendedString(label))
 
-    def add_solids(self, solids: list[TopoDS_Solid], label: str, rgb: list[int] | None = None) -> None:
+    def add_solids(
+        self, solids: list[TopoDS_Solid], label: str, rgb: list[int] | None = None
+    ) -> None:
         """Add several solids as a single named compound in the root assembly.
 
         Solids already added to the writer are copied so that they can be
@@ -1078,7 +1174,9 @@ class STEPFileWriter:
 
         if rgb:
             red, green, blue = rgb
-            quantity_colour = Quantity_Color(red / 255.0, green / 255.0, blue / 255.0, Quantity_TOC_sRGB)
+            quantity_colour = Quantity_Color(
+                red / 255.0, green / 255.0, blue / 255.0, Quantity_TOC_sRGB
+            )
 
         independent_solid: list[TopoDS_Solid] = []
         for solid in solids:
@@ -1094,7 +1192,9 @@ class STEPFileWriter:
 
             # apply colour to solid
             if rgb:
-                self._colour_tool.SetColor(solid_label, quantity_colour, XCAFDoc_ColorGen)
+                self._colour_tool.SetColor(
+                    solid_label, quantity_colour, XCAFDoc_ColorGen
+                )
 
             # add solid to compound
             self._builder.Add(compound, solid)
@@ -1102,7 +1202,9 @@ class STEPFileWriter:
         # add compound to root assembly
         self._add_shape_to_assembly(compound, label, rgb)
 
-    def add_solid(self, solid: TopoDS_Solid, label: str, rgb: list[int] | None = None) -> None:
+    def add_solid(
+        self, solid: TopoDS_Solid, label: str, rgb: list[int] | None = None
+    ) -> None:
         """Add a single named solid to the root assembly.
 
         A solid already added to the writer is copied first.
@@ -1127,7 +1229,9 @@ class STEPFileWriter:
         # apply colour
         if rgb:
             red, green, blue = rgb
-            quantity_colour = Quantity_Color(red / 255.0, green / 255.0, blue / 255.0, Quantity_TOC_sRGB)
+            quantity_colour = Quantity_Color(
+                red / 255.0, green / 255.0, blue / 255.0, Quantity_TOC_sRGB
+            )
             self._colour_tool.SetColor(solid_label, quantity_colour, XCAFDoc_ColorGen)
 
         # add solid to root assembly
@@ -1162,15 +1266,20 @@ class STEPFileWriter:
 
         if dirs and not os.path.isdir(dirs):
             os.makedirs(dirs, exist_ok=True)
-            logger.info(f'making dir {dirs}')
+            logger.info(f"making dir {dirs}")
 
         if enumerate_files:
-            dirs = dirs if dirs else '.'
-            n_files = len([
-                f for f in os.listdir(dirs)
-                if os.path.isfile(os.path.join(dirs, f)) and (len(f) >= len(file)) and (f[-len(file):] == file)
-            ])
-            output_path = os.path.join(dirs, f'{n_files+1:0>6}_{file}')
+            dirs = dirs if dirs else "."
+            n_files = len(
+                [
+                    f
+                    for f in os.listdir(dirs)
+                    if os.path.isfile(os.path.join(dirs, f))
+                    and (len(f) >= len(file))
+                    and (f[-len(file) :] == file)
+                ]
+            )
+            output_path = os.path.join(dirs, f"{n_files + 1:0>6}_{file}")
 
         # get the root assembly to match the output filename
         filename_base = os.path.splitext(os.path.basename(output_path))[0]
@@ -1181,27 +1290,34 @@ class STEPFileWriter:
 
         # initalise controller and set output parameters
         STEPCAFControl_Controller.Init_s()
-        Interface_Static.SetIVal_s('write.stepcaf.subshapes.name', 1)
-        Interface_Static.SetCVal_s('write.step.schema', 'AP214IS')
+        Interface_Static.SetIVal_s("write.stepcaf.subshapes.name", 1)
+        Interface_Static.SetCVal_s("write.step.schema", "AP214IS")
 
         # set up writer and set modes
         writer: STEPCAFControl_Writer = STEPCAFControl_Writer()
-        XCAFDoc_DocumentTool.SetLengthUnit_s(self._doc, self.decom_params.doc_unit_in_metres)
+        XCAFDoc_DocumentTool.SetLengthUnit_s(
+            self._doc, self.decom_params.doc_unit_in_metres
+        )
         writer.SetColorMode(True)
         writer.SetNameMode(True)
         writer.SetLayerMode(True)
 
         # transfer document to writer
         if not writer.Transfer(self._doc, STEPControl_AsIs):
-            raise Exception('[ERROR] - transfer of document to writer has failed...')
+            raise Exception("[ERROR] - transfer of document to writer has failed...")
 
         # write step file
         if writer.Write(output_path) != IFSelect_RetDone:
-            raise Exception(f'[ERROR] - save of document to step file failed: {output_path}')
+            raise Exception(
+                f"[ERROR] - save of document to step file failed: {output_path}"
+            )
 
         return output_path
 
-def _get_ocp_surface_from_ocp_face(face: TopoDS_Face, remove_trimmed_surface: bool=True) -> Geom_Surface:
+
+def _get_ocp_surface_from_ocp_face(
+    face: TopoDS_Face, remove_trimmed_surface: bool = True
+) -> Geom_Surface:
     """Get the underlying geometric surface of a face.
 
     Parameters

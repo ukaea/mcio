@@ -34,7 +34,7 @@ try:
 except Exception as e:
     from mcio import logger
 
-    logger.warning('failed to load OCP')
+    logger.warning("failed to load OCP")
     logger.warning(f"{e}")
 
 
@@ -201,7 +201,6 @@ def generate_auxiliary_surfaces_from_solid(
     for face_type, groups_of_connected_faces in faces_grouped_by_connected.items():
         # iterate over faces of given surface type
         for group_of_connected_faces in groups_of_connected_faces:
-
             # generate auxiliary surface for face - and add to collection for whole solid
             auxiliary_surfaces_for_face = AUXILIARY_SURFACE_METHODS[face_type](
                 group_of_connected_faces, decom_params
@@ -293,8 +292,8 @@ def generate_auxiliary_surfaces_from_solid(
 
                 if common_solids_result.legacy_used:
                     logger.debug(
-                        'BOPAlgo_CUT - legacy used follwing commin problem' +\
-                       f'{len(cut_solids)} solids produced'
+                        "BOPAlgo_CUT - legacy used follwing commin problem"
+                        + f"{len(cut_solids)} solids produced"
                     )
 
                 # check volumes conserved
@@ -304,9 +303,11 @@ def generate_auxiliary_surfaces_from_solid(
                 vol_common_and_cut_solids = vol_common + vol_cut
 
                 if vol_common_and_cut_solids == 1e-20:
-                    logger.fatal('vol_common_and_cut_solids vol is zero, divide by zero error encountered')
-                    logger.fatal(f'number of common_solids = {len(common_solids)}')
-                    logger.fatal(f'number of cut_solids = {len(cut_solids)}')
+                    logger.fatal(
+                        "vol_common_and_cut_solids vol is zero, divide by zero error encountered"
+                    )
+                    logger.fatal(f"number of common_solids = {len(common_solids)}")
+                    logger.fatal(f"number of cut_solids = {len(cut_solids)}")
 
                 TOL = 1e-2
                 if abs(1 - (vol_solid_enclosed / vol_common_and_cut_solids)) > TOL:
@@ -349,7 +350,6 @@ def generate_auxiliary_surfaces_from_solid(
 
                 # debugging, possibly suspicous solids... (unlikely to be possible)
                 if len(common_solids) > 1:
-
                     step_writer = STEPFileWriter(decom_params)
                     step_writer.add_solids([solid], "solid")
                     step_writer.add_solids(common_solids, "common_solids")
@@ -746,7 +746,7 @@ def generate_auxiliary_surfaces_spheres_from_ocp_face(
         u_closed_angle < (math.tau - decom_params.aux_surface_sphere_angle_tol)
     ) and not decom_params.aux_surface_sphere_simple:
         # comprehensive case
-        msg = 'sperical non-simple case not yet coded'
+        msg = "sperical non-simple case not yet coded"
         # needs to be coded - if required
     else:
         msg = (
@@ -800,7 +800,12 @@ def generate_auxiliary_surfaces_cones_from_ocp_faces(
     semi_angle = surface.SemiAngle()
 
     # check if surface is convex or concave
-    if faces[0].Orientation() == TopAbs_REVERSED and (semi_angle > (math.pi / 2.0)) or faces[0].Orientation() == TopAbs_FORWARD and (semi_angle < (math.pi / 2.0)):
+    if (
+        faces[0].Orientation() == TopAbs_REVERSED
+        and (semi_angle > (math.pi / 2.0))
+        or faces[0].Orientation() == TopAbs_FORWARD
+        and (semi_angle < (math.pi / 2.0))
+    ):
         return []
 
     # get the range of u and v across all coincident faces
@@ -1029,7 +1034,6 @@ def generate_auxiliary_surfaces_tori_from_ocp_faces(
         # print('\n\n here - case 1')
 
     elif closed_angle_u < math.pi - TOL_ROUNDING:
-
         if decom_params.aux_surface_tori_aux_surface_simple:
             # carry out simple approach, single plane accross span of major radius
 

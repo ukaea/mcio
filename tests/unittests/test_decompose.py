@@ -26,14 +26,14 @@ class MCIOUnitTestAddSolid(unittest.TestCase):
 
     def test_added_solids_not_written_by_default(self):
         decomposer = Decomposer()
-        decomposer.add_solid(self.box, 'box')
+        decomposer.add_solid(self.box, "box")
         self.assertEqual(len(decomposer.decomposition_solids), 1)
-        self.assertFalse(os.path.exists('added_solids'))
+        self.assertFalse(os.path.exists("added_solids"))
 
     def test_added_solids_written_when_requested(self):
         params = DecompositionParameters()
         params.debug_write_added_solids = True
         decomposer = Decomposer(decompose_parameters=params)
-        decomposer.add_solid(self.box, 'box')
-        self.assertTrue(os.path.isdir('added_solids'))
-        self.assertEqual(len(os.listdir('added_solids')), 1)
+        decomposer.add_solid(self.box, "box")
+        self.assertTrue(os.path.isdir("added_solids"))
+        self.assertEqual(len(os.listdir("added_solids")), 1)
