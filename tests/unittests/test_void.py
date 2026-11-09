@@ -7,16 +7,13 @@ import math
 import unittest
 
 import numpy as np
+from unitutils import TemporaryWorkingDirectory
 
 import mcio
 import mcio.surface as S
-from mcio.geometric import BoundingBox, OrientedBoundingBox, obbs_overlap
-from mcio.decomposevoidclassify import BoxClassifier, INSIDE, OUTSIDE, CROSSING
 from mcio.decomposeparams import DecompositionParameters
-
-
-from unitutils import TemporaryWorkingDirectory
-
+from mcio.decomposevoidclassify import CROSSING, INSIDE, OUTSIDE, BoxClassifier
+from mcio.geometric import BoundingBox, OrientedBoundingBox, obbs_overlap
 
 # run in a temporary working directory, as the decomposer writes files to the working directory
 _working_directory = TemporaryWorkingDirectory()
@@ -112,8 +109,9 @@ class MCIOUnitTestOBBEnclosure(unittest.TestCase):
     """OBBs built from OCP shapes must enclose the shape."""
 
     def test_rotated_cylinder_enclosed(self):
-        from OCP.gp import gp_Ax2, gp_Pnt, gp_Dir
         from OCP.BRepPrimAPI import BRepPrimAPI_MakeCylinder
+        from OCP.gp import gp_Ax2, gp_Dir, gp_Pnt
+
         from mcio.ocpboundingbox import oriented_bounding_box_from_shape
 
         axis = np.array([1.0, 2.0, 0.5]); axis /= np.linalg.norm(axis)
@@ -132,9 +130,13 @@ class MCIOUnitTestOBBEnclosure(unittest.TestCase):
         self.assertTrue(np.all(local <= obb.half_lengths + 1e-9))
 
     def test_obb_box_solid_matches_obb(self):
-        from OCP.gp import gp_Ax2, gp_Pnt, gp_Dir
         from OCP.BRepPrimAPI import BRepPrimAPI_MakeCylinder
-        from mcio.ocpboundingbox import oriented_bounding_box_from_shape, ocp_box_from_oriented_bounding_box
+        from OCP.gp import gp_Ax2, gp_Dir, gp_Pnt
+
+        from mcio.ocpboundingbox import (
+            ocp_box_from_oriented_bounding_box,
+            oriented_bounding_box_from_shape,
+        )
         from mcio.ocpproperties import _volume_of_ocp_solids
 
         cyl = BRepPrimAPI_MakeCylinder(gp_Ax2(gp_Pnt(0, 0, 0), gp_Dir(1, 1, 1)), 2.0, 20.0).Shape()
@@ -262,8 +264,8 @@ class MCIOUnitTestVoidOctree(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        from OCP.gp import gp_Ax2, gp_Pnt, gp_Dir
         from OCP.BRepPrimAPI import BRepPrimAPI_MakeBox, BRepPrimAPI_MakeCylinder
+        from OCP.gp import gp_Ax2, gp_Dir, gp_Pnt
         cls.solids = {
             "slab": BRepPrimAPI_MakeBox(gp_Pnt(0, 0, 0), 100.0, 100.0, 20.0).Shape(),
             "block": BRepPrimAPI_MakeBox(gp_Pnt(0, 0, 20), 30.0, 30.0, 30.0).Shape(),
@@ -322,7 +324,7 @@ class MCIOUnitTestVoidOctree(unittest.TestCase):
         self.assertLess(total_terms(pruned), total_terms(plain))
 
     def test_polytope_separating_axis_matches_ocp_distance(self):
-        from mcio.decomposevoid import _LazyBox, OUTSIDE
+        from mcio.decomposevoid import OUTSIDE, _LazyBox
         from mcio.ocpproperties import _distance_between_shapes
         decomposer = self._check(void_use_split_solid_distance_check=True)
         octree = decomposer.void_octree

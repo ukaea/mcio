@@ -7,11 +7,10 @@ plane and read-from-file) that write MCNP ``SDEF`` / ``READ`` cards.
 from __future__ import annotations
 
 import math
-
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from .formatting import formatting
-from .mcnp import MCNPCard, MCNP_PARTICLE_DESIGNATORS
+from .mcnp import MCNP_PARTICLE_DESIGNATORS, MCNPCard
 
 if TYPE_CHECKING:
     from .surface import Surface
@@ -25,7 +24,7 @@ def _particle_designator(particle: str) -> str:
     return MCNP_PARTICLE_DESIGNATORS.get(particle.lower(), particle).upper()
 
 
-class SourceEnergyDistribution():
+class SourceEnergyDistribution:
     """Source energy distribution written as MCNP SI1/SP1 cards.
 
     Parameters
@@ -62,7 +61,7 @@ class SourceEnergyDistribution():
         return [card_energies, card_distributions]
 
 
-class SourcePositionDistribution():
+class SourcePositionDistribution:
     """Source position distribution written as MCNP SI2/SP2 cards.
 
     Parameters
@@ -237,13 +236,13 @@ class SphericalStochasticVolumeSource(Source):
         energy_subcard_1, energy_subcard_2 = energy.mcnp_subcards
 
         # set up source distribution
-        radial_distribution_intensity = MCNPCard('SI2', [[f'0 1']])
+        radial_distribution_intensity = MCNPCard('SI2', [['0 1']])
         radial_distribution_probability = MCNPCard('SP2', [['-21 1']])
 
         # create mcnp card
         particle_str = f'PAR={MCNP_PARTICLE_DESIGNATORS[self._particle].upper()}'
         energy_str = 'ERG=D1'
-        normal_str = f'NRM=-1'
+        normal_str = 'NRM=-1'
         surface_str = f'SUR={self.spherical_surface.number}'
         weight_str = f'WGT={math.pi * self.spherical_surface.radius ** 2:.12f}'
         direction_str = 'DIR=D2'
@@ -415,11 +414,11 @@ class IsotropicCylindricalVolume(Source):
         energy_subcard_1, energy_subcard_2 = energy.mcnp_subcards
 
         position_string = f'POS={self._x0:.{formatting.MCNP_DP}e} {self._y0:.{formatting.MCNP_DP}e} {self._z0:.{formatting.MCNP_DP}e}'
-        extend_string = f'EXT=d3'
+        extend_string = 'EXT=d3'
         axis_string = f'AXS={self._u0:.{formatting.MCNP_DP}e} {self._v0:.{formatting.MCNP_DP}e} {self._w0:.{formatting.MCNP_DP}e}'
 
         mcnp_card = MCNPCard('SDEF', [[f'PAR={_particle_designator(self._particle)}'],
-                                      [f'ERG=D1'],
+                                      ['ERG=D1'],
                                       [position_string],
                                       [extend_string],
                                       [axis_string],
@@ -491,7 +490,7 @@ class CircularPlaneParrallel(Source):
         vector_string = f'VEC={self._u0:.{formatting.MCNP_DP}e} {self._v0:.{formatting.MCNP_DP}e} {self._w0:.{formatting.MCNP_DP}e}'
 
         mcnp_card = MCNPCard('SDEF', [[f'PAR={_particle_designator(self._particle)}'],
-                                      [f'ERG=D1'],
+                                      ['ERG=D1'],
                                       [position_string],
                                       [axis_string],
                                       [vector_string],

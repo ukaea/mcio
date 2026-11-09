@@ -8,18 +8,10 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 import numpy as np
-import math
 
 try:
-    import casadi
-    import OCP
 
-    from OCP.gp import (
-        gp_Ax3,
-        gp_Dir,
-        gp_Pnt,
-        gp_Trsf
-    )
+    from OCP.gp import gp_Trsf
 except:
     pass
 
@@ -27,7 +19,7 @@ from .formatting import formatting
 from .mcnp import MCNPCard
 
 
-class Transform():
+class Transform:
     """Lateral displacement and rotation matrix applied to surfaces and cells.
 
     The data maps onto an MCNP transformation card::
@@ -104,7 +96,7 @@ class Transform():
             raise Exception(msg)
 
     @property
-    def ocp_transform(self) -> "gp_Trsf":
+    def ocp_transform(self) -> gp_Trsf:
         """Convert the MCNP direction angles (TR card) to an active OpenCASCADE gp_Trsf.
 
         Returns
@@ -125,7 +117,7 @@ class Transform():
         if self.angle_type == 'degrees':
             rotation = np.cos(np.radians(rotation))
         elif self.angle_type != 'cosine':
-            raise ValueError(f"angle_type must be 'degrees' or 'cosine'")
+            raise ValueError("angle_type must be 'degrees' or 'cosine'")
 
         # rows are the auxiliary axes x', y', z' in the main system; orthonormalise as
         # decks often give rounded cosines

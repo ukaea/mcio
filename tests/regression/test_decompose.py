@@ -2,21 +2,23 @@
 unittest: regression testing
 """
 
-import os
 import copy
 import json
+import os
 import tempfile
-import mcio
 import unittest
-from unittest.mock import patch, mock_open
-import cadquery as cq
 from dataclasses import dataclass
 
-
-from unitutils import CustomAssertions, CustomCheckValue, TemporaryWorkingDirectory, HAS_OPENMC
-
+import cadquery as cq
 from referencebunker import generate_bunker_solids
+from unitutils import (
+    HAS_OPENMC,
+    CustomAssertions,
+    CustomCheckValue,
+    TemporaryWorkingDirectory,
+)
 
+import mcio
 
 # run in a temporary working directory, as the decomposer writes files to the working directory
 _working_directory = TemporaryWorkingDirectory()

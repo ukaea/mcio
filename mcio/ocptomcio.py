@@ -7,75 +7,46 @@ off-axis cones) lying on the material side of the face.
 """
 from __future__ import annotations
 
-import os
+import math
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
+import numpy as np
+
 from mcio import logger
 
-import numpy as np
-import math
-
-
 try:
-    import casadi
-    import OCP
-    from OCP.BRepAdaptor import (
-        BRepAdaptor_Surface
-    )
-    from OCP.BRepGProp import (
-        BRepGProp
-    )
-    from OCP.BRepLProp import (
-        BRepLProp_SLProps
-    )
-    from OCP.ElSLib import (
-        ElSLib
-    )
-    from OCP.GC import GC_MakePlane
+    from OCP.BRepAdaptor import BRepAdaptor_Surface
+    from OCP.BRepGProp import BRepGProp
+    from OCP.BRepLProp import BRepLProp_SLProps
+    from OCP.ElSLib import ElSLib
     from OCP.Geom import (
-        Geom_Surface,
-        Geom_Plane, 
-        Geom_CylindricalSurface,
-        Geom_SphericalSurface,
         Geom_ConicalSurface,
+        Geom_CylindricalSurface,
+        Geom_Line,
+        Geom_Plane,
+        Geom_SphericalSurface,
+        Geom_Surface,
         Geom_ToroidalSurface,
-        Geom_Line
     )
-    from OCP.GeomAPI import (
-        GeomAPI_ProjectPointOnSurf,
-        GeomAPI_IntCS
-    )
-    from OCP.GeomAdaptor import (
-        GeomAdaptor_Surface
-    )
-    from OCP.gp import (
-        gp_Pnt,
-        gp_Vec,
-        gp_Dir,
-        gp_Ax3
-    )
-    from OCP.GProp import (
-        GProp_GProps
-    )
+    from OCP.GeomAdaptor import GeomAdaptor_Surface
+    from OCP.GeomAPI import GeomAPI_IntCS, GeomAPI_ProjectPointOnSurf
+    from OCP.gp import gp_Dir, gp_Pnt, gp_Vec
+    from OCP.GProp import GProp_GProps
     from OCP.TopAbs import (
+        TopAbs_COMPOUND,
+        TopAbs_COMPSOLID,
+        TopAbs_EDGE,
+        TopAbs_FACE,
         TopAbs_FORWARD,
         TopAbs_REVERSED,
-        TopAbs_FACE,
-        TopAbs_COMPOUND,
-        TopAbs_SOLID,
-        TopAbs_COMPSOLID,
+        TopAbs_SHAPE,
         TopAbs_SHELL,
-        TopAbs_EDGE,
+        TopAbs_SOLID,
         TopAbs_VERTEX,
         TopAbs_WIRE,
-        TopAbs_SHAPE
     )
-
-    from OCP.TopoDS import (
-        TopoDS,
-        TopoDS_Face
-    )
+    from OCP.TopoDS import TopoDS, TopoDS_Face
 
     TOP_ABS_SHAPES: tuple[TopAbs_ShapeEnum, ...] = (TopAbs_COMPOUND,
                         TopAbs_COMPSOLID,
@@ -98,43 +69,52 @@ try:
                                  TopAbs_SHAPE: lambda shape: shape}
 
 except Exception as e:
-    logger.warning(f'failed to load OCP')
+    logger.warning('failed to load OCP')
     logger.warning(f'{e}')
 
 if TYPE_CHECKING:
     from OCP.gp import gp_Ax1
     from OCP.TopAbs import TopAbs_ShapeEnum
     from OCP.TopoDS import TopoDS_Shape
+
     from .surface import Surface
     from .volume import HalfVolume, Volume
 
 from .decomposeparams import DecompositionParameters
 from .geometric import (
-    calculate_plane_parameters_from_point_and_normal,
-    check_vector_on_axis,
     angle_between_vectors,
+    calculate_plane_parameters_from_point_and_normal,
     check_point_on_axis,
-    check_vector_parallel_to_axis
+    check_vector_on_axis,
+    check_vector_parallel_to_axis,
 )
 from .numerical import custom_round
-from .surface import (
-    Plane, XPlane, YPlane, ZPlane,
-    CylinderOnXAxis, CylinderOnYAxis, CylinderOnZAxis,
-    CylinderParallelToXAxis, CylinderParallelToYAxis, CylinderParallelToZAxis,
-    SphereAtOrigin, Sphere, SphereOnXAxis, SphereOnYAxis, SphereOnZAxis,
-    ConeOnXAxis, ConeOnYAxis, ConeOnZAxis, 
-    ConeParallelToXAxis, ConeParallelToYAxis, ConeParallelToZAxis,
-    ToriParralleltoXAxis, ToriParralleltoYAxis, ToriParralleltoZAxis,
-    GeneralQuadratic
-)
-from .ocpbooleans import (
-    _get_ocp_surface_from_ocp_face
-)
+from .ocpbooleans import _get_ocp_surface_from_ocp_face
 from .ocpproperties import (
+    _get_uv_bounds_from_ocp_face,
     rotation_matrix_from_ocp_vectors,
-    _get_uv_bounds_from_ocp_face
 )
-
+from .surface import (
+    ConeParallelToXAxis,
+    ConeParallelToYAxis,
+    ConeParallelToZAxis,
+    CylinderParallelToXAxis,
+    CylinderParallelToYAxis,
+    CylinderParallelToZAxis,
+    GeneralQuadratic,
+    Plane,
+    Sphere,
+    SphereAtOrigin,
+    SphereOnXAxis,
+    SphereOnYAxis,
+    SphereOnZAxis,
+    ToriParralleltoXAxis,
+    ToriParralleltoYAxis,
+    ToriParralleltoZAxis,
+    XPlane,
+    YPlane,
+    ZPlane,
+)
 
 
 def get_mcio_halfspace_from_ocp_face(face: TopoDS_Face, decom_params: DecompositionParameters, surfaces_generated: dict[type[Surface], dict[str, Surface]]={}, reverse_direction: bool=False) -> HalfVolume | Volume:
@@ -1085,7 +1065,7 @@ def _get_mcio_halfspace_cone_from_ocp_face(face: TopoDS_Face, decom_params: Deco
                 return (+general_quadratic & +plane) | -plane
         
         else:
-            msg = f'[ERROR] cone to general quadratic issues with angle and orientation'
+            msg = '[ERROR] cone to general quadratic issues with angle and orientation'
             raise Exception(msg)
 
 def _get_mcio_halfspace_tori_from_ocp_face(face: TopoDS_Face, decom_params: DecompositionParameters, surfaces_generated: dict[type[Surface], dict[str, Surface]]={}) -> HalfVolume:

@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 import re
-import copy
 from typing import TYPE_CHECKING
 
 try:
@@ -17,24 +16,23 @@ try:
 except ModuleNotFoundError:
     pass
 
-from .formatting import formatting
-from .mcnp import MCNPCard, MCNPMaterialParameters
-from .xml import XMLTag
-from .data import (
-    ATOMIC_NUMBER, 
-    ISOTOPIC_COMPOSITION_BY_ATOM_FRACTION,
-    ISOTOPIC_COMPOSITION_BY_WEIGHT_FRACTION,
-    ZAID_FROM_ISOTOPE,
-    ISOTOPE_FROM_ZAID,
-    RELATIVE_ATOMIC_MASS, 
-    ELEMENT_FROM_ISOTOPE, 
-    ELEMENT
-    )
-from .decomposeparams import DecompositionParameters
-from .utils import SerialisableFromDict
-
 # import first to allow logging of optional modules 
 from mcio import logger
+
+from .data import (
+    ATOMIC_NUMBER,
+    ELEMENT,
+    ELEMENT_FROM_ISOTOPE,
+    ISOTOPIC_COMPOSITION_BY_ATOM_FRACTION,
+    ISOTOPIC_COMPOSITION_BY_WEIGHT_FRACTION,
+    RELATIVE_ATOMIC_MASS,
+    ZAID_FROM_ISOTOPE,
+)
+from .decomposeparams import DecompositionParameters
+from .formatting import formatting
+from .mcnp import MCNPCard, MCNPMaterialParameters
+from .utils import SerialisableFromDict
+from .xml import XMLTag
 
 if TYPE_CHECKING:
     import openmc
@@ -111,7 +109,7 @@ def _materials_from_json(json_path: str) -> tuple[str, dict[str, Material]]:
         # case where all keys are labels
         materials: dict[str, Material] = {_normalise_label(label): Material.from_dict(mat_dict) for label, mat_dict in data.items()}
     else:
-        msg = f'material json keys should all be either rgb (e.g. 015_150_025) or label (e.g. 1)'
+        msg = 'material json keys should all be either rgb (e.g. 015_150_025) or label (e.g. 1)'
         logger.fatal(msg)
         raise KeyError(msg)
 
@@ -222,7 +220,7 @@ def _material_lookup(material_assignment_method: str, red: int, green: int, blue
 
     # define void regex checks in structure tree, and check if void (_void_ or _m0_ in structure string)
     REGEX_COMPILED_VOID_LABEL = re.compile(r'_void_', re.IGNORECASE)
-    REGEX_COMPILED_VOID_MATERIAL = re.compile(f'_m0_', re.IGNORECASE)
+    REGEX_COMPILED_VOID_MATERIAL = re.compile('_m0_', re.IGNORECASE)
 
     if bool(REGEX_COMPILED_VOID_LABEL.search(''.join(structure))) or bool(REGEX_COMPILED_VOID_MATERIAL.search(''.join(structure))):
         return None
@@ -283,7 +281,7 @@ def _material_lookup(material_assignment_method: str, red: int, green: int, blue
         logger.fatal(msg)
         raise ValueError(msg)
 
-def openmc_material_to_mcio_material(material_openmc: "openmc.Material") -> Material:
+def openmc_material_to_mcio_material(material_openmc: openmc.Material) -> Material:
     """Convert an OpenMC material into an mcio material.
 
     Parameters
@@ -305,8 +303,8 @@ def openmc_material_to_mcio_material(material_openmc: "openmc.Material") -> Mate
     """
     # get a list of fraction types
     if not material_openmc.nuclides:
-        msg = f'openmc material passed to openmc_material_to_mcio_material()'+\
-              f' contains no elements or isotopes'
+        msg = 'openmc material passed to openmc_material_to_mcio_material()'+\
+              ' contains no elements or isotopes'
         logger.fatal(msg)
         raise ValueError(msg)
     elif all([ptype == 'ao' for _, _, ptype in material_openmc.nuclides]):
@@ -314,7 +312,7 @@ def openmc_material_to_mcio_material(material_openmc: "openmc.Material") -> Mate
     elif all([ptype == 'wo' for _, _, ptype in material_openmc.nuclides]):
         fraction_type = 'wo'
     else:
-        msg = f'openmc material contains mixed fraction types. Can\'t convert'
+        msg = 'openmc material contains mixed fraction types. Can\'t convert'
         logger.fatal(msg)
         raise ValueError(msg)
 
@@ -324,7 +322,7 @@ def openmc_material_to_mcio_material(material_openmc: "openmc.Material") -> Mate
     elif material_openmc.density_units == 'kg/m3':
         density = material_openmc.density * 1e-3
     else:
-        msg = f'density_unit should be either g/cc g/cm3 or kg/m3 not' +\
+        msg = 'density_unit should be either g/cc g/cm3 or kg/m3 not' +\
               f'{material_openmc.density_units}'
         logger.fatal(msg)
         raise ValueError(msg)
@@ -417,17 +415,16 @@ class Material(SerialisableFromDict):
         
         # check fraction type
         if self.fraction_type not in ['ao', 'wo']:
-            msg = f'fraction_type for material should be either ao for atom or wo for weight fraction'
+            msg = 'fraction_type for material should be either ao for atom or wo for weight fraction'
             logger.fatal(msg)
             raise Exception(msg)
 
         # check density units
         if self.density_unit not in ['g/cc', 'g/cm3', 'atoms/barn-cm']:
-            msg = f'density_unit should be either g/cc, g/cm3'
+            msg = 'density_unit should be either g/cc, g/cm3'
             logger.fatal(msg)
             raise Exception(msg)
 
-        pass
 
     @property
     def isotopes(self) -> list[str]:
@@ -636,7 +633,6 @@ class Material(SerialisableFromDict):
             Currently returns None, as parsing is not implemented.
         """
         # parse mcnp card
-        pass
 
     @property
     def openmc_material(self) -> openmc.Material:
@@ -676,7 +672,7 @@ class Material(SerialisableFromDict):
             Empty GDML material tag.
         """
         attributes: dict[str, str] = {}
-        material_tag = XMLTag(f'material', attributes=attributes)
+        material_tag = XMLTag('material', attributes=attributes)
 
         return material_tag
 
@@ -689,7 +685,6 @@ class Material(SerialisableFromDict):
         None
             Always None.
         """
-        pass
 
     def strip_isotopes(self, isotopes_to_strip: list[str]) -> None:
         """Replace the composition with its isotopes, excluding those given.

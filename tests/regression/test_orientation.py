@@ -12,9 +12,9 @@ random points.
 import collections
 import unittest
 
-import numpy as np
 import cadquery as cq
-
+import numpy as np
+from OCP.Bnd import Bnd_Box
 from OCP.BRepAdaptor import BRepAdaptor_Surface
 from OCP.BRepAlgoAPI import BRepAlgoAPI_Cut
 from OCP.BRepBndLib import BRepBndLib
@@ -26,21 +26,17 @@ from OCP.BRepPrimAPI import (
     BRepPrimAPI_MakeCone,
     BRepPrimAPI_MakeCylinder,
     BRepPrimAPI_MakeSphere,
-    BRepPrimAPI_MakeTorus
+    BRepPrimAPI_MakeTorus,
 )
 from OCP.BRepTools import BRepTools
-from OCP.Bnd import Bnd_Box
-from OCP.TopAbs import TopAbs_FACE, TopAbs_SOLID, TopAbs_IN, TopAbs_OUT, TopAbs_REVERSED
 from OCP.gp import gp_Ax2, gp_Dir, gp_Pnt, gp_Trsf
+from OCP.TopAbs import TopAbs_FACE, TopAbs_IN, TopAbs_OUT, TopAbs_REVERSED, TopAbs_SOLID
+from unitutils import TemporaryWorkingDirectory, requires_openmc
 
 from mcio.decompose import Decomposer
 from mcio.decomposeparams import DecompositionParameters
 from mcio.ocpfilereadwrite import extract_ocp_shape_type_from_shape
 from mcio.ocptomcio import get_mcio_halfspace_from_ocp_face
-
-
-from unitutils import TemporaryWorkingDirectory, requires_openmc
-
 
 # run in a temporary working directory, as the decomposer writes files to the working directory
 _working_directory = TemporaryWorkingDirectory()

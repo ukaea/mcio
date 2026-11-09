@@ -6,45 +6,31 @@ decomposition, including detection and fixing of inexact edges.
 """
 from __future__ import annotations
 
-import os
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from mcio import logger
 
 try:
-    import casadi
-    import OCP
-    from OCP.BRep import (
-        BRep_Tool
-    )
+    from OCP.BRep import BRep_Tool
     from OCP.BRepBuilderAPI import (
-        BRepBuilderAPI_Sewing, 
+        BRepBuilderAPI_Sewing,
     )
     from OCP.BRepCheck import BRepCheck_Analyzer
-    from OCP.ShapeFix import (
-        ShapeFix_ShapeTolerance,
-        ShapeFix_Solid
-    )
-    from OCP.ShapeUpgrade import (
-        ShapeUpgrade_UnifySameDomain
-    )
+    from OCP.ShapeFix import ShapeFix_ShapeTolerance, ShapeFix_Solid
+    from OCP.ShapeUpgrade import ShapeUpgrade_UnifySameDomain
     from OCP.TopAbs import (
-        TopAbs_FACE,
         TopAbs_COMPOUND,
-        TopAbs_SOLID,
         TopAbs_COMPSOLID,
-        TopAbs_SHELL,
         TopAbs_EDGE,
+        TopAbs_FACE,
+        TopAbs_SHAPE,
+        TopAbs_SHELL,
+        TopAbs_SOLID,
         TopAbs_VERTEX,
         TopAbs_WIRE,
-        TopAbs_SHAPE
     )
-    from OCP.TopoDS import (
-        TopoDS,
-        TopoDS_Edge,
-        TopoDS_Solid
-    )
+    from OCP.TopoDS import TopoDS, TopoDS_Edge, TopoDS_Solid
 
     TOP_ABS_SHAPES: tuple[TopAbs_ShapeEnum, ...] = (TopAbs_COMPOUND,
                         TopAbs_COMPSOLID,
@@ -67,7 +53,7 @@ try:
                                  TopAbs_SHAPE: lambda shape: shape}
 
 except Exception as e:
-    logger.warning(f'failed to load OCP')
+    logger.warning('failed to load OCP')
     logger.warning(f'{e}')
 
 if TYPE_CHECKING:
@@ -75,10 +61,7 @@ if TYPE_CHECKING:
     from OCP.TopoDS import TopoDS_Shape
 
 from .decomposeparams import DecompositionParameters
-from .ocpfilereadwrite import (
-    extract_ocp_shape_type_from_shape,
-    STEPFileWriter
-)
+from .ocpfilereadwrite import STEPFileWriter, extract_ocp_shape_type_from_shape
 
 
 def _unify_same_domains(solid: TopoDS_Solid) -> TopoDS_Solid:

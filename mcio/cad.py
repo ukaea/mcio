@@ -8,14 +8,12 @@ by axis-aligned planes (:class:`STLSlicePX`, :class:`STLSlicePY`,
 
 from __future__ import annotations
 
-import numpy as np
 import os
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-
-from .checkvals import check_module_loaded
-
 from collections.abc import Callable, Sequence
+
+import matplotlib.pyplot as plt
+import numpy as np
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 
 def vector_plane_intersection(
@@ -410,7 +408,7 @@ class STL:
                         for i in range(0, len(section_solid[1:-1]), 7)
                     ]
                 else:
-                    msg = f"number of lines in facet subsection not equal to 7"
+                    msg = "number of lines in facet subsection not equal to 7"
                     raise ValueError(msg)
 
                 facets: list[STLFacet] = []
@@ -457,10 +455,8 @@ class STL:
 
         for i, facet in enumerate(self._facets):
             for vertex in facet.vertices:
-                if vertex[0] < x_min:
-                    x_min = vertex[0]
-                if vertex[0] > x_max:
-                    x_max = vertex[0]
+                x_min = min(x_min, vertex[0])
+                x_max = max(x_max, vertex[0])
                 if vertex[1] < y_min:
                     y_min = vertex[0]
                 if vertex[1] > y_max:
@@ -588,7 +584,7 @@ def sort_intercepts_into_loop(
 
     # STLSliceLoop axis lookup
     STL_SLICE_LOOP_AXIS_LOOKUP: dict[
-        str, type[STLSliceLoopPX] | type[STLSliceLoopPY] | type[STLSliceLoopPZ]
+        str, type[STLSliceLoopPX | STLSliceLoopPY | STLSliceLoopPZ]
     ] = {
         "x": STLSliceLoopPX,
         "y": STLSliceLoopPY,
@@ -702,7 +698,7 @@ def sort_intercepts_into_loop(
             plt.savefig("plot.png")
             plt.show()
 
-            msg = f"sort_intercept_into_loops failed to find next point"
+            msg = "sort_intercept_into_loops failed to find next point"
             raise Exception(msg)
 
     return [p_start[0]], [p_start[1]], loops
@@ -713,7 +709,6 @@ class STLSlice:
 
     def __init__(self) -> None:
         """Initialise the STLSlice base class."""
-        pass
 
 
 class STLSlicePX(STLSlice):

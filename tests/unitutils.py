@@ -1,7 +1,6 @@
 """Custom assertions for unit testing
 """
 
-import math
 import unittest
 
 # the openmc python api is not on PyPI, so tests that need it are skipped when it is
@@ -17,7 +16,7 @@ requires_openmc = unittest.skipUnless(HAS_OPENMC, 'requires the openmc python pa
 
 
 
-class CustomAssertions():
+class CustomAssertions:
     """Base custom assertions
     """
     def assertRelativeToleranceAlmostEqual(self, a: float, b: float, tol: float) -> None:
@@ -39,7 +38,7 @@ class CustomAssertions():
         assert (value in iterable), msg
 
 
-class CustomParameterChecks():
+class CustomParameterChecks:
     def assertParametersInClassInstance(self, cls, parameters, tol):
         for parameter, value in parameters.items():
             try:
@@ -53,7 +52,7 @@ class CustomParameterChecks():
             )
 
 
-class CustomCheckValue():
+class CustomCheckValue:
     """Base custom value check
     """
 
@@ -62,7 +61,7 @@ class CustomCheckValue():
         return ((a - delta) <= b <= (a + delta))        
 
 
-class TemporaryWorkingDirectory():
+class TemporaryWorkingDirectory:
     """Change into a temporary working directory, restoring the original on exit.
 
     Decomposer.add_solid writes a STEP file into ``added_solids/`` in the working

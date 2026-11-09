@@ -4,10 +4,9 @@ unittest: ProgressRegister - counting of tracked items and completion.
 
 import unittest
 
-from mcio.register import ProgressRegister
-
-
 from unitutils import CustomAssertions
+
+from mcio.register import ProgressRegister
 
 
 class MCIOUnitTestRegister(unittest.TestCase, CustomAssertions):

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import xml
 import xml.etree.ElementTree as ET
 
 

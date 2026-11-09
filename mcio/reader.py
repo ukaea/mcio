@@ -15,17 +15,16 @@ if TYPE_CHECKING:
     from .surface import Surface
     from .volume import HalfVolume, Volume
 
-import re
-import numpy as np
 import os
+import re
 
+import numpy as np
 
-from .surface import *
-from .macrobody import *
 from .cell import Cell
+from .macrobody import *
 from .model import Model
+from .surface import *
 from .transform import Transform
-
 
 MCNP_SURFACE_TYPES: dict[str, type] = {'PX': XPlane,
                       'PY': YPlane,
@@ -113,7 +112,6 @@ class MCNPReader:
         cells_rows : list[str]
             Rows of the cell section with comments removed.
         """
-        pass
 
     def _parse_surfaces(self, surface_rows: list[str]) -> None:
         """Parse the surface section (not implemented).
@@ -123,7 +121,6 @@ class MCNPReader:
         surface_rows : list[str]
             Rows of the surface section with comments removed.
         """
-        pass
 
     def _parse_run_parameters(self, run_parameters_rows: list[str]) -> None:
         """Parse the run parameter section into :attr:`cards`.
@@ -338,7 +335,7 @@ class MCNPReader:
         # card_indexes = [(i) for i, row in enumerate(run_parameters_rows) if any([bool(v.search(row)) for k, v in re_cards.items()])]
 
 
-class Mesh():
+class Mesh:
     """Rectangular mesh boundaries with energy and time bins.
 
     Parameters
@@ -369,7 +366,7 @@ class Mesh():
         self._e_bins: np.ndarray = np.array(energy_bins, dtype=float)
 
 
-class MCNPMeshtalreader():
+class MCNPMeshtalreader:
     """Reader for MCNP MESHTAL files (not implemented).
 
     Parameters
@@ -1069,7 +1066,6 @@ class MCNPMCTALReader:
             rows : list[str]
                 Rows of the card.
             """
-            pass
 
         def parse_u(rows: list[str]) -> None:
             """Parse the ``u`` card (not implemented).
@@ -1079,7 +1075,6 @@ class MCNPMCTALReader:
             rows : list[str]
                 Rows of the card.
             """
-            pass
 
         def parse_s(rows: list[str]) -> None:
             """Parse the ``s`` card (not implemented).
@@ -1089,7 +1084,6 @@ class MCNPMCTALReader:
             rows : list[str]
                 Rows of the card.
             """
-            pass
 
         def parse_m(rows: list[str]) -> None:
             """Parse the ``m`` card (not implemented).
@@ -1099,7 +1093,6 @@ class MCNPMCTALReader:
             rows : list[str]
                 Rows of the card.
             """
-            pass
         
         def parse_c(rows: list[str]) -> None:
             """Parse the ``c`` card (not implemented).
@@ -1109,7 +1102,6 @@ class MCNPMCTALReader:
             rows : list[str]
                 Rows of the card.
             """
-            pass
 
         def parse_e(rows: list[str]) -> list[float]:
             """Parse the energy bin card.
@@ -1142,7 +1134,6 @@ class MCNPMCTALReader:
             rows : list[str]
                 Rows of the card.
             """
-            pass
 
         def parse_vals(rows: list[str],
                        cells: list[int]) -> dict[int, dict[str, np.ndarray]]:
@@ -1191,7 +1182,6 @@ class MCNPMCTALReader:
             rows : list[str]
                 Rows of the card.
             """
-            pass
 
         re_cards = {'tally': re.compile(r'^tally\s+[0-9]{1,}'),
                     'f': re.compile(r'^f\s+[0-9]{1,}'),
@@ -1217,7 +1207,7 @@ class MCNPMCTALReader:
                            'vals': parse_vals,
                            'tfc': parse_tfc}
         
-        card_rows: dict[str, list[str]] = {v: [] for v in re_cards.keys()}
+        card_rows: dict[str, list[str]] = {v: [] for v in re_cards}
 
         for row in rows:
             for potential_card_type, re_card in re_cards.items():
@@ -1661,16 +1651,14 @@ class weightWindow:
 
     def __init__(self) -> None:
         """Initialise the weightWindow."""
-        pass
 
 class MCNPWeightWindow:
     """Placeholder for an MCNP weight window."""
 
     def __init__(self) -> None:
         """Initialise the MCNPWeightWindow."""
-        pass
 
-class MCNPInputReader2():
+class MCNPInputReader2:
     """Reader converting an MCNP input deck into mcio surfaces and cells.
 
     The file is split into sections on blank lines (optional header, cells,
@@ -1972,7 +1960,7 @@ class MCNPInputReader2():
         return cards_no_newlines
 
 
-class MCNPInputReader():
+class MCNPInputReader:
     """Reader for MCNP input decks: surfaces, transforms, materials and cells.
 
     Parameters
@@ -2260,7 +2248,6 @@ class MCNPInputReader():
             if search_vol is not None:
                 self._cell_volumes[cell_number] = float(search_vol['volume'])
 
-        return
 
     def _parse_surface_section(self) -> None:
         """Parse the surface section, storing surfaces in ``_surfaces``."""

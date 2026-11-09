@@ -7,19 +7,17 @@ volumes of primitive surfaces.
 from __future__ import annotations
 
 import math
-
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from mcio import logger
+
 from .formatting import formatting
+
 # from .formatting import MCNP_DP, MCNP_INDENT
 from .mcnp import MCNPCard
-from .volume import HalfVolume
+from .surface import CylinderParallelToZAxis, XPlane, YPlane, ZPlane
 from .transform import Transform
-from .surface import (
-    XPlane, YPlane, ZPlane,
-    CylinderParallelToZAxis
-)
+from .volume import HalfVolume
 
 if TYPE_CHECKING:
     from .volume import Volume
@@ -203,7 +201,6 @@ class Box(Macrobody):
 
     def ocp_shape(self) -> None:
         """Placeholder for building an Open CASCADE shape (not implemented)."""
-        pass
 
 
 class RectangularParallelepiped(Macrobody):

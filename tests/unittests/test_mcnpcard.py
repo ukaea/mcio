@@ -4,8 +4,8 @@ unittest: MCNPCard formatting - line wrapping, rows, headers and sub-cards.
 
 import unittest
 
-from mcio.mcnp import MCNPCard
 from mcio.formatting import formatting
+from mcio.mcnp import MCNPCard
 
 
 class MCIOUnitTestMCNPCard(unittest.TestCase):

@@ -5,21 +5,20 @@ unittest: particle sources - MCNP SDEF cards and their distribution sub-cards.
 import math
 import unittest
 
+from unitutils import CustomAssertions
+
 import mcio.surface as S
 from mcio.source import (
-    SourceEnergyDistribution,
-    SourcePositionDistribution,
-    Source,
+    CircularPlaneParrallel,
+    IsotropicCylindricalVolume,
     MCNPSourceFromFile,
     Point,
-    SphericalStochasticVolumeSource,
     RectangularParallelepipedVolume,
-    IsotropicCylindricalVolume,
-    CircularPlaneParrallel
+    Source,
+    SourceEnergyDistribution,
+    SourcePositionDistribution,
+    SphericalStochasticVolumeSource,
 )
-
-
-from unitutils import CustomAssertions
 
 
 def _lines(card):

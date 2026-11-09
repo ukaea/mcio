@@ -4,26 +4,24 @@ solid during the decomposition of a full cad model.
 
 from __future__ import annotations
 
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import os
+from typing import Any
 
 from rich.progress import (
-    Progress,
-    TextColumn,
     BarColumn,
-    TaskProgressColumn,
     MofNCompleteColumn,
+    Progress,
+    TaskProgressColumn,
+    TextColumn,
     TimeElapsedColumn,
     TimeRemainingColumn,
 )
 from tqdm.notebook import tqdm as tqdm_notebook
 
 try:
-    import casadi
-    import OCP
     from OCP.BRepBuilderAPI import BRepBuilderAPI_MakeFace
-    from OCP.TopAbs import TopAbs_REVERSED, TopAbs_FACE
-    from OCP.TopoDS import TopoDS_Solid, TopoDS_Shape
+    from OCP.TopAbs import TopAbs_FACE, TopAbs_REVERSED
+    from OCP.TopoDS import TopoDS_Solid
 except Exception as e:
     from mcio import logger
 
@@ -31,50 +29,50 @@ except Exception as e:
     logger.warning(f"{e}")
 
 from mcio import logger
+
+from .cell import Cell
 from .colour import ColourRGB
 from .decomposeauxiliaries import generate_auxiliary_surfaces_from_solids
 from .decomposeparams import DecompositionParameters
 from .decomposesplitsolids import SplitSolid
 from .decomposevoid import VoidOctreeFaces, VoidOctreeSplitSolids
-from .surface import _map_of_duplicate_surfaces
-from .source import SphericalStochasticVolumeSource
 from .geometric import BoundingBox
-from .tally import VolumeFluenceTally
-from .profile import function_timer
-from .cell import Cell
 from .model import Model
-
 from .ocp import (
+    _split_solid_on_connection_between_equal_radii_cylinders,
+    _split_solids_on_axis_by_circular_edges,
     convert_ocp_shape_to_binary,
     convert_shape_binary_to_ocp_shape,
-    _split_solids_on_axis_by_circular_edges,
-    _split_solid_on_connection_between_equal_radii_cylinders,
 )
-from .ocpboundingbox import ocp_box_from_bounding_box, bounding_box_from_shape
 from .ocpbooleans import _common_ocp_solid, _recursively_split_ocp_solid
+from .ocpboundingbox import bounding_box_from_shape, ocp_box_from_bounding_box
 from .ocpfilereadwrite import (
-    extract_ocp_shape_type_from_shape,
-    _get_ocp_surface_from_ocp_face,
     STEPFileWriter,
+    _get_ocp_surface_from_ocp_face,
+    extract_ocp_shape_type_from_shape,
 )
-from .ocprepair import _unify_same_domains, _shape_fix_solid, _fix_inexact_edges
 from .ocpproperties import (
-    ocp_face_params_as_string,
     _volume_of_ocp_solids,
+    ocp_face_params_as_string,
 )
-from .utils import in_notebook
+from .ocprepair import _fix_inexact_edges, _shape_fix_solid, _unify_same_domains
+from .profile import function_timer
+from .source import SphericalStochasticVolumeSource
+from .surface import _map_of_duplicate_surfaces
+from .tally import VolumeFluenceTally
 from .universe import Universe, UniverseFill
+from .utils import in_notebook
 
 
 @function_timer
 def generate_mcio_void_octree(
-    decomposition_solids: List["DecompositionSolid"],
-    surfaces_generated: Dict[Any, Any],
+    decomposition_solids: list[DecompositionSolid],
+    surfaces_generated: dict[Any, Any],
     decom_params: DecompositionParameters,
-    universe: Optional[Universe] = None,
+    universe: Universe | None = None,
     run: bool = True,
     show_progress: bool = True,
-) -> Union[VoidOctreeFaces, VoidOctreeSplitSolids]:
+) -> VoidOctreeFaces | VoidOctreeSplitSolids:
     """Generate a void octree structure for MCIO geometry decomposition.
 
     Parameters
@@ -103,7 +101,7 @@ def generate_mcio_void_octree(
     if decom_params.void_filter_by_face:
         # collect all faces from each split solid within each
         # decomposition_solid, grouping by solid
-        split_solids_with_faces: Dict[SplitSolid, List[Any]] = {}
+        split_solids_with_faces: dict[SplitSolid, list[Any]] = {}
 
         # iterate over all split solids and create dictionaries which can be
         # filtered by intersecting solids/faces
@@ -123,7 +121,7 @@ def generate_mcio_void_octree(
 
     else:
         # run alternative method 1 : sort by split solids
-        split_solids: List[SplitSolid] = []
+        split_solids: list[SplitSolid] = []
         for decomposition_solid in decomposition_solids:
             split_solids.extend(decomposition_solid.split_solids)
 
@@ -145,9 +143,9 @@ def generate_mcio_void_octree(
 
 @function_timer
 def _generate_mcio_cells(
-    decomposition_solids: List["DecompositionSolid"],
+    decomposition_solids: list[DecompositionSolid],
     decom_params: DecompositionParameters,
-) -> List[Cell]:
+) -> list[Cell]:
     """Convert a collection of decomposition solids into MCIO Cell objects.
 
     Parameters
@@ -163,7 +161,7 @@ def _generate_mcio_cells(
         List of constructed MCIO Cell objects containing geometry and metadata.
     """
     # generate mcio cells from each decomposition solids
-    cells: List[Cell] = []
+    cells: list[Cell] = []
     n_solids: int = len(decomposition_solids)
 
     desc_stage: str = "[Generating mcio cells]"
@@ -270,32 +268,32 @@ class DecompositionSolid:
 
     def __init__(
         self,
-        solid_original: Union["TopoDS_Solid", bytes],
+        solid_original: TopoDS_Solid | bytes,
         decom_params: DecompositionParameters,
-        structure_original: Optional[List[str]] = None,
-        colour_rgb: Optional[Union[ColourRGB, Tuple[int, int, int]]] = None,
-        material: Optional[Any] = None,
-        name: Optional[str] = None,
-        universe: Optional[Universe] = None,
-        universe_fill: Optional[UniverseFill] = None,
+        structure_original: list[str] | None = None,
+        colour_rgb: ColourRGB | tuple[int, int, int] | None = None,
+        material: Any | None = None,
+        name: str | None = None,
+        universe: Universe | None = None,
+        universe_fill: UniverseFill | None = None,
         serialise: bool = False,
-        surfaces_generated: Optional[Dict[Any, Any]] = None,
+        surfaces_generated: dict[Any, Any] | None = None,
     ) -> None:
 
         """Initialise the DecompositionSolid, applying any requested shape cleanup."""
         # set input variables
-        self._solid_original: Union["TopoDS_Solid", bytes] = solid_original
+        self._solid_original: TopoDS_Solid | bytes = solid_original
         self._solid_original_bounding_box: BoundingBox = bounding_box_from_shape(
             self._solid_original
         )
-        self._structure_original: Optional[List[str]] = structure_original
-        self._colour_rgb: Optional[ColourRGB] = (
+        self._structure_original: list[str] | None = structure_original
+        self._colour_rgb: ColourRGB | None = (
             ColourRGB(*colour_rgb) if colour_rgb else None
         )
-        self.material: Optional[Any] = material
-        self.name: Optional[str] = name
-        self._universe: Optional[Universe] = universe
-        self._universe_fill: Optional[UniverseFill] = universe_fill
+        self.material: Any | None = material
+        self.name: str | None = name
+        self._universe: Universe | None = universe
+        self._universe_fill: UniverseFill | None = universe_fill
         self.decom_params: DecompositionParameters = decom_params
 
         # unify duplicated faces
@@ -318,42 +316,42 @@ class DecompositionSolid:
         self._params: DecompositionParameters = DecompositionParameters()
 
         # profiling information
-        self._profile_time_decomposition: Optional[float] = None
-        self._profile_time_void_octree: Optional[float] = None
-        self._profile_time_generate_mcio_cells: Optional[float] = None
+        self._profile_time_decomposition: float | None = None
+        self._profile_time_void_octree: float | None = None
+        self._profile_time_generate_mcio_cells: float | None = None
 
         # set up serialisation variables
         self._is_serialised: bool = False
         self.reserialise_required: bool = False
 
         # set up variables to store decomposed solids and auxiliary surfaces
-        self._split_solids: List[SplitSolid] = []
+        self._split_solids: list[SplitSolid] = []
 
         # to store mcio cell and void octree
-        self._cell: Optional[Cell] = None
-        self._void_octree: Optional[Union[VoidOctreeFaces, VoidOctreeSplitSolids]] = (
+        self._cell: Cell | None = None
+        self._void_octree: VoidOctreeFaces | VoidOctreeSplitSolids | None = (
             None
         )
 
         # set up variables for quality assurance
-        self._volume_original_solid: Optional[float] = None
-        self._volume_decomposed_solids: Optional[float] = None
+        self._volume_original_solid: float | None = None
+        self._volume_decomposed_solids: float | None = None
 
         # store OCP surface to MCIO surface to reduce repetition of surfaces
-        self._surfaces_generated: Dict[Any, Any] = (
+        self._surfaces_generated: dict[Any, Any] = (
             surfaces_generated if surfaces_generated else _map_of_duplicate_surfaces()
         )
 
         # model
-        self._profile_time_model: Optional[float] = None
-        self._model: Optional[Model] = None
+        self._profile_time_model: float | None = None
+        self._model: Model | None = None
 
         # serialise if required
         if serialise:
             self.serialise()
 
     @property
-    def volume(self) -> Optional[float]:
+    def volume(self) -> float | None:
         """float or None: Total volume of the original shape solid."""
         return self._volume_original_solid
 
@@ -363,27 +361,27 @@ class DecompositionSolid:
         return self._is_serialised
 
     @property
-    def profile_time_decomposition(self) -> Optional[float]:
+    def profile_time_decomposition(self) -> float | None:
         """float or None: Total time spent in seconds performing solid decomposition."""
         return self._profile_time_decomposition
 
     @property
-    def volume_original_solid(self) -> Optional[float]:
+    def volume_original_solid(self) -> float | None:
         """float or None: Volume of the target solid prior to decomposition."""
         return self._volume_original_solid
 
     @property
-    def volume_decomposed_solids(self) -> Optional[float]:
+    def volume_decomposed_solids(self) -> float | None:
         """float or None: Sum of volumes across all generated decomposed sub-solids."""
         return self._volume_decomposed_solids
 
     @property
-    def universe(self) -> Optional[Universe]:
+    def universe(self) -> Universe | None:
         """Universe or None: Assigned MCIO Universe."""
         return self._universe
 
     @universe.setter
-    def universe(self, universe: Optional[Universe]) -> None:
+    def universe(self, universe: Universe | None) -> None:
         """Set the universe and propagate it to the generated cell, if any.
 
         Parameters
@@ -396,12 +394,12 @@ class DecompositionSolid:
             self._cell.universe = universe
 
     @property
-    def universe_fill(self) -> Optional[UniverseFill]:
+    def universe_fill(self) -> UniverseFill | None:
         """UniverseFill or None: Assigned MCIO UniverseFill."""
         return self._universe_fill
 
     @universe_fill.setter
-    def universe_fill(self, universe_fill: Optional[UniverseFill]) -> None:
+    def universe_fill(self, universe_fill: UniverseFill | None) -> None:
         """Set the universe fill and propagate it to the generated cell, if any.
 
         Parameters
@@ -414,7 +412,7 @@ class DecompositionSolid:
             self._cell.universe_fill = self.universe_fill
 
     @property
-    def void_octree(self) -> Union[VoidOctreeFaces, VoidOctreeSplitSolids]:
+    def void_octree(self) -> VoidOctreeFaces | VoidOctreeSplitSolids:
         """VoidOctreeFaces or VoidOctreeSplitSolids: Void octree for the solid.
 
         Lazily built (and run) on first access.
@@ -473,7 +471,7 @@ class DecompositionSolid:
         self._is_serialised = False
 
     @property
-    def original_solid(self) -> Union["TopoDS_Solid", bytes]:
+    def original_solid(self) -> TopoDS_Solid | bytes:
         """TopoDS_Solid or bytes: Original shape object or raw binary string."""
         return self._solid_original
 
@@ -483,27 +481,27 @@ class DecompositionSolid:
         return self._solid_original_bounding_box
 
     @property
-    def split_solids(self) -> List[SplitSolid]:
+    def split_solids(self) -> list[SplitSolid]:
         """list of SplitSolid: Decomposed sub-solids created during decomposition."""
         return self._split_solids
 
     @property
-    def mcio_cell(self) -> Optional[Cell]:
+    def mcio_cell(self) -> Cell | None:
         """Cell or None: MCIO Cell representation corresponding to this solid."""
         return self._cell
 
     @property
-    def structure_in_input_file(self) -> Optional[List[str]]:
+    def structure_in_input_file(self) -> list[str] | None:
         """list of str or None: CAD structure path metadata from the STEP file."""
         return self._structure_original
 
     @property
-    def rgb(self) -> Optional[ColourRGB]:
+    def rgb(self) -> ColourRGB | None:
         """ColourRGB or None: RGB color assigned to this solid."""
         return self._colour_rgb
 
     def save(
-        self, output_path: Union[str, os.PathLike] = "analysis/solids/solid_cell_1.stp"
+        self, output_path: str | os.PathLike = "analysis/solids/solid_cell_1.stp"
     ) -> str:
         """Save the original solid, decomposed sub-solids and auxiliary surfaces to STEP.
 
@@ -530,7 +528,7 @@ class DecompositionSolid:
 
         # add the split solid(s) and their auxiliary surface(s)
         for split_solid in self._split_solids:
-            auxiliary_surfaces_to_write: List[Any] = []
+            auxiliary_surfaces_to_write: list[Any] = []
             for face, auxiliary_surfaces in split_solid.faces_with_auxiliaries.items():
                 if auxiliary_surfaces:
                     # add face to list for writing to step file
@@ -593,7 +591,7 @@ class DecompositionSolid:
         return written_path
 
     @function_timer
-    def _decompose(self) -> "DecompositionSolid":
+    def _decompose(self) -> DecompositionSolid:
         """Execute geometric splitting algorithms to decompose non-convex solids.
 
         Returns
@@ -649,7 +647,7 @@ class DecompositionSolid:
         # by elipse or cicle)
         if self.decom_params.presplit_pipes:
             logger.debug("pre-splitting solids - pipe splitter")
-            pre_split_solids_pipes: List[TopoDS_Solid] = []
+            pre_split_solids_pipes: list[TopoDS_Solid] = []
             for pre_split_solid_pipes in pre_split_solids_concentrics:
                 pre_split_solids_pipes.extend(
                     _split_solid_on_connection_between_equal_radii_cylinders(
@@ -673,7 +671,7 @@ class DecompositionSolid:
 
         # decompose split solids recursively
         logger.debug("splitting recursively")
-        split_solids: List[TopoDS_Solid] = []
+        split_solids: list[TopoDS_Solid] = []
         for pre_split_solid in pre_split_solids_pipes:
             split_solids.extend(
                 _recursively_split_ocp_solid(pre_split_solid, self.decom_params)

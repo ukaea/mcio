@@ -38,26 +38,24 @@ in ``decomposesolid.generate_mcio_void_octree``.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
-import pickle
 import os
+import pickle
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
 from .cell import Cell
-from .surface import XPlane, YPlane, ZPlane, Sphere
 from .geometric import BoundingBox, obbs_overlap
+from .surface import Sphere, XPlane, YPlane, ZPlane
 from .universe import Universe
 
 try:
-    import casadi
-    import OCP
-    from OCP.TopoDS import TopoDS_Solid, TopoDS
-    from OCP.BRepClass3d import BRepClass3d_SolidClassifier
     from OCP.BRep import BRep_Tool
-    from OCP.TopExp import TopExp_Explorer
+    from OCP.BRepClass3d import BRepClass3d_SolidClassifier
     from OCP.gp import gp_Pnt
     from OCP.TopAbs import TopAbs_IN, TopAbs_VERTEX
+    from OCP.TopExp import TopExp_Explorer
+    from OCP.TopoDS import TopoDS, TopoDS_Solid
 except Exception as e:
     from mcio import logger
 
@@ -65,9 +63,18 @@ except Exception as e:
     logger.warning(f"{e}")
 
 from mcio import logger
+
 from .decomposeparams import DecompositionParameters
-from .register import ProgressRegister
 from .decomposesplitsolids import SplitSolid
+from .decomposevoidclassify import (
+    INSIDE,
+    OUTSIDE,
+    BoxClassifier,
+    _plane_coefficients,
+    box_minus_planar_halfspaces_is_empty,
+    intersect_terms,
+    intersection_terms,
+)
 from .ocpboundingbox import (
     ocp_box_from_bounding_box,
 )
@@ -75,19 +82,12 @@ from .ocpfilereadwrite import STEPFileWriter
 from .ocpproperties import (
     _distance_between_shapes,
 )
-from .decomposevoidclassify import (
-    BoxClassifier,
-    INSIDE,
-    OUTSIDE,
-    _plane_coefficients,
-    box_minus_planar_halfspaces_is_empty,
-    intersection_terms,
-    intersect_terms,
-)
+from .register import ProgressRegister
 
 if TYPE_CHECKING:
     from OCP.TopoDS import TopoDS_Face
-    from .volume import HalfVolume, Volume
+
+    from .volume import Volume
 
 
 _IDENTITY: np.ndarray = np.identity(3)
@@ -125,9 +125,9 @@ class _OctreeData:
         Half space / box classifier with a per-surface cache.
     """
 
-    def __init__(self, split_solids: List[SplitSolid], use_obb: bool) -> None:
+    def __init__(self, split_solids: list[SplitSolid], use_obb: bool) -> None:
         """Collect bounding boxes and half space terms of the split solids."""
-        self.split_solids: List[SplitSolid] = list(split_solids)
+        self.split_solids: list[SplitSolid] = list(split_solids)
         n = len(self.split_solids)
 
         self.aabb_lo: np.ndarray = np.array(
@@ -137,9 +137,9 @@ class _OctreeData:
             [ss.bounding_box.maximums for ss in self.split_solids], dtype=float
         ).reshape(n, 3)
 
-        self.obb_centres: Optional[np.ndarray] = None
-        self.obb_axes: Optional[np.ndarray] = None
-        self.obb_half_lengths: Optional[np.ndarray] = None
+        self.obb_centres: np.ndarray | None = None
+        self.obb_axes: np.ndarray | None = None
+        self.obb_half_lengths: np.ndarray | None = None
         self.obb_useful = None
         if use_obb and n > 0:
             self.obb_centres = np.array(
@@ -155,22 +155,22 @@ class _OctreeData:
             # tighter than the AABB (e.g. not for axis aligned solids)
             obb_volume = 8.0 * np.prod(self.obb_half_lengths, axis=1)
             aabb_volume = np.prod(self.aabb_hi - self.aabb_lo, axis=1)
-            self.obb_useful: Optional[np.ndarray] = obb_volume < 0.9 * aabb_volume
+            self.obb_useful: np.ndarray | None = obb_volume < 0.9 * aabb_volume
             if not self.obb_useful.any():
                 self.obb_centres = None
 
-        self.terms: List[List[Any]] = [
+        self.terms: list[list[Any]] = [
             intersection_terms(ss.volume) for ss in self.split_solids
         ]
         self.classifier: BoxClassifier = BoxClassifier()
 
         # per split solid face bounding boxes, built lazily for the face filter
-        self._face_aabbs: Dict[int, tuple[np.ndarray, np.ndarray]] = {}
+        self._face_aabbs: dict[int, tuple[np.ndarray, np.ndarray]] = {}
 
         # per split solid convex polytope data (vertices, SAT axes), built lazily
-        self._polytopes: Dict[int, Optional[tuple[np.ndarray, np.ndarray]]] = {}
+        self._polytopes: dict[int, tuple[np.ndarray, np.ndarray] | None] = {}
 
-    def polytope(self, index: int) -> Optional[tuple[np.ndarray, np.ndarray]]:
+    def polytope(self, index: int) -> tuple[np.ndarray, np.ndarray] | None:
         """Return the convex polytope data of a planar split solid.
 
         A split solid whose CSG volume is an intersection of plane half spaces
@@ -194,7 +194,7 @@ class _OctreeData:
         if index in self._polytopes:
             return self._polytopes[index]
 
-        normals: List[np.ndarray] = []
+        normals: list[np.ndarray] = []
         for term in self.terms[index]:
             plane = _plane_coefficients(term)
             if plane is None:
@@ -203,7 +203,7 @@ class _OctreeData:
             n = np.array(plane[:3], dtype=float)
             normals.append(n / np.linalg.norm(n))
 
-        vertices: List[tuple[float, float, float]] = []
+        vertices: list[tuple[float, float, float]] = []
         explorer = TopExp_Explorer(self.split_solids[index].split_solid, TopAbs_VERTEX)
         while explorer.More():
             p = BRep_Tool.Pnt_s(TopoDS.Vertex_s(explorer.Current()))
@@ -266,10 +266,10 @@ class _LazyBox:
     def __init__(self, bounding_box: BoundingBox) -> None:
         """Store the bounding box."""
         self._bounding_box: BoundingBox = bounding_box
-        self._shape: Optional["TopoDS_Solid"] = None
+        self._shape: TopoDS_Solid | None = None
 
     @property
-    def shape(self) -> "TopoDS_Solid":
+    def shape(self) -> TopoDS_Solid:
         """TopoDS_Solid: The OCP box solid."""
         if self._shape is None:
             self._shape = ocp_box_from_bounding_box(self._bounding_box)
@@ -298,17 +298,17 @@ class VoidOctreeBase:
         Whether the split solids are currently serialised to binaries.
     """
 
-    _children: List["VoidOctreeBase"]
+    _children: list[VoidOctreeBase]
 
     # ------------------------------------------------------------------ set up
     def _init_root(
         self,
-        split_solids: List[SplitSolid],
+        split_solids: list[SplitSolid],
         decom_params: DecompositionParameters,
-        surfaces_generated: Dict[Any, Any],
-        bounding_box: Optional[BoundingBox],
+        surfaces_generated: dict[Any, Any],
+        bounding_box: BoundingBox | None,
         make_square: bool,
-        universe: Optional[Universe],
+        universe: Universe | None,
         level: int,
         show_progress: bool,
         title: str,
@@ -339,10 +339,10 @@ class VoidOctreeBase:
         """
         self.decom_params: DecompositionParameters = decom_params
         self._make_square: bool = make_square
-        self._surfaces_generated: Dict[Any, Any] = surfaces_generated
-        self._parent: Optional[VoidOctreeBase] = None
+        self._surfaces_generated: dict[Any, Any] = surfaces_generated
+        self._parent: VoidOctreeBase | None = None
         self._level: int = level
-        self.universe: Optional[Universe] = universe
+        self.universe: Universe | None = universe
         self._show_progress: bool = show_progress
         self._data: _OctreeData = _OctreeData(
             split_solids, bool(getattr(decom_params, "void_use_obb_check", False))
@@ -351,21 +351,21 @@ class VoidOctreeBase:
             bounding_box if bounding_box else self._generate_bounding_box(split_solids)
         )
         self._children = []
-        self._mcio_cells: Optional[List[Cell]] = None
+        self._mcio_cells: list[Cell] | None = None
         self.is_serialised: bool = False
         self.covered: bool = False
 
         # every split solid is a candidate of the root, with all of its terms
-        self._candidates: Dict[int, tuple[int, ...]] = {
+        self._candidates: dict[int, tuple[int, ...]] = {
             i: tuple(range(len(terms))) for i, terms in enumerate(self._data.terms)
         }
-        self._near_faces: Dict[int, tuple[int, ...]] = {}
+        self._near_faces: dict[int, tuple[int, ...]] = {}
 
         self.register: ProgressRegister = ProgressRegister(
             list(self._candidates), show_progress=self._show_progress, title=title
         )
 
-    def _init_child(self, parent: "VoidOctreeBase", bounding_box: BoundingBox) -> None:
+    def _init_child(self, parent: VoidOctreeBase, bounding_box: BoundingBox) -> None:
         """Initialise a child node of ``parent`` and filter its candidates.
 
         Parameters
@@ -397,8 +397,8 @@ class VoidOctreeBase:
 
     # ------------------------------------------------------------- filtering
     def _filter_candidates(
-        self, parent_candidates: Dict[int, tuple[int, ...]]
-    ) -> Dict[int, tuple[int, ...]]:
+        self, parent_candidates: dict[int, tuple[int, ...]]
+    ) -> dict[int, tuple[int, ...]]:
         """Return the parent's candidates that may intersect this node's box.
 
         Applies the AABB, OBB, half-space and exact filters described in the
@@ -449,9 +449,9 @@ class VoidOctreeBase:
         use_pruning = bool(getattr(params, "void_use_halfspace_pruning", False))
         lo_t = lo.tolist()
         hi_t = hi.tolist()
-        box_ocp: Optional[_LazyBox] = None
+        box_ocp: _LazyBox | None = None
 
-        candidates: Dict[int, tuple[int, ...]] = {}
+        candidates: dict[int, tuple[int, ...]] = {}
         for i in idx.tolist():
             remaining = parent_candidates[i]
 
@@ -543,7 +543,7 @@ class VoidOctreeBase:
         """
         raise NotImplementedError
 
-    def split(self, n_splits: int = 1) -> List["VoidOctreeBase"]:
+    def split(self, n_splits: int = 1) -> list[VoidOctreeBase]:
         """Subdivide the node's box and create the child nodes.
 
         Children are created from :meth:`BoundingBox.split` (halving along the
@@ -582,7 +582,7 @@ class VoidOctreeBase:
             self.deserialise()
 
         # iterative depth first traversal (avoids deep Python recursion)
-        stack: List[VoidOctreeBase] = [self]
+        stack: list[VoidOctreeBase] = [self]
         while stack:
             node = stack.pop()
             if node.covered or node._is_leaf():
@@ -596,12 +596,12 @@ class VoidOctreeBase:
 
     # -------------------------------------------------------- properties
     @property
-    def children(self) -> List["VoidOctreeBase"]:
+    def children(self) -> list[VoidOctreeBase]:
         """list of VoidOctreeBase: Child nodes of this node."""
         return self._children
 
     @children.setter
-    def children(self, children: List["VoidOctreeBase"]) -> None:
+    def children(self, children: list[VoidOctreeBase]) -> None:
         """Set the child nodes.
 
         Parameters
@@ -634,7 +634,7 @@ class VoidOctreeBase:
         return self.decom_params
 
     @property
-    def split_solids(self) -> List[SplitSolid]:
+    def split_solids(self) -> list[SplitSolid]:
         """list of SplitSolid: Split solids that may intersect this node."""
         return [self._data.split_solids[i] for i in self._candidates]
 
@@ -651,14 +651,14 @@ class VoidOctreeBase:
         return sum(self._data.split_solids[i].n_faces for i in self._candidates)
 
     @property
-    def voids(self) -> List["VoidOctreeBase"]:
+    def voids(self) -> list[VoidOctreeBase]:
         """list of VoidOctreeBase: Leaf nodes that require a void cell.
 
         Leaves lying entirely inside a split solid (:attr:`covered`) are
         excluded.
         """
-        voids: List[VoidOctreeBase] = []
-        stack: List[VoidOctreeBase] = [self]
+        voids: list[VoidOctreeBase] = []
+        stack: list[VoidOctreeBase] = [self]
         while stack:
             node = stack.pop()
             if node._children:
@@ -667,7 +667,7 @@ class VoidOctreeBase:
                 voids.append(node)
         return voids
 
-    def void_region(self) -> "Volume":
+    def void_region(self) -> Volume:
         """Return the CSG region of this node's void cell.
 
         The node's RPP with each candidate split solid subtracted. With
@@ -692,7 +692,7 @@ class VoidOctreeBase:
         return void_volume
 
     @property
-    def mcio_cells(self) -> List[Cell]:
+    def mcio_cells(self) -> list[Cell]:
         """list of Cell: Void cells for each leaf octant, plus graveyard cells.
 
         Each leaf octant that is not inside a split solid gives a cell (see
@@ -704,7 +704,7 @@ class VoidOctreeBase:
         if self._mcio_cells:
             return self._mcio_cells
 
-        cells: List[Cell] = []
+        cells: list[Cell] = []
         voids = self.voids
         n_voids = len(voids)
 
@@ -788,7 +788,7 @@ class VoidOctreeBase:
         for node in self._all_nodes():
             node.is_serialised = False
 
-    def _all_nodes(self) -> List["VoidOctreeBase"]:
+    def _all_nodes(self) -> list[VoidOctreeBase]:
         """Return this node and all of its descendants.
 
         Returns
@@ -796,8 +796,8 @@ class VoidOctreeBase:
         list of VoidOctreeBase
             Nodes in depth first order.
         """
-        nodes: List[VoidOctreeBase] = []
-        stack: List[VoidOctreeBase] = [self]
+        nodes: list[VoidOctreeBase] = []
+        stack: list[VoidOctreeBase] = [self]
         while stack:
             node = stack.pop()
             nodes.append(node)
@@ -853,7 +853,7 @@ class VoidOctreeBase:
         s_x_min, s_x_max, s_y_min, s_y_max, s_z_min, s_z_max = shared
         return +s_x_min & -s_x_max & +s_y_min & -s_y_max & +s_z_min & -s_z_max
 
-    def _generate_bounding_box(self, items_with_bounding_boxes: List[Any]) -> BoundingBox:
+    def _generate_bounding_box(self, items_with_bounding_boxes: list[Any]) -> BoundingBox:
         """Compute a box enclosing a collection of items.
 
         If ``self._make_square`` is set, all three lengths are set to the longest
@@ -886,7 +886,7 @@ class VoidOctreeBase:
         return bounding_box * 1.05
 
     def save(
-        self, output_path: Union[str, os.PathLike] = "analysis/solids/void_octree_1.stp"
+        self, output_path: str | os.PathLike = "analysis/solids/void_octree_1.stp"
     ) -> None:
         """Export the node's box and its candidate split solids to a STEP file.
 
@@ -953,13 +953,13 @@ class VoidOctreeSplitSolids(VoidOctreeBase):
 
     def __init__(
         self,
-        split_solids: List[SplitSolid],
+        split_solids: list[SplitSolid],
         decom_params: DecompositionParameters,
-        surfaces_generated: Dict[Any, Any],
-        bounding_box: Optional[BoundingBox] = None,
-        parent: Optional["VoidOctreeSplitSolids"] = None,
+        surfaces_generated: dict[Any, Any],
+        bounding_box: BoundingBox | None = None,
+        parent: VoidOctreeSplitSolids | None = None,
         make_square: bool = True,
-        universe: Optional[Universe] = None,
+        universe: Universe | None = None,
         level: int = 0,
         show_progress: bool = True,
     ) -> None:
@@ -1101,13 +1101,13 @@ class VoidOctreeFaces(VoidOctreeBase):
 
     def __init__(
         self,
-        split_solids_with_faces_filtered_by_parent: Dict[Any, List[Any]],
+        split_solids_with_faces_filtered_by_parent: dict[Any, list[Any]],
         decom_params: DecompositionParameters,
-        surfaces_generated: Dict[Any, Any],
-        bounding_box: Optional[BoundingBox] = None,
-        parent: Optional["VoidOctreeFaces"] = None,
+        surfaces_generated: dict[Any, Any],
+        bounding_box: BoundingBox | None = None,
+        parent: VoidOctreeFaces | None = None,
         make_square: bool = True,
-        universe: Optional[Universe] = None,
+        universe: Universe | None = None,
         level: int = 0,
         show_progress: bool = True,
     ) -> None:
@@ -1221,9 +1221,9 @@ class VoidOctreeFaces(VoidOctreeBase):
         return not self.covered
 
     @property
-    def split_solid_faces_filterable(self) -> Dict[SplitSolid, List["TopoDS_Face"]]:
+    def split_solid_faces_filterable(self) -> dict[SplitSolid, list[TopoDS_Face]]:
         """dict: Each candidate split solid mapped to its faces near this node."""
-        result: Dict[SplitSolid, List[Any]] = {}
+        result: dict[SplitSolid, list[Any]] = {}
         for i in self._candidates:
             split_solid = self._data.split_solids[i]
             faces = list(split_solid.face_to_mcio_halfspaces)
@@ -1231,12 +1231,12 @@ class VoidOctreeFaces(VoidOctreeBase):
         return result
 
     @property
-    def bounding_box_as_solid(self) -> "TopoDS_Solid":
+    def bounding_box_as_solid(self) -> TopoDS_Solid:
         """TopoDS_Solid: OCP box solid of this node's bounding box."""
         return ocp_box_from_bounding_box(self.bounding_box)
 
     def save(
-        self, output_path: Union[str, os.PathLike] = "analysis/solids/void_octree_1.stp"
+        self, output_path: str | os.PathLike = "analysis/solids/void_octree_1.stp"
     ) -> None:
         """Export the node's box, candidate split solids and near faces to STEP.
 
@@ -1245,7 +1245,7 @@ class VoidOctreeFaces(VoidOctreeBase):
         output_path : str or os.PathLike, optional
             Target output path, by default "analysis/solids/void_octree_1.stp".
         """
-        faces: List[Any] = []
+        faces: list[Any] = []
         for face_list in self.split_solid_faces_filterable.values():
             faces.extend(face_list)
 

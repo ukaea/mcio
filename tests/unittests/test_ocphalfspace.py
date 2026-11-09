@@ -2,9 +2,7 @@
 import math
 import unittest
 
-
 from unitutils import CustomAssertions, TemporaryWorkingDirectory
-
 
 # run in a temporary working directory, as the decomposer writes files to the working directory
 _working_directory = TemporaryWorkingDirectory()
@@ -17,19 +15,18 @@ def setUpModule():
 def tearDownModule():
     _working_directory.exit()
 from mcio.cell import Cell
-from mcio.decomposeparams import DecompositionParameters
 from mcio.decompose import Decomposer
+from mcio.decomposeparams import DecompositionParameters
+from mcio.geometric import BoundingBox
+from mcio.ocpproperties import _volume_of_ocp_solids
 from mcio.surface import (
+    Plane,
+    Sphere,
+    SphereAtOrigin,
     XPlane,
     YPlane,
     ZPlane,
-    Plane,
-    ToriParralleltoXAxis,
-    Sphere,
-    SphereAtOrigin
 )
-from mcio.geometric import BoundingBox
-from mcio.ocpproperties import _volume_of_ocp_solids
 
 
 class MCIOUnitTestOCPHalfSpace(unittest.TestCase, CustomAssertions):

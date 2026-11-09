@@ -1,25 +1,24 @@
-import unittest
-import math
-import tempfile
-import os
 import json
+import math
+import os
+import tempfile
+import unittest
 
+from unitutils import CustomAssertions
+
+from mcio.data import (
+    ISOTOPIC_COMPOSITION_BY_ATOM_FRACTION,
+    ISOTOPIC_COMPOSITION_BY_WEIGHT_FRACTION,
+)
+from mcio.decomposeparams import DecompositionParameters
 from mcio.material import (
     Material,
+    _material_lookup,
     _materials_by_colour_from_json,
     _materials_by_label_from_json,
     _materials_from_json,
-    _material_lookup,
-    _normalise_label
+    _normalise_label,
 )
-from mcio.data import (
-    ISOTOPIC_COMPOSITION_BY_ATOM_FRACTION,
-    ISOTOPIC_COMPOSITION_BY_WEIGHT_FRACTION
-)
-from mcio.decomposeparams import DecompositionParameters
-
-
-from unitutils import CustomAssertions
 
 
 class CustomAssertions:

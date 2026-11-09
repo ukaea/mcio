@@ -6,10 +6,9 @@ per-type number formatting controlled by :class:`TableFormat`.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 
-import dataclasses
-from dataclasses import dataclass
 import numpy as np
 
 
@@ -79,7 +78,7 @@ class Table:
         self._headers: list[str] | None = headers
 
         # store format
-        self.format: TableFormat = TableFormat() if isinstance(format, type(None)) else format
+        self.format: TableFormat = TableFormat() if (format is None) else format
 
         # store title
         self.title: str | None = title
@@ -105,12 +104,12 @@ class Table:
         self._row_length = len(self._rows[0])
         for row in self._rows[1:]:
             if len(row) != self._row_length:
-                msg = f'length of rows in table must be equal'
+                msg = 'length of rows in table must be equal'
                 raise Exception(msg)
             
         if self._headers:
             if len(self._headers) != self._row_length:
-                msg = f'length of headers in table must equal row length'
+                msg = 'length of headers in table must equal row length'
                 raise Exception(msg)
             
         return self._row_length
@@ -156,14 +155,12 @@ class Table:
         for i, row in enumerate(self._rows_as_strings):
             for j, col_value in enumerate(row):
                 col_value_length = len(col_value)
-                if col_value_length > column_widths[j]:
-                    column_widths[j] = col_value_length
+                column_widths[j] = max(column_widths[j], col_value_length)
 
         if self._headers:
             for j, header_value in enumerate(self._headers):
                 header_value_length = len(header_value)
-                if header_value_length > column_widths[j]:
-                    column_widths[j] = header_value_length
+                column_widths[j] = max(column_widths[j], header_value_length)
 
         return column_widths
 

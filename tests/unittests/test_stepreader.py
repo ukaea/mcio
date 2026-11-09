@@ -11,20 +11,20 @@ import os
 import tempfile
 import unittest
 
-from OCP.STEPCAFControl import STEPCAFControl_Writer, STEPCAFControl_Controller
-from OCP.Interface import Interface_Static
-from OCP.STEPControl import STEPControl_AsIs
-from OCP.TDocStd import TDocStd_Document
-from OCP.TCollection import TCollection_ExtendedString
-from OCP.XCAFApp import XCAFApp_Application
-from OCP.XCAFDoc import XCAFDoc_DocumentTool, XCAFDoc_ColorSurf, XCAFDoc_ColorGen
-from OCP.Quantity import Quantity_Color, Quantity_TOC_sRGB
-from OCP.TDataStd import TDataStd_Name
 from OCP.BRepPrimAPI import BRepPrimAPI_MakeBox
-from OCP.TopLoc import TopLoc_Location
-from OCP.gp import gp_Trsf, gp_Vec, gp_Pnt
-from OCP.TopExp import TopExp_Explorer
+from OCP.gp import gp_Pnt, gp_Trsf, gp_Vec
+from OCP.Interface import Interface_Static
+from OCP.Quantity import Quantity_Color, Quantity_TOC_sRGB
+from OCP.STEPCAFControl import STEPCAFControl_Controller, STEPCAFControl_Writer
+from OCP.STEPControl import STEPControl_AsIs
+from OCP.TCollection import TCollection_ExtendedString
+from OCP.TDataStd import TDataStd_Name
+from OCP.TDocStd import TDocStd_Document
 from OCP.TopAbs import TopAbs_FACE
+from OCP.TopExp import TopExp_Explorer
+from OCP.TopLoc import TopLoc_Location
+from OCP.XCAFApp import XCAFApp_Application
+from OCP.XCAFDoc import XCAFDoc_ColorGen, XCAFDoc_ColorSurf, XCAFDoc_DocumentTool
 
 from mcio.decomposeparams import DecompositionParameters
 from mcio.ocpfilereadwrite import STEPFileReader, STEPFileWriter

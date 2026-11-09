@@ -9,17 +9,11 @@ they can be pickled (e.g. for multiprocessing).
 
 from __future__ import annotations
 
+import io
 import math
 import os
-import copy
-import io
-from io import BytesIO
-import numpy as np
-from dataclasses import dataclass
-from collections import OrderedDict, deque
-from typing import BinaryIO
-from typing import TYPE_CHECKING
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from OCP.TopAbs import TopAbs_ShapeEnum
@@ -42,90 +36,53 @@ except:
     pass
 
 try:
-    import casadi
-    import OCP
-    from OCP.BRep import (
-        BRep_Tool,
-        BRep_Builder
-    )
-    from OCP.BRepAlgoAPI import (
-        BRepAlgoAPI_Common,
-        BRepAlgoAPI_Section
-    )
-    from OCP.BRepBuilderAPI import (
-        BRepBuilderAPI_MakeFace
+    from OCP.BRep import BRep_Builder, BRep_Tool
+    from OCP.BRepAlgoAPI import BRepAlgoAPI_Common, BRepAlgoAPI_Section
+    from OCP.BRepBuilderAPI import BRepBuilderAPI_MakeFace
+    from OCP.BRepPrimAPI import (
+        BRepPrimAPI_MakeBox,
+        BRepPrimAPI_MakePrism,
+        BRepPrimAPI_MakeSphere,
     )
     from OCP.BRepTools import (
         BRepTools,
     )
-    from OCP.BRepPrimAPI import (
-        BRepPrimAPI_MakeBox,
-        BRepPrimAPI_MakeSphere,
-        BRepPrimAPI_MakePrism
-    )
     from OCP.Geom import (
-        Geom_Surface,
-        Geom_Plane, 
-        Geom_CylindricalSurface,
-        Geom_SphericalSurface,
-        Geom_ConicalSurface,
-        Geom_ToroidalSurface,
-        Geom_RectangularTrimmedSurface,
         Geom_Circle,
-        Geom_Ellipse
+        Geom_ConicalSurface,
+        Geom_CylindricalSurface,
+        Geom_Ellipse,
+        Geom_Plane,
+        Geom_RectangularTrimmedSurface,
+        Geom_SphericalSurface,
+        Geom_Surface,
+        Geom_ToroidalSurface,
     )
     from OCP.GeomLProp import GeomLProp_SLProps
-    from OCP.gp import (
-        gp_Pnt,
-        gp_Vec,
-        gp_Dir,
-        gp_Ax2,
-        gp_Ax3,
-        gp_Pln
-    )
-    from OCP.TCollection import (
-        TCollection_ExtendedString,
-        TCollection_AsciiString
-    )
+    from OCP.gp import gp_Ax2, gp_Ax3, gp_Dir, gp_Pln, gp_Pnt, gp_Vec
+    from OCP.TCollection import TCollection_AsciiString, TCollection_ExtendedString
     from OCP.TDataStd import TDataStd_Name
+    from OCP.TDF import TDF_Label, TDF_LabelSequence
     from OCP.TDocStd import TDocStd_Document
-    from OCP.TDF import (
-        TDF_Label,
-        TDF_LabelSequence
-    )
     from OCP.TopAbs import (
-        TopAbs_FORWARD,
-        TopAbs_REVERSED,
-        TopAbs_FACE,
         TopAbs_COMPOUND,
-        TopAbs_SOLID,
         TopAbs_COMPSOLID,
-        TopAbs_SHELL,
         TopAbs_EDGE,
+        TopAbs_FACE,
+        TopAbs_FORWARD,
+        TopAbs_Orientation,
+        TopAbs_REVERSED,
+        TopAbs_SHAPE,
+        TopAbs_SHELL,
+        TopAbs_SOLID,
         TopAbs_VERTEX,
         TopAbs_WIRE,
-        TopAbs_SHAPE,
-        TopAbs_Orientation
     )
-    from OCP.TopExp import (
-        TopExp_Explorer,
-        TopExp
-    )
+    from OCP.TopExp import TopExp, TopExp_Explorer
     from OCP.TopLoc import TopLoc_Location
-
-    from OCP.TopoDS import (
-        TopoDS,
-        TopoDS_Edge,
-        TopoDS_Face,
-        TopoDS_Solid,
-        TopoDS_Shape
-    )
-    from OCP.TopTools import (
-        TopTools_IndexedMapOfShape
-    )
-    from OCP.XCAFApp import (
-        XCAFApp_Application
-    )
+    from OCP.TopoDS import TopoDS, TopoDS_Edge, TopoDS_Face, TopoDS_Shape, TopoDS_Solid
+    from OCP.TopTools import TopTools_IndexedMapOfShape
+    from OCP.XCAFApp import XCAFApp_Application
 
     TOP_ABS_SHAPES: tuple[TopAbs_ShapeEnum, ...] = (TopAbs_COMPOUND,
                         TopAbs_COMPSOLID,
@@ -148,42 +105,24 @@ try:
                                  TopAbs_SHAPE: lambda shape: shape}
 
 except Exception as e:
-    logger.warning(f'failed to load OCP')
+    logger.warning('failed to load OCP')
     logger.warning(f'{e}')
 
 
 from .decomposeparams import DecompositionParameters
-from .geometric import (
-    check_point_on_axis,
-    check_vector_on_axis,
-    check_vector_parallel_to_axis,
-    calculate_plane_parameters_from_point_and_normal,
-    angle_between_vectors,
-    distance_between_points,
-    values_within_tolerance,
-    BoundingBox,
-    OrientedBoundingBox
-)
-from .ocpbooleans import (
-    _split_ocp_solid,
-    generate_half_spaces_from_solid
-)
+from .ocpbooleans import _split_ocp_solid, generate_half_spaces_from_solid
 from .ocpboundingbox import (
     bounding_box_from_shape,
 )
 from .ocpfilereadwrite import (
-    extract_ocp_shape_type_from_shape,
+    STEPFileWriter,
     _get_ocp_surface_from_ocp_face,
-    STEPFileWriter
+    extract_ocp_shape_type_from_shape,
 )
 from .ocpproperties import (
     _get_uv_bounds_from_ocp_faces,
-    _get_uv_bounds_from_ocp_face,
-    check_ocp_faces_connected
+    check_ocp_faces_connected,
 )
-
-from .profile import function_timer
-from .utils import check_folder_exists_for_file_path
 
 
 def _ocp_faces_are_connected(face_1: TopoDS_Face, face_2: TopoDS_Face) -> bool:
@@ -213,7 +152,7 @@ def _ocp_faces_are_connected(face_1: TopoDS_Face, face_2: TopoDS_Face) -> bool:
   
     return False
 
-def _split_solid_on_connection_between_equal_radii_cylinders(solid: "TopoDS_Solid", decom_params: DecompositionParameters) -> list["TopoDS_Solid"]:
+def _split_solid_on_connection_between_equal_radii_cylinders(solid: TopoDS_Solid, decom_params: DecompositionParameters) -> list[TopoDS_Solid]:
     """Split a solid where two connected cylinders of equal radius meet.
 
     For each pair of connected cylindrical faces with the same radius (relative
@@ -235,7 +174,7 @@ def _split_solid_on_connection_between_equal_radii_cylinders(solid: "TopoDS_Soli
     """
 
     # debug
-    logger.debug(f'in _split_solid_on_connction_between_equal_radii_cylinder')
+    logger.debug('in _split_solid_on_connction_between_equal_radii_cylinder')
 
     TOL = 1e-6
 
@@ -342,7 +281,7 @@ def _split_solid_on_connection_between_equal_radii_cylinders(solid: "TopoDS_Soli
     return [solid]
 
 
-def _split_solids_on_axis_by_circular_edges(solid: "TopoDS_Solid", decom_params: DecompositionParameters) -> list["TopoDS_Solid"]:
+def _split_solids_on_axis_by_circular_edges(solid: TopoDS_Solid, decom_params: DecompositionParameters) -> list[TopoDS_Solid]:
     """Split a solid on circular edges joining coaxial second order surfaces.
 
     Pre-splitting method which finds connected second order surfaces
@@ -365,7 +304,7 @@ def _split_solids_on_axis_by_circular_edges(solid: "TopoDS_Solid", decom_params:
     """
 
     # debug
-    logger.debug(f'in _split_solid_on_connction_between_equal_radii_cylinder')
+    logger.debug('in _split_solid_on_connction_between_equal_radii_cylinder')
 
     # set tolerance
     ON_AXIS_TOL = 1e-2
@@ -423,7 +362,7 @@ def _split_solids_on_axis_by_circular_edges(solid: "TopoDS_Solid", decom_params:
                     surface_plane = Geom_Plane(gp_Pln(ax3))
                     face_of_plane = BRepBuilderAPI_MakeFace(surface_plane, 0.0, 1.0, 0.0, 1.0, decom_params.make_face_tol).Face()
 
-                    logger.debug(f'CONCENTRIL SPLITTER - edge found...')
+                    logger.debug('CONCENTRIL SPLITTER - edge found...')
 
                     # split the solid using the new plane
                     split_solids_from_plane = _split_ocp_solid(solid, face_of_plane, decom_params)
@@ -501,7 +440,7 @@ def _split_solids_by_rectilinear_grid(solid: TopoDS_Solid, decom_params: Decompo
     for x_plane in x_planes:
         split_solids = _split_ocp_solid(solid, x_plane)
 
-def get_common_ocp_edges_in_ocp_faces(face_1: "TopoDS_Face", face_2: "TopoDS_Face") -> list["TopoDS_Edge"]:
+def get_common_ocp_edges_in_ocp_faces(face_1: TopoDS_Face, face_2: TopoDS_Face) -> list[TopoDS_Edge]:
     """Return the edges shared by two faces.
 
     Edges are mapped with ``TopExp.MapShapes_s`` and compared by TShape
@@ -859,7 +798,7 @@ def _ocp_face_closed(face: TopoDS_Face, decom_params: DecompositionParameters) -
 
 
 
-def _generate_ocp_half_space_from_face_plane(face: "TopoDS_Face", bounding_solid: "TopoDS_Solid", decom_params: DecompositionParameters) -> None:
+def _generate_ocp_half_space_from_face_plane(face: TopoDS_Face, bounding_solid: TopoDS_Solid, decom_params: DecompositionParameters) -> None:
     """Generate a half space from a plane face (not implemented).
 
     Parameters
@@ -871,9 +810,8 @@ def _generate_ocp_half_space_from_face_plane(face: "TopoDS_Face", bounding_solid
     decom_params : DecompositionParameters
         The decomposition parameters.
     """
-    pass
 
-def _generate_ocp_half_space_from_face_cylinder(face: "TopoDS_Face", bounding_solid: "TopoDS_Solid", decom_params: DecompositionParameters) -> None:
+def _generate_ocp_half_space_from_face_cylinder(face: TopoDS_Face, bounding_solid: TopoDS_Solid, decom_params: DecompositionParameters) -> None:
     """Generate a half space from a cylinder face (not implemented).
 
     Parameters
@@ -885,9 +823,8 @@ def _generate_ocp_half_space_from_face_cylinder(face: "TopoDS_Face", bounding_so
     decom_params : DecompositionParameters
         The decomposition parameters.
     """
-    pass
 
-def _generate_ocp_half_space_from_face_sphere(face: "TopoDS_Face", bounding_solid: "TopoDS_Solid", decom_params: DecompositionParameters) -> None:
+def _generate_ocp_half_space_from_face_sphere(face: TopoDS_Face, bounding_solid: TopoDS_Solid, decom_params: DecompositionParameters) -> None:
     """Generate a half space from a sphere face (not implemented).
 
     Parameters
@@ -899,9 +836,8 @@ def _generate_ocp_half_space_from_face_sphere(face: "TopoDS_Face", bounding_soli
     decom_params : DecompositionParameters
         The decomposition parameters.
     """
-    pass
     
-def _generate_ocp_half_space_from_face_cone(face: "TopoDS_Face", bounding_solid: "TopoDS_Solid", decom_params: DecompositionParameters) -> None:
+def _generate_ocp_half_space_from_face_cone(face: TopoDS_Face, bounding_solid: TopoDS_Solid, decom_params: DecompositionParameters) -> None:
     """Generate a half space from a cone face (not implemented).
 
     Parameters
@@ -913,9 +849,8 @@ def _generate_ocp_half_space_from_face_cone(face: "TopoDS_Face", bounding_solid:
     decom_params : DecompositionParameters
         The decomposition parameters.
     """
-    pass
 
-def _generate_ocp_half_space_from_face_tori(face: "TopoDS_Face", bounding_solid: "TopoDS_Solid", decom_params: DecompositionParameters) -> None:
+def _generate_ocp_half_space_from_face_tori(face: TopoDS_Face, bounding_solid: TopoDS_Solid, decom_params: DecompositionParameters) -> None:
     """Generate a half space from a torus face (not implemented).
 
     Parameters
@@ -927,9 +862,8 @@ def _generate_ocp_half_space_from_face_tori(face: "TopoDS_Face", bounding_solid:
     decom_params : DecompositionParameters
         The decomposition parameters.
     """
-    pass
 
-def _make_quasi_unbound_face_from_surface(face: "TopoDS_Face", decom_params: DecompositionParameters) -> "TopoDS_Face":
+def _make_quasi_unbound_face_from_surface(face: TopoDS_Face, decom_params: DecompositionParameters) -> TopoDS_Face:
     """Build a quasi-unbound face from the surface underlying a face.
 
     A cylinder held in a Geom_RectangularTrimmedSurface is rebuilt over
@@ -968,14 +902,14 @@ def _make_quasi_unbound_face_from_surface(face: "TopoDS_Face", decom_params: Dec
 
     elif type(surface_untrimmed) == Geom_RectangularTrimmedSurface:
         # case shere
-        msg = f'surface type is Geom_RectangularTrimmedSurface but not cylinder, not yet coded...'
+        msg = 'surface type is Geom_RectangularTrimmedSurface but not cylinder, not yet coded...'
         raise Exception(msg)
     else:
         face_unbound = BRepBuilderAPI_MakeFace(surface, decom_params.make_face_tol).Face()
 
     return face_unbound
 
-def move_point_along_vector(p: "gp_Pnt", v: "gp_Vec", l1: float) -> "gp_Pnt":
+def move_point_along_vector(p: gp_Pnt, v: gp_Vec, l1: float) -> gp_Pnt:
     """Translate a point a given distance along a vector direction.
 
     Parameters
@@ -997,7 +931,7 @@ def move_point_along_vector(p: "gp_Pnt", v: "gp_Vec", l1: float) -> "gp_Pnt":
     v2.Scale(l1)        # scale to desired length
     return gp_Pnt(p.XYZ() + v2.XYZ())
 
-def point_at_intersection_of_two_lines(point_1: "gp_Pnt", vec_1: "gp_Vec", point_2: "gp_Pnt", vec_2: "gp_Vec", tol: float=1e-12) -> gp_Pnt:
+def point_at_intersection_of_two_lines(point_1: gp_Pnt, vec_1: gp_Vec, point_2: gp_Pnt, vec_2: gp_Vec, tol: float=1e-12) -> gp_Pnt:
     """Calculate the intersection point of two lines in 3D.
 
     Each line is defined by a point and a direction vector.
@@ -1045,7 +979,7 @@ def point_at_intersection_of_two_lines(point_1: "gp_Pnt", vec_1: "gp_Vec", point
         step_file_writer.add_solids([sphere_p2], 'point_2')
         output_path = step_file_writer.write('analysis/points.stp')
 
-        logger.fatal(f'point_at_intersection_of_two_lines(p1, v1, p2, v2, tol)')
+        logger.fatal('point_at_intersection_of_two_lines(p1, v1, p2, v2, tol)')
         logger.fatal(f'p1 = {point_1.X():.2e} {point_1.Y():.2e} {point_1.Y():.2e}')
         logger.fatal(f'p2 = {point_2.X():.2e} {point_2.Y():.2e} {point_2.Y():.2e}')
         logger.fatal(f'v1 = {vec_1.X():.2e} {vec_1.Y():.2e} {vec_1.Z():.2e}')
@@ -1066,12 +1000,12 @@ def point_at_intersection_of_two_lines(point_1: "gp_Pnt", vec_1: "gp_Vec", point
     # check if the point lies on line 2 (vec_2 with point_2)
     checK_point_on_line_2 = gp_Vec(point_2, point_intersection)
     if checK_point_on_line_2.Crossed(vec_2).SquareMagnitude() > tol:
-        msg = f'point at intersection of lines failed, lines do not intersect'
+        msg = 'point at intersection of lines failed, lines do not intersect'
         raise ValueError(msg)
 
     return point_intersection
 
-def distance_of_point_from_axis(axis: "gp_Ax3", point: "gp_Pnt") -> float:
+def distance_of_point_from_axis(axis: gp_Ax3, point: gp_Pnt) -> float:
     """Calculate the orthogonal distance between a point and a gp_Ax3 axis.
 
     Parameters
@@ -1147,7 +1081,7 @@ def flatten_shapes(shape_tool: XCAFDoc_ShapeTool) -> list[TopoDS_Shape]:
 
     return flat_shapes
 
-def _get_normal_at_uv_param_on_ocp_surface(surface: "Geom_Surface", u: float, v: float, tol: float=1e-6) -> gp_Dir:
+def _get_normal_at_uv_param_on_ocp_surface(surface: Geom_Surface, u: float, v: float, tol: float=1e-6) -> gp_Dir:
     """Return the surface normal at a (u, v) parameter.
 
     Parameters
@@ -1229,7 +1163,7 @@ def _get_normal_at_uv_param_on_ocp_face(face: TopoDS_Face, u: float, v: float, t
     # else:
 
 
-def _extrude_ocp_face(faces: list["TopoDS_Face"], length: float, decom_params: DecompositionParameters) -> list[TopoDS_Shape]:
+def _extrude_ocp_face(faces: list[TopoDS_Face], length: float, decom_params: DecompositionParameters) -> list[TopoDS_Shape]:
     """Extrude faces along the normal of the first face's surface.
 
     The normal is evaluated at the mid (u, v) point of the combined bounds.
@@ -1284,7 +1218,7 @@ def show_ocp_solids_in_cq(solids: list[TopoDS_Solid | TopoDS_CompSolid]) -> None
     # show workplane in jupyterlab
     show(work_plane)
 
-def check_solids_intersect(shape_1: "TopoDS_Shape", shape_2: "TopoDS_Shape") -> bool:
+def check_solids_intersect(shape_1: TopoDS_Shape, shape_2: TopoDS_Shape) -> bool:
     """Check whether two shapes intersect using a section operation.
 
     Parameters
@@ -1313,7 +1247,7 @@ def check_solids_intersect(shape_1: "TopoDS_Shape", shape_2: "TopoDS_Shape") -> 
     # return check for generating a valid shape from intersection
     return not intersection_shape.IsNull()
 
-def check_solids_intersect_boolean(shape_1: "TopoDS_Shape", shape_2: "TopoDS_Shape") -> bool:
+def check_solids_intersect_boolean(shape_1: TopoDS_Shape, shape_2: TopoDS_Shape) -> bool:
     """Check whether two shapes intersect using a boolean common operation.
 
     Checks if a common shape exists and contains faces or, failing that, edges.
@@ -1351,7 +1285,7 @@ def check_solids_intersect_boolean(shape_1: "TopoDS_Shape", shape_2: "TopoDS_Sha
     edge_explorer = TopExp_Explorer(res_shape, TopAbs_EDGE)
     return edge_explorer.More()
 
-def convert_ocp_shape_to_binary(shape: "TopoDS_Shape") -> bytes:
+def convert_ocp_shape_to_binary(shape: TopoDS_Shape) -> bytes:
     """Serialise an OCP shape to BRep binary data.
 
     Parameters
@@ -1394,7 +1328,7 @@ def convert_ocp_surface_to_binary(surface: Geom_Surface) -> bytes:
     # return buffer with face as binary
     return convert_ocp_shape_to_binary(face)
 
-def convert_ocp_orientation_to_binary(orientation: "TopAbs_Orientation") -> str:
+def convert_ocp_orientation_to_binary(orientation: TopAbs_Orientation) -> str:
     """Convert an OCP orientation to a string for serialisation.
 
     Parameters
@@ -1417,11 +1351,11 @@ def convert_ocp_orientation_to_binary(orientation: "TopAbs_Orientation") -> str:
     elif orientation == TopAbs_REVERSED:
         return 'revereversed'
     else:
-        msg = f'orientation should only be TopAbs_FORWARD or TopAbs_REVERSED'
+        msg = 'orientation should only be TopAbs_FORWARD or TopAbs_REVERSED'
         logger.fatal(msg)
         raise TypeError(msg)
 
-def convert_ocp_doc_to_binary(doc: "TDocStd_Document") -> bytes:
+def convert_ocp_doc_to_binary(doc: TDocStd_Document) -> bytes:
     """Serialise an OCP document to binary using the XCAF application.
 
     Parameters
@@ -1445,7 +1379,7 @@ def convert_ocp_doc_to_binary(doc: "TDocStd_Document") -> bytes:
 
     return buffer.getvalue()
 
-def convert_shape_binary_to_ocp_shape(buffer: bytes) -> "TopoDS_Shape":
+def convert_shape_binary_to_ocp_shape(buffer: bytes) -> TopoDS_Shape:
     """Deserialise BRep binary data back to an OCP shape.
 
     Parameters
@@ -1472,12 +1406,12 @@ def convert_shape_binary_to_ocp_shape(buffer: bytes) -> "TopoDS_Shape":
     BRepTools.Read_s(shape, stream, builder)
 
     if shape.IsNull():
-        msg = f'shape from deserialise is null'
+        msg = 'shape from deserialise is null'
         raise Exception(msg)
     else:
         return shape
 
-def convert_surface_binary_to_ocp_surface(buffer: bytes) -> "Geom_Surface":
+def convert_surface_binary_to_ocp_surface(buffer: bytes) -> Geom_Surface:
     """Deserialise binary data back to an OCP surface.
 
     Parameters
@@ -1517,7 +1451,7 @@ def convert_orientation_binary_to_ocp_orientation(buffer: str) -> TopAbs_Orienta
     else:
         return TopAbs_REVERSED
 
-def convert_binary_to_ocp_doc(buffer: bytes) -> "TDocStd_Document":
+def convert_binary_to_ocp_doc(buffer: bytes) -> TDocStd_Document:
     """Deserialise binary data back to an OCP document.
 
     Parameters
@@ -1569,7 +1503,7 @@ def convert_binary_to_ocp_doc(buffer: bytes) -> "TDocStd_Document":
 #         cell._volume
 
 
-def generate_csg_equivalent_quasi_infinite_solid_from_solid(solid: "TopoDS_Solid", decom_params: DecompositionParameters) -> list["TopoDS_Solid"]:
+def generate_csg_equivalent_quasi_infinite_solid_from_solid(solid: TopoDS_Solid, decom_params: DecompositionParameters) -> list[TopoDS_Solid]:
     """Build the CSG equivalent of a solid from its half spaces.
 
     The half spaces of the solid are intersected in turn with a large box

@@ -6,47 +6,29 @@ boxes.
 """
 from __future__ import annotations
 
-import os
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from mcio import logger
 
-
 try:
-    import casadi
-    import OCP
-    from OCP.Bnd import (
-        Bnd_Box, 
-        Bnd_OBB
-    )
+    from OCP.Bnd import Bnd_Box, Bnd_OBB
     from OCP.BRepBndLib import BRepBndLib
-    from OCP.BRepBuilderAPI import (
-        BRepBuilderAPI_Transform
-    )
-    from OCP.BRepPrimAPI import (
-        BRepPrimAPI_MakeBox
-    )
-    from OCP.gp import (
-        gp_Pnt,
-        gp_Trsf
-    )
+    from OCP.BRepBuilderAPI import BRepBuilderAPI_Transform
+    from OCP.BRepPrimAPI import BRepPrimAPI_MakeBox
+    from OCP.gp import gp_Pnt, gp_Trsf
     from OCP.TopAbs import (
-        TopAbs_FACE,
         TopAbs_COMPOUND,
-        TopAbs_SOLID,
         TopAbs_COMPSOLID,
-        TopAbs_SHELL,
         TopAbs_EDGE,
+        TopAbs_FACE,
+        TopAbs_SHAPE,
+        TopAbs_SHELL,
+        TopAbs_SOLID,
         TopAbs_VERTEX,
         TopAbs_WIRE,
-        TopAbs_SHAPE
     )
-    from OCP.TopoDS import (
-        TopoDS,
-        TopoDS_Solid,
-        TopoDS_Shape
-    )
+    from OCP.TopoDS import TopoDS, TopoDS_Shape, TopoDS_Solid
 
     TOP_ABS_SHAPES: tuple[TopAbs_ShapeEnum, ...] = (TopAbs_COMPOUND,
                         TopAbs_COMPSOLID,
@@ -69,16 +51,13 @@ try:
                                  TopAbs_SHAPE: lambda shape: shape}
 
 except Exception as e:
-    logger.warning(f'failed to load OCP')
+    logger.warning('failed to load OCP')
     logger.warning(f'{e}')
 
 if TYPE_CHECKING:
     from OCP.TopAbs import TopAbs_ShapeEnum
 
-from .geometric import (
-    BoundingBox,
-    OrientedBoundingBox
-)
+from .geometric import BoundingBox, OrientedBoundingBox
 
 
 def bounding_box_from_shape(shape: TopoDS_Shape) -> BoundingBox:
@@ -211,7 +190,7 @@ def bounding_box_from_hollow_of_shape(shape: TopoDS_Shape) -> BoundingBox:
     bbox = bounding_box_from_shape(shape)
 
 
-def ocp_box_from_bounding_box(bounding_box: BoundingBox) -> "TopoDS_Solid":
+def ocp_box_from_bounding_box(bounding_box: BoundingBox) -> TopoDS_Solid:
     """Build an OCP box solid matching an axis-aligned bounding box.
 
     Parameters

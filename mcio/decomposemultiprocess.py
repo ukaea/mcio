@@ -6,16 +6,15 @@ single-core mode) to run a single :class:`DecompositionSolid`.
 
 from __future__ import annotations
 
+import logging
+import os
+import traceback
 from collections.abc import Sequence
 from typing import Any
 
-import os
-import logging
-import traceback
-
+# import from where it is defined: decompose imports this module part way through loading
+from .decomposesolid import DecompositionSolid
 from .ocp import STEPFileWriter
-from .decompose import DecompositionSolid
-from .ocp import extract_ocp_shape_type_from_shape
 
 
 def _run_decomposer_solid(

@@ -8,21 +8,18 @@ solid and compared with the MCNP surface function.
 """
 
 import math
-
-import numpy as np
 import unittest
 
+import numpy as np
 from OCP.BRepClass3d import BRepClass3d_SolidClassifier
 from OCP.gp import gp_Pnt
 from OCP.TopAbs import TopAbs_IN, TopAbs_OUT
+from unitutils import CustomAssertions
 
 import mcio.surface as S
-from mcio.geometric import BoundingBox
 from mcio.decomposeparams import DecompositionParameters
+from mcio.geometric import BoundingBox
 from mcio.ocpproperties import _volume_of_ocp_solids
-
-
-from unitutils import CustomAssertions
 
 
 def _torus_function(rho, axial, a, b, c):

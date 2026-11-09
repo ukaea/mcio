@@ -22,37 +22,37 @@ positive half space is ``f > 0`` and the negative half space is ``f < 0``.
 from __future__ import annotations
 
 import math
-
-import numpy as np
 from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any
 
+import numpy as np
+
 from .surface import (
+    ConeOnXAxis,
+    ConeOnYAxis,
+    ConeOnZAxis,
+    ConeParallelToXAxis,
+    ConeParallelToYAxis,
+    ConeParallelToZAxis,
+    CylinderOnXAxis,
+    CylinderOnYAxis,
+    CylinderOnZAxis,
+    CylinderParallelToXAxis,
+    CylinderParallelToYAxis,
+    CylinderParallelToZAxis,
+    GeneralQuadratic,
     Plane,
-    XPlane,
-    YPlane,
-    ZPlane,
     Sphere,
     SphereAtOrigin,
     SphereOnXAxis,
     SphereOnYAxis,
     SphereOnZAxis,
-    CylinderParallelToXAxis,
-    CylinderParallelToYAxis,
-    CylinderParallelToZAxis,
-    CylinderOnXAxis,
-    CylinderOnYAxis,
-    CylinderOnZAxis,
-    ConeParallelToXAxis,
-    ConeParallelToYAxis,
-    ConeParallelToZAxis,
-    ConeOnXAxis,
-    ConeOnYAxis,
-    ConeOnZAxis,
-    GeneralQuadratic,
     ToriParralleltoXAxis,
     ToriParralleltoYAxis,
     ToriParralleltoZAxis,
+    XPlane,
+    YPlane,
+    ZPlane,
 )
 from .volume import And, Boolean, HalfVolume, Or, Volume
 
@@ -96,10 +96,10 @@ def _sq_range(lo: float, hi: float, c: float) -> Range:
     b = hi - c
     a2 = a * a
     b2 = b * b
-    vmax = a2 if a2 > b2 else b2
+    vmax = max(b2, a2)
     if a <= 0.0 <= b:
         return 0.0, vmax
-    return (a2 if a2 < b2 else b2), vmax
+    return (min(b2, a2)), vmax
 
 
 def _quad_1d_range(lo: float, hi: float, alpha: float, beta: float) -> Range:

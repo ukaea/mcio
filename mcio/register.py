@@ -7,20 +7,18 @@ from collections.abc import Hashable, Iterable
 from typing import Any
 
 from rich.progress import (
-    Progress,
-    TextColumn,
     BarColumn,
-    TaskProgressColumn,
     MofNCompleteColumn,
+    Progress,
+    TaskProgressColumn,
+    TextColumn,
     TimeElapsedColumn,
     TimeRemainingColumn,
 )
 from tqdm.notebook import tqdm as tqdm_notebook
 
 from .table import Table
-from .utils import (
-    in_notebook
-)
+from .utils import in_notebook
 
 
 class ProgressRegister:

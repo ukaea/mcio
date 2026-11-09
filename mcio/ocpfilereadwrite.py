@@ -7,16 +7,16 @@ assemblies via :class:`STEPFileWriter`, and exporting STL meshes.
 """
 from __future__ import annotations
 
-from collections import OrderedDict
 import os
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
+
 from rich.progress import (
-    Progress,
-    TextColumn,
     BarColumn,
-    TaskProgressColumn,
     MofNCompleteColumn,
+    Progress,
+    TaskProgressColumn,
+    TextColumn,
     TimeElapsedColumn,
     TimeRemainingColumn,
 )
@@ -26,98 +26,67 @@ from tqdm.notebook import tqdm as tqdm_notebook
 from mcio import logger
 
 try:
-    import cadquery as cq
+    pass
 except:
     pass
 
 try:
-    from jupyter_cadquery import show
+    pass
 except:
     pass
 
 try:
-    import casadi
-    import OCP
-    from OCP.BRep import (
-        BRep_Tool,
-        BRep_Builder
-    )
-    from OCP.BRepBuilderAPI import (
-        BRepBuilderAPI_Copy,
-        BRepBuilderAPI_Transform
-    )
+    from OCP.BRep import BRep_Builder, BRep_Tool
+    from OCP.BRepBuilderAPI import BRepBuilderAPI_Copy, BRepBuilderAPI_Transform
     from OCP.BRepMesh import BRepMesh_IncrementalMesh
-    from OCP.Geom import (
-        Geom_RectangularTrimmedSurface
-    )
+    from OCP.Geom import Geom_RectangularTrimmedSurface
     from OCP.IFSelect import IFSelect_RetDone
     from OCP.Interface import Interface_Static
     from OCP.Quantity import (
         Quantity_Color,
-        Quantity_TOC_RGB,
         Quantity_ColorRGBA,
-        Quantity_TOC_sRGB
+        Quantity_TOC_sRGB,
     )
     from OCP.STEPCAFControl import (
+        STEPCAFControl_Controller,
         STEPCAFControl_Reader,
         STEPCAFControl_Writer,
-        STEPCAFControl_Controller
     )
     from OCP.STEPControl import (
         STEPControl_AsIs,
     )
     from OCP.StlAPI import StlAPI_Writer
-    from OCP.TCollection import (
-        TCollection_ExtendedString
-    )
-    from OCP.TCollection import (
-        TCollection_ExtendedString,
-        TCollection_AsciiString
-    )
+    from OCP.TCollection import TCollection_AsciiString, TCollection_ExtendedString
     from OCP.TDataStd import TDataStd_Name
+    from OCP.TDF import TDF_Label, TDF_LabelSequence
     from OCP.TDocStd import TDocStd_Document
-    from OCP.TDF import (
-        TDF_Label,
-        TDF_LabelSequence
-    )
     from OCP.TopAbs import (
-        TopAbs_FACE,
         TopAbs_COMPOUND,
-        TopAbs_SOLID,
         TopAbs_COMPSOLID,
-        TopAbs_SHELL,
         TopAbs_EDGE,
+        TopAbs_FACE,
+        TopAbs_SHAPE,
+        TopAbs_SHELL,
+        TopAbs_SOLID,
         TopAbs_VERTEX,
         TopAbs_WIRE,
-        TopAbs_SHAPE
     )
-    from OCP.TopExp import (
-        TopExp_Explorer
-    )
+    from OCP.TopExp import TopExp_Explorer
+    from OCP.TopLoc import TopLoc_Location
     from OCP.TopoDS import (
         TopoDS,
-        TopoDS_Face,
-        TopoDS_Solid,
         TopoDS_Compound,
-        TopoDS_Shape
+        TopoDS_Face,
+        TopoDS_Shape,
+        TopoDS_Solid,
     )
-    from OCP.TopLoc import (
-        TopLoc_Location
-    )
-    from OCP.XCAFApp import (
-        XCAFApp_Application
-    )
-    from OCP.XCAFDoc import (
-        XCAFDoc_DocumentTool,
-        XCAFDoc_ColorGen,
-        XCAFDoc_ColorSurf
-    )
+    from OCP.XCAFApp import XCAFApp_Application
+    from OCP.XCAFDoc import XCAFDoc_ColorGen, XCAFDoc_ColorSurf, XCAFDoc_DocumentTool
     from OCP.XCAFPrs import (
-        XCAFPrs,
         XCAFPrs_DocumentExplorer,
         XCAFPrs_DocumentExplorerFlags_None,
         XCAFPrs_IndexedDataMapOfShapeStyle,
-        XCAFPrs_Style
+        XCAFPrs_Style,
     )
 
     TOP_ABS_SHAPES: tuple[TopAbs_ShapeEnum, ...] = (TopAbs_COMPOUND,
@@ -141,7 +110,7 @@ try:
                                  TopAbs_SHAPE: lambda shape: shape}
 
 except Exception as e:
-    logger.warning(f'failed to load OCP')
+    logger.warning('failed to load OCP')
     logger.warning(f'{e}')
 
 if TYPE_CHECKING:
@@ -151,12 +120,9 @@ if TYPE_CHECKING:
 
 from .colour import ColourRGB
 from .decomposeparams import DecompositionParameters
-from .material import Material
 from .profile import function_timer
-from .utils import (
-    check_folder_exists_for_file_path,
-    in_notebook
-)
+from .utils import check_folder_exists_for_file_path, in_notebook
+
 
 def _create_ocp_compound(shapes_to_add: list[TopoDS_Shape]=[]) -> TopoDS_Compound:
     """Create an OCP compound containing the given shapes.
@@ -205,10 +171,10 @@ def create_ocp_document(document_name: str, decom_params: DecompositionParameter
     """
 
     # get the applicatoin
-    app: "XCAFApp_Application" = XCAFApp_Application.GetApplication_s()
+    app: XCAFApp_Application = XCAFApp_Application.GetApplication_s()
 
     # create a document
-    doc: "TDocStd_Document" = TDocStd_Document(TCollection_ExtendedString(document_name))
+    doc: TDocStd_Document = TDocStd_Document(TCollection_ExtendedString(document_name))
 
     # set the units of the document
     XCAFDoc_DocumentTool.SetLengthUnit_s(doc, decom_params.doc_unit_in_metres)
@@ -219,7 +185,7 @@ def create_ocp_document(document_name: str, decom_params: DecompositionParameter
     # return the document
     return doc
 
-def _set_ocp_interface_static(parameter_label: str, parameter: int | float | str) -> None:
+def _set_ocp_interface_static(parameter_label: str, parameter: float | str) -> None:
     """Set an OCCT ``Interface_Static`` parameter if not already set.
 
     The setter/getter (integer, real or string) is chosen from the Python type
@@ -264,7 +230,7 @@ def _set_ocp_interface_static(parameter_label: str, parameter: int | float | str
         logger.fatal(msg)
         raise ValueError(msg)
 
-def _get_ocp_interface_static(parameter_label: str, parameter_type: type[int] | type[float] | type[str]) -> int | float | str:
+def _get_ocp_interface_static(parameter_label: str, parameter_type: type[int | float | str]) -> int | float | str:
     """Get the value of an OCCT ``Interface_Static`` parameter.
 
     Parameters
@@ -448,7 +414,6 @@ def save_ocp_shapes_to_stl(
         shape: TopoDS_Shape = shapes[0]
     else:
         from OCP.BRep import BRep_Builder
-        
         from OCP.TopoDS import TopoDS_Compound
 
         builder = BRep_Builder()
@@ -630,7 +595,6 @@ class CADFileWriter:
 
     def __init__(self) -> None:
         """Initialise the CADFileWriter."""
-        pass
 
 
 class STEPSolid:
@@ -715,19 +679,7 @@ class STEPFileReader:
 
         # instance (label) colours are checked before part (ref_label) colours, so that a colour set on
         # an instance overrides the colour of the part it uses
-        if colour_tool.GetColor_s(label, XCAFDoc_ColorGen, colour):
-            rgb = colour.GetRGB()
-            red, green, blue = rgb.Values(Quantity_TOC_sRGB)
-            red_rounded, green_rounded, blue_rounded =  round(red*255), round(green*255), round(blue*255)
-        elif colour_tool.GetColor_s(ref_label, XCAFDoc_ColorGen, colour):
-            rgb = colour.GetRGB()
-            red, green, blue = rgb.Values(Quantity_TOC_sRGB)
-            red_rounded, green_rounded, blue_rounded =  round(red*255), round(green*255), round(blue*255)
-        elif colour_tool.GetColor_s(label, XCAFDoc_ColorSurf, colour):
-            rgb = colour.GetRGB()
-            red, green, blue = rgb.Values(Quantity_TOC_sRGB)
-            red_rounded, green_rounded, blue_rounded =  round(red*255), round(green*255), round(blue*255)
-        elif colour_tool.GetColor_s(ref_label, XCAFDoc_ColorSurf, colour):
+        if colour_tool.GetColor_s(label, XCAFDoc_ColorGen, colour) or colour_tool.GetColor_s(ref_label, XCAFDoc_ColorGen, colour) or colour_tool.GetColor_s(label, XCAFDoc_ColorSurf, colour) or colour_tool.GetColor_s(ref_label, XCAFDoc_ColorSurf, colour):
             rgb = colour.GetRGB()
             red, green, blue = rgb.Values(Quantity_TOC_sRGB)
             red_rounded, green_rounded, blue_rounded =  round(red*255), round(green*255), round(blue*255)

@@ -11,11 +11,8 @@ from __future__ import annotations
 import textwrap
 from typing import TYPE_CHECKING, Any
 
-import numpy as np
-
-
+from .checkvals import check_types, numbers_to_strings
 from .formatting import formatting
-from .checkvals import numbers_to_strings, check_types
 from .utils import SerialisableFromDict
 
 if TYPE_CHECKING:
@@ -505,8 +502,8 @@ class MCNPRunParameters:
         if isinstance(parameters, dict):
             self._spabi = parameters
         else:
-            msg = f'SPABI card requires dictionary of secondary particles types' \
-                  f'with a subdict of primary_particles, energies and multipliers'
+            msg = 'SPABI card requires dictionary of secondary particles types' \
+                  'with a subdict of primary_particles, energies and multipliers'
             raise Exception(msg)
         
     @property
@@ -532,7 +529,6 @@ class MCNPRunParameters:
         # cehck types
         check_types(stop_tallies, [dict])
 
-        # 
         self._stop_tallies = stop_tallies
         
     @property
@@ -563,8 +559,8 @@ class MCNPRunParameters:
         if isinstance(parameters, dict):
             self._forced_collisions = parameters
         else:
-            msg = f'FCL card requires dictionary of particle type and sub-dict of' \
-                  f'cells with the fraction probability of forced collision'
+            msg = 'FCL card requires dictionary of particle type and sub-dict of' \
+                  'cells with the fraction probability of forced collision'
             raise Exception(msg)
 
     @property

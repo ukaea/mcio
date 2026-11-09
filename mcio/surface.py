@@ -8,7 +8,7 @@ mnemonics to classes.
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List, Type, Union
+from typing import Any
 
 from .formatting import formatting
 from .mcnp import MCNPCard
@@ -89,7 +89,7 @@ class Surface:
             return card_type
 
     @classmethod
-    def from_mcnp_card(cls, mcnp_card: str) -> "Surface":
+    def from_mcnp_card(cls, mcnp_card: str) -> Surface:
         """Construct a Surface object from an MCNP card string.
 
         Parameters
@@ -179,7 +179,7 @@ class Surface:
         return surface_string
 
 
-def mcnp_surface(surface_type: str, parameters: List[str], surface: Surface) -> MCNPCard:
+def mcnp_surface(surface_type: str, parameters: list[str], surface: Surface) -> MCNPCard:
     """Construct an MCNPCard representation for a surface.
 
     Parameters
@@ -210,7 +210,7 @@ def mcnp_surface(surface_type: str, parameters: List[str], surface: Surface) -> 
     return MCNPCard(card_designator, rows)
 
 
-def serpent_surface(surface_type: str, parameters: List[str], surface: Surface) -> SerpentCard:
+def serpent_surface(surface_type: str, parameters: list[str], surface: Surface) -> SerpentCard:
     """Construct a SerpentCard representation for a surface.
 
     Parameters
@@ -304,7 +304,7 @@ class Plane(Surface):
             )
         return self._openmc_surface
 
-    def __lt__(self, other: "Plane") -> bool:
+    def __lt__(self, other: Plane) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -373,7 +373,7 @@ class PlaneFromThreePoints(Surface):
         ]
         return mcnp_surface(surface_type, surface_params, self)
 
-    def __lt__(self, other: "PlaneFromThreePoints") -> bool:
+    def __lt__(self, other: PlaneFromThreePoints) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -427,7 +427,7 @@ class XPlane(Surface):
             )
         return self._openmc_surface
 
-    def __lt__(self, other: "XPlane") -> bool:
+    def __lt__(self, other: XPlane) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -479,7 +479,7 @@ class YPlane(Surface):
             )
         return self._openmc_surface
 
-    def __lt__(self, other: "YPlane") -> bool:
+    def __lt__(self, other: YPlane) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -531,7 +531,7 @@ class ZPlane(Surface):
             )
         return self._openmc_surface
 
-    def __lt__(self, other: "ZPlane") -> bool:
+    def __lt__(self, other: ZPlane) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -612,7 +612,7 @@ class Sphere(Surface):
             )
         return self._openmc_surface
 
-    def __lt__(self, other: "Sphere") -> bool:
+    def __lt__(self, other: Sphere) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -666,7 +666,7 @@ class SphereAtOrigin(Surface):
             )
         return self._openmc_surface
 
-    def __lt__(self, other: "SphereAtOrigin") -> bool:
+    def __lt__(self, other: SphereAtOrigin) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -725,7 +725,7 @@ class SphereOnXAxis(Surface):
             )
         return self._openmc_surface
 
-    def __lt__(self, other: "SphereOnXAxis") -> bool:
+    def __lt__(self, other: SphereOnXAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -786,7 +786,7 @@ class SphereOnYAxis(Surface):
             )
         return self._openmc_surface
 
-    def __lt__(self, other: "SphereOnYAxis") -> bool:
+    def __lt__(self, other: SphereOnYAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -847,7 +847,7 @@ class SphereOnZAxis(Surface):
             )
         return self._openmc_surface
 
-    def __lt__(self, other: "SphereOnZAxis") -> bool:
+    def __lt__(self, other: SphereOnZAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -913,7 +913,7 @@ class CylinderParallelToXAxis(Surface):
             )
         return self._openmc_surface
 
-    def __lt__(self, other: "CylinderParallelToXAxis") -> bool:
+    def __lt__(self, other: CylinderParallelToXAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -979,7 +979,7 @@ class CylinderParallelToYAxis(Surface):
             )
         return self._openmc_surface
 
-    def __lt__(self, other: "CylinderParallelToYAxis") -> bool:
+    def __lt__(self, other: CylinderParallelToYAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -1045,7 +1045,7 @@ class CylinderParallelToZAxis(Surface):
             )
         return self._openmc_surface
 
-    def __lt__(self, other: "CylinderParallelToZAxis") -> bool:
+    def __lt__(self, other: CylinderParallelToZAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -1099,7 +1099,7 @@ class CylinderOnXAxis(Surface):
             )
         return self._openmc_surface
 
-    def __lt__(self, other: "CylinderOnXAxis") -> bool:
+    def __lt__(self, other: CylinderOnXAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -1151,7 +1151,7 @@ class CylinderOnYAxis(Surface):
             )
         return self._openmc_surface
 
-    def __lt__(self, other: "CylinderOnYAxis") -> bool:
+    def __lt__(self, other: CylinderOnYAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -1203,7 +1203,7 @@ class CylinderOnZAxis(Surface):
             )
         return self._openmc_surface
 
-    def __lt__(self, other: "CylinderOnZAxis") -> bool:
+    def __lt__(self, other: CylinderOnZAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -1299,7 +1299,7 @@ class ConeParallelToXAxis(Surface):
 
         return self._openmc_surface
 
-    def __lt__(self, other: "ConeParallelToXAxis") -> bool:
+    def __lt__(self, other: ConeParallelToXAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -1394,7 +1394,7 @@ class ConeParallelToYAxis(Surface):
 
         return self._openmc_surface
 
-    def __lt__(self, other: "ConeParallelToYAxis") -> bool:
+    def __lt__(self, other: ConeParallelToYAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -1489,7 +1489,7 @@ class ConeParallelToZAxis(Surface):
         
         return self._openmc_surface
 
-    def __lt__(self, other: "ConeParallelToZAxis") -> bool:
+    def __lt__(self, other: ConeParallelToZAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -1570,7 +1570,7 @@ class ConeOnXAxis(Surface):
 
         return self._openmc_surface
 
-    def __lt__(self, other: "ConeOnXAxis") -> bool:
+    def __lt__(self, other: ConeOnXAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -1651,7 +1651,7 @@ class ConeOnYAxis(Surface):
         
         return self._openmc_surface
 
-    def __lt__(self, other: "ConeOnYAxis") -> bool:
+    def __lt__(self, other: ConeOnYAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -1732,7 +1732,7 @@ class ConeOnZAxis(Surface):
 
         return self._openmc_surface
 
-    def __lt__(self, other: "ConeOnZAxis") -> bool:
+    def __lt__(self, other: ConeOnZAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -1800,7 +1800,7 @@ class Ellipsoid(Surface):
         ]
         return mcnp_surface(surface_type, surface_params, self)
     
-    def __lt__(self, other: "Ellipsoid") -> bool:
+    def __lt__(self, other: Ellipsoid) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -1886,7 +1886,7 @@ class GeneralQuadratic(Surface):
 
         return self._openmc_surface
 
-    def __lt__(self, other: "GeneralQuadratic") -> bool:
+    def __lt__(self, other: GeneralQuadratic) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -1961,7 +1961,7 @@ class ToriParralleltoXAxis(Surface):
 
         return self._openmc_surface
 
-    def __lt__(self, other: "ToriParralleltoXAxis") -> bool:
+    def __lt__(self, other: ToriParralleltoXAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -2036,7 +2036,7 @@ class ToriParralleltoYAxis(Surface):
         
         return self._openmc_surface
 
-    def __lt__(self, other: "ToriParralleltoYAxis") -> bool:
+    def __lt__(self, other: ToriParralleltoYAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -2111,7 +2111,7 @@ class ToriParralleltoZAxis(Surface):
         
         return self._openmc_surface
 
-    def __lt__(self, other: "ToriParralleltoZAxis") -> bool:
+    def __lt__(self, other: ToriParralleltoZAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -2131,7 +2131,7 @@ class ToriParralleltoZAxis(Surface):
         return _less_than_multi_variate(vars_self, vars_other)
 
 
-def _less_than_multi_variate(variables_1: List[float], variables_2: List[float]) -> bool:
+def _less_than_multi_variate(variables_1: list[float], variables_2: list[float]) -> bool:
     """Helper comparison function for multi-variable ordering.
 
     Parameters
@@ -2154,7 +2154,7 @@ def _less_than_multi_variate(variables_1: List[float], variables_2: List[float])
     return False
 
 
-def _sort_surfaces_by_type(surfaces: List[Surface]) -> List[Surface]:
+def _sort_surfaces_by_type(surfaces: list[Surface]) -> list[Surface]:
     """Sort list of surfaces by surface type and then parameters.
 
     Parameters
@@ -2167,7 +2167,7 @@ def _sort_surfaces_by_type(surfaces: List[Surface]) -> List[Surface]:
     list of Surface
         Sorted list of surface objects
     """
-    surfaces_sorted_by_type: Dict[Type[Surface], List[Surface]] = {}
+    surfaces_sorted_by_type: dict[type[Surface], list[Surface]] = {}
     for surface in surfaces:
         if type(surface) not in surfaces_sorted_by_type:
             surfaces_sorted_by_type[type(surface)] = [surface]
@@ -2212,13 +2212,13 @@ def _sort_surfaces_by_type(surfaces: List[Surface]) -> List[Surface]:
         surfaces_sorted.extend(surfaces_sorted_by_type_and_order[surface_type])
     
     if len(surfaces) != len(surfaces_sorted):
-        msg = f'[ERROR] - surfaces returned from _sort_surfaces_by_type not equal to number provided'
+        msg = '[ERROR] - surfaces returned from _sort_surfaces_by_type not equal to number provided'
         raise Exception(msg)
 
     return surfaces_sorted
 
 
-def _sorted_place_holder(surfaces: List[Surface]) -> List[Surface]:
+def _sorted_place_holder(surfaces: list[Surface]) -> list[Surface]:
     """Placeholder function where no sort method is yet implemented.
 
     Parameters
@@ -2234,7 +2234,7 @@ def _sorted_place_holder(surfaces: List[Surface]) -> List[Surface]:
     return surfaces
 
 
-def _map_of_duplicate_surfaces() -> Dict[Type[Surface], Dict[Any, Any]]:
+def _map_of_duplicate_surfaces() -> dict[type[Surface], dict[Any, Any]]:
     """Initialize map for storing duplicate surfaces.
 
     Returns
@@ -2274,7 +2274,7 @@ def _map_of_duplicate_surfaces() -> Dict[Type[Surface], Dict[Any, Any]]:
     return duplicate_surfaces
 
 
-MCNP_SURFACE_TYPES: Dict[str, Type[Surface]] = {
+MCNP_SURFACE_TYPES: dict[str, type[Surface]] = {
     'PX': XPlane,
     'PY': YPlane,
     'PZ': ZPlane,

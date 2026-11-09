@@ -8,18 +8,15 @@ and converts it into a half-space solid clipped to a bounding box. The
 
 from __future__ import annotations
 
+import math
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-import math
-
 import numpy as np
-from collections.abc import Callable
 
 from mcio import logger
 
 try:
-    import casadi
-    import OCP
 
     from OCP.BRep import BRep_Builder
     from OCP.BRepAlgoAPI import BRepAlgoAPI_Common
@@ -28,43 +25,33 @@ try:
         BRepBuilderAPI_MakeEdge,
         BRepBuilderAPI_MakeFace,
         BRepBuilderAPI_MakeWire,
-        BRepBuilderAPI_Transform
+        BRepBuilderAPI_Transform,
     )
     from OCP.BRepPrimAPI import (
         BRepPrimAPI_MakeCone,
         BRepPrimAPI_MakeCylinder,
         BRepPrimAPI_MakeRevol,
         BRepPrimAPI_MakeSphere,
-        BRepPrimAPI_MakeTorus
+        BRepPrimAPI_MakeTorus,
     )
     from OCP.Geom import (
-        Geom_Plane, 
-        Geom_CylindricalSurface,
+        Geom_Plane,
         Geom_SphericalSurface,
-        Geom_ConicalSurface,
-        Geom_ToroidalSurface,
-        Geom_Ellipse,
-        Geom_SurfaceOfRevolution
     )
     from OCP.gp import (
-        gp_Pnt,
-        gp_Vec,
-        gp_Dir,
         gp_Ax1,
         gp_Ax2,
         gp_Ax3,
+        gp_Dir,
         gp_Elips,
         gp_GTrsf,
         gp_Pln,
+        gp_Pnt,
         gp_Trsf,
+        gp_Vec,
     )
     from OCP.TopAbs import TopAbs_SOLID
-    from OCP.TopoDS import (
-        TopoDS_Compound,
-        TopoDS_Face,
-        TopoDS_Solid,
-        TopoDS_Shape
-    )
+    from OCP.TopoDS import TopoDS_Compound, TopoDS_Face, TopoDS_Shape, TopoDS_Solid
 
 except:
     pass
@@ -74,16 +61,16 @@ if TYPE_CHECKING:
 
 from .decomposeparams import DecompositionParameters
 from .geometric import BoundingBox
+
 # from .volume import HalfVolume
 
 try:
     from .ocpbooleans import (
-        generate_ocp_half_space_from_face,
         _common_ocp_solid,
         _cut_ocp_solid,
-        _fuse_ocp_solid
+        generate_ocp_half_space_from_face,
     )
-    from .ocpboundingbox import ocp_box_from_bounding_box, bounding_box_from_shape
+    from .ocpboundingbox import bounding_box_from_shape, ocp_box_from_bounding_box
     from .ocpfilereadwrite import extract_ocp_shape_type_from_shape
 except:
     pass

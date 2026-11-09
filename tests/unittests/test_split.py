@@ -5,16 +5,19 @@ split a solid must not change the split solids produced.
 
 import unittest
 
-from OCP.gp import gp_Pnt, gp_Ax2, gp_Dir, gp_Trsf, gp_Ax1
-from OCP.BRepPrimAPI import BRepPrimAPI_MakeBox, BRepPrimAPI_MakeCylinder
-from OCP.BRepAlgoAPI import BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse
+from OCP.BRepAlgoAPI import BRepAlgoAPI_Cut
 from OCP.BRepBuilderAPI import BRepBuilderAPI_Transform
-from OCP.TopAbs import TopAbs_FACE, TopAbs_SOLID
+from OCP.BRepPrimAPI import BRepPrimAPI_MakeBox, BRepPrimAPI_MakeCylinder
 from OCP.Geom import Geom_Plane
+from OCP.gp import gp_Ax1, gp_Ax2, gp_Dir, gp_Pnt, gp_Trsf
+from OCP.TopAbs import TopAbs_FACE, TopAbs_SOLID
 
 from mcio.decomposeparams import DecompositionParameters
 from mcio.ocpbooleans import _recursively_split_ocp_solid, _solid_behind_planar_face
-from mcio.ocpfilereadwrite import extract_ocp_shape_type_from_shape, _get_ocp_surface_from_ocp_face
+from mcio.ocpfilereadwrite import (
+    _get_ocp_surface_from_ocp_face,
+    extract_ocp_shape_type_from_shape,
+)
 from mcio.ocpproperties import _volume_of_ocp_solids
 
 

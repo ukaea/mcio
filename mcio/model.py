@@ -18,6 +18,7 @@ except Exception:
     openmc = None
 
 from mcio import logger
+
 from .cell import Cell
 from .formatting import formatting
 from .macrobody import Macrobody
@@ -32,6 +33,7 @@ from .xml import XMLTag
 
 if TYPE_CHECKING:
     import openmc
+
     from .material import Material
     from .source import Source
     from .transform import Transform
@@ -420,7 +422,7 @@ class Model:
         filepath : str | os.PathLike, optional
             Output file path, by default 'output/model.i'
         """
-        logger.debug(f'model - writing mcnp model in write_mcnp')
+        logger.debug('model - writing mcnp model in write_mcnp')
         
         time_start = time.time()
         with open(filepath, 'w') as output_file:
@@ -522,7 +524,7 @@ class Model:
         output_folder : str | os.PathLike, optional
             Output folder, by default 'output/openmc'
         """
-        logger.debug(f'model - writing openmc file in write_openmc')
+        logger.debug('model - writing openmc file in write_openmc')
         time_start = time.time()
         self.openmc_model.export_to_xml(output_folder)
         time_total = time.time() - time_start

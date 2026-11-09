@@ -7,11 +7,10 @@ dictionaries.
 
 from __future__ import annotations
 
-from typing import Any
-
+import json
 import os
 import re
-import json
+from typing import Any
 
 # set
 ROOT_DIR: str = os.path.dirname(os.path.abspath(__file__))

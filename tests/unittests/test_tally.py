@@ -1,11 +1,11 @@
-import unittest
-from pathlib import Path
 import tempfile
-import mcio
+import unittest
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
+from unitutils import HAS_OPENMC, CustomAssertions, requires_openmc
 
-from unitutils import CustomAssertions, HAS_OPENMC, requires_openmc
+import mcio
 
 
 class MCIOUnitTestTally(unittest.TestCase, CustomAssertions):

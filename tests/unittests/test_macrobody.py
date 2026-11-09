@@ -6,20 +6,18 @@ volumes of primitive surfaces and inversion into OCP solids.
 import math
 import unittest
 
-from OCP.GProp import GProp_GProps
 from OCP.BRepGProp import BRepGProp
 from OCP.gp import gp_Pnt
+from OCP.GProp import GProp_GProps
+from unitutils import CustomAssertions
 
 import mcio.surface as S
-from mcio.macrobody import Box, RectangularParallelepiped, RightCircularCylinder
-from mcio.transform import Transform
-from mcio.volume import And, HalfVolume
-from mcio.geometric import BoundingBox
 from mcio.decomposeparams import DecompositionParameters
+from mcio.geometric import BoundingBox
+from mcio.macrobody import Box, RectangularParallelepiped, RightCircularCylinder
 from mcio.ocpproperties import _volume_of_ocp_solids
-
-
-from unitutils import CustomAssertions
+from mcio.transform import Transform
+from mcio.volume import And
 
 
 def _centre_of_mass(shape):

@@ -8,10 +8,9 @@ decomposition, together with a human-readable definition of each parameter.
 from __future__ import annotations
 
 import dataclasses
+import math
 import warnings
 from typing import Any
-import math
-
 
 from .paramlookup import ParameterLookup
 

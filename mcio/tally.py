@@ -6,22 +6,23 @@ fluence tally, each able to produce an MCNP card and an OpenMC tally.
 """
 from __future__ import annotations
 
-from typing import Any, TYPE_CHECKING
+import math
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
-import math
 
 try:
     import openmc
 except:
     pass
 
-from mcio import logger, LOGGER_LEVELS
-from .formatting import formatting
-from .mcnp import MCNPCard, MCNPTallyParameters, MCNP_PARTICLE_DESIGNATORS
+from mcio import logger
+
 from .checkvals import isnumeric
-from .openmcparams import OpenMCTallyParameters
+from .formatting import formatting
 from .geometric import BoundingBox
+from .mcnp import MCNP_PARTICLE_DESIGNATORS, MCNPCard, MCNPTallyParameters
+from .openmcparams import OpenMCTallyParameters
 
 if TYPE_CHECKING:
     from .cell import Cell
@@ -227,7 +228,7 @@ class CellOrSurfaceTally(Tally):
                 for energy, dose_factor in zip(*self.dose_conversion_factors):
                         rows_de_df.append([f'{energy:.{formatting.MCNP_EXP}e}', f'{dose_factor:.{formatting.MCNP_EXP}e}'])
 
-                mcnp_card.add_subcard(MCNPCard(f'#', rows_de_df))
+                mcnp_card.add_subcard(MCNPCard('#', rows_de_df))
             else:
                 msg = f'dose_conversion_factors should be a 2d list, tuple of numpy ndarray type, not {type(self.dose_conversion_factors)}'
                 raise Exception(msg)
@@ -307,7 +308,7 @@ class SurfaceCurrent(CellOrSurfaceTally):
         super().__init__(**kwargs)
         self.mcnp_tally_designator = 1
         self.openmc_tally_score = ["current"]
-        logger.warning(f'The MCNP surface current tally tallies total current while OpenMC tallies net current.')
+        logger.warning('The MCNP surface current tally tallies total current while OpenMC tallies net current.')
 
 class SurfaceFluenceTally(CellOrSurfaceTally):
     """Surface fluence tally (MCNP F2, OpenMC ``flux``).
@@ -451,7 +452,7 @@ class FluenceMeshTally(Tally):
         particles = ' '.join([MCNP_PARTICLE_DESIGNATORS[p.lower()].upper() for p in self.particles])
 
         if self.energies:
-            rows.append([f'emesh'])
+            rows.append(['emesh'])
             rows.append([*[f'{v:.{formatting.MCNP_DP}e}' for v in self.energies]])
 
         mcnp_card = MCNPCard(f'FMESH{self.number}{self.mcnp_tally_designator}:{particles}', rows)
@@ -476,7 +477,7 @@ class FluenceMeshTally(Tally):
                 for energy, dose_factor in zip(*self.dose_conversion_factors):
                         rows_de_df.append([f'{energy:.{formatting.MCNP_EXP}e}', f'{dose_factor:.{formatting.MCNP_EXP}e}'])
 
-                mcnp_card.add_subcard(MCNPCard(f'#', rows_de_df))
+                mcnp_card.add_subcard(MCNPCard('#', rows_de_df))
             else:
                 msg = f'dose_conversion_factors should be a 2d list, tuple of numpy ndarray type, not {type(self.dose_conversion_factors)}'
                 raise Exception(msg)

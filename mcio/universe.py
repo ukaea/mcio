@@ -22,7 +22,7 @@ class Universe:
         self.transform: Transform | None = transform
 
 
-class UniverseFill():
+class UniverseFill:
     """Specification of a universe used to fill a cell, with an optional transform.
 
     Parameters

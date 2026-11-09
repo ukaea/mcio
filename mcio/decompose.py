@@ -9,51 +9,40 @@ OCP helper functions.
 
 from __future__ import annotations
 
-import math
 import json
+import math
 import os
-import time
-import pickle
 import pathlib
+import pickle
+import time
+from collections.abc import Sequence
 from concurrent.futures import ProcessPoolExecutor
-from rich.progress import (
-    Progress,
-    TextColumn,
-    BarColumn,
-    MofNCompleteColumn,
-    TaskProgressColumn,
-    TimeRemainingColumn,
-    TimeElapsedColumn,
-    track,
-)
-from tqdm.notebook import tqdm as tqdm_notebook
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
-    Dict,
-    List,
-    Optional,
-    Sequence,
-    Tuple,
-    Type,
-    Union,
 )
 
+from rich.progress import (
+    BarColumn,
+    MofNCompleteColumn,
+    Progress,
+    TaskProgressColumn,
+    TextColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
+)
+from tqdm.notebook import tqdm as tqdm_notebook
 
-from mcio import logger, LOGGER_LEVELS
+from mcio import LOGGER_LEVELS, logger
 
 try:
-    import casadi
-    import OCP
     from OCP.BRepCheck import BRepCheck_Analyzer
     from OCP.BRepExtrema import BRepExtrema_DistShapeShape
     from OCP.Geom import (
-        Geom_Surface,
-        Geom_Plane,
-        Geom_CylindricalSurface,
-        Geom_SphericalSurface,
         Geom_ConicalSurface,
+        Geom_CylindricalSurface,
+        Geom_Plane,
+        Geom_SphericalSurface,
         Geom_ToroidalSurface,
     )
     from OCP.Quantity import Quantity_ColorRGBA, Quantity_TOC_sRGB
@@ -66,41 +55,40 @@ try:
 except Exception as e:
     from mcio import logger
 
-    logger.warning(f"failed to load OCP")
+    logger.warning("failed to load OCP")
     logger.warning(f"{e}")
 
 
 from .colour import ColourRGB
+from .decomposemultiprocess import _run_decomposer_solid
+from .decomposeparams import DecompositionParameters
 from .decomposesolid import (
     DecompositionSolid,
     _generate_mcio_cells,
     generate_mcio_void_octree,
 )
-from .decomposeparams import DecompositionParameters
-from .decomposemultiprocess import _run_decomposer_solid
 from .decomposevoid import VoidOctreeFaces
-from .surface import _map_of_duplicate_surfaces
-from .source import SphericalStochasticVolumeSource
 from .geometric import BoundingBox
-from .material import Material, _materials_from_json, _material_lookup
-from .tally import VolumeFluenceTally, Tally
-from .tally import VolumeFluenceTally
-from .table import Table
-from .parallellogging import (
-    start_multiprocess_logging,
-    configure_worker_logger,
-    restore_main_process_logging,
-)
-from .profile import function_timer
+from .material import Material, _material_lookup, _materials_from_json
 from .model import Model
 from .ocp import (
     _get_ocp_surface_from_ocp_face,
-    extract_ocp_shape_type_from_shape,
     count_surface_by_type,
+    extract_ocp_shape_type_from_shape,
 )
 from .ocpfilereadwrite import STEPFileReader, STEPFileWriter
-from .utils import in_notebook, check_folder_exists_for_file_path
+from .parallellogging import (
+    configure_worker_logger,
+    restore_main_process_logging,
+    start_multiprocess_logging,
+)
+from .profile import function_timer
+from .source import SphericalStochasticVolumeSource
+from .surface import _map_of_duplicate_surfaces
+from .table import Table
+from .tally import Tally, VolumeFluenceTally
 from .universe import Universe
+from .utils import check_folder_exists_for_file_path, in_notebook
 
 if TYPE_CHECKING:
     from OCP.TDF import TDF_Label
@@ -147,11 +135,11 @@ class Analysis:
             decomposition_solid: 0 for decomposition_solid in decomposition_solids
         }
 
-        self.FACE_TYPE_COUNT_PER_BODY: dict[DecompositionSolid, dict[Type, int]] = {
+        self.FACE_TYPE_COUNT_PER_BODY: dict[DecompositionSolid, dict[type, int]] = {
             decomposition_solid: self.gen_face_type_dict()
             for decomposition_solid in decomposition_solids
         }
-        self.FACE_TYPE_COUNT: dict[Type, int] = self.gen_face_type_dict()
+        self.FACE_TYPE_COUNT: dict[type, int] = self.gen_face_type_dict()
 
         self.DEGENERATE_TORI_COUNT: int = 0
 
@@ -285,7 +273,7 @@ class Analysis:
         return table_per_body.as_string
 
     @staticmethod
-    def gen_face_type_dict() -> dict[Type, int]:
+    def gen_face_type_dict() -> dict[type, int]:
         """Create a zeroed counter for each supported OCP surface type.
 
         Returns
@@ -307,7 +295,7 @@ class Analysis:
 
 
 def ocp_shape_intersect_ocp_shape(
-    shape_1: "TopoDS_Shape", shape_2: "TopoDS_Shape", tolerance: float = 1e-4
+    shape_1: TopoDS_Shape, shape_2: TopoDS_Shape, tolerance: float = 1e-4
 ) -> bool:
     """Check if two shapes intersect within a tolerance.
 
@@ -399,14 +387,14 @@ class Decomposer:
     """
     def __init__(
         self,
-        step_file_paths: Optional[list[str]] = None,
-        materials_file_path: Optional[Union[str, os.PathLike]] = None,
-        tallies_file_path: Optional[Union[str, os.PathLike]] = None,
+        step_file_paths: list[str] | None = None,
+        materials_file_path: str | os.PathLike | None = None,
+        tallies_file_path: str | os.PathLike | None = None,
         show_file_structure: bool = False,
-        decompose_parameters: Optional[Union[DecompositionParameters, str, os.PathLike]] = None,
-        universe: Optional[Universe] = None,
-        surface_number_min: Optional[int] = None,
-        cell_number_min: Optional[int] = None,
+        decompose_parameters: DecompositionParameters | str | os.PathLike | None = None,
+        universe: Universe | None = None,
+        surface_number_min: int | None = None,
+        cell_number_min: int | None = None,
         serialise: bool = False,
     ) -> None:
         """Initialise the Decomposer and extract solids from the STEP files."""
@@ -435,18 +423,18 @@ class Decomposer:
             if materials_file_path
             else (None, None)
         )
-        self._material_assignment_method: Optional[str] = mat_assignment_method
-        self._materials: Optional[dict[str, Material]] = materials
+        self._material_assignment_method: str | None = mat_assignment_method
+        self._materials: dict[str, Material] | None = materials
 
         # tallies file path
-        self._tallies_file_path: Optional[Union[str, os.PathLike]] = tallies_file_path
+        self._tallies_file_path: str | os.PathLike | None = tallies_file_path
 
         # set minimum surface and cell numbers
-        self.surface_number_min: Optional[int] = surface_number_min
-        self.cell_number_min: Optional[int] = cell_number_min
+        self.surface_number_min: int | None = surface_number_min
+        self.cell_number_min: int | None = cell_number_min
 
         # universe to apply to all decomposition_solids
-        self.universe: Optional[Universe] = universe
+        self.universe: Universe | None = universe
 
         # store decomposed solids
         self._decomposition_solids: list[DecompositionSolid] = []
@@ -457,18 +445,18 @@ class Decomposer:
         )
 
         # extract solids from document
-        self._profile_time_load: Optional[float] = None
+        self._profile_time_load: float | None = None
         _, self._profile_time_extract = self._extract_solids()
 
         # store profiling times
-        self._profile_time_decomposition: Optional[float] = None
-        self._profile_time_void_octree: Optional[float] = None
-        self._profile_time_generate_mcio_cells: Optional[float] = None
-        self._profile_time_model: Optional[float] = None
+        self._profile_time_decomposition: float | None = None
+        self._profile_time_void_octree: float | None = None
+        self._profile_time_generate_mcio_cells: float | None = None
+        self._profile_time_model: float | None = None
 
         # store monte carlo models and void octree
-        self._void_octree: Optional[VoidOctreeFaces] = None
-        self._model: Optional[Model] = None
+        self._void_octree: VoidOctreeFaces | None = None
+        self._model: Model | None = None
 
         # serailise OCP objcets to binary, required for multiprocessing
         self._serialised: bool = False
@@ -493,7 +481,7 @@ class Decomposer:
             decomposition_solid.deserialise()
 
     @check_folder_exists_for_file_path("output_path")
-    def pickle(self, output_path: Union[str, pathlib.Path, os.PathLike]) -> None:
+    def pickle(self, output_path: str | pathlib.Path | os.PathLike) -> None:
         """Serialise and pickle the decomposer to a file.
 
         Parameters
@@ -510,7 +498,7 @@ class Decomposer:
             pickle.dump(self, f)
 
     @classmethod
-    def unpickle(cls, input_path: Union[str, pathlib.Path, os.PathLike]) -> "Decomposer":
+    def unpickle(cls, input_path: str | pathlib.Path | os.PathLike) -> Decomposer:
         """Load a pickled decomposer from a file and deserialise it.
 
         Parameters
@@ -537,7 +525,7 @@ class Decomposer:
 
         # check if class matches this one
         if not isinstance(instance, cls):
-            msg = f" class instance loaded from pickle is not Decomposer()"
+            msg = " class instance loaded from pickle is not Decomposer()"
             logger.fatal(msg)
             raise TypeError(msg)
 
@@ -582,11 +570,11 @@ class Decomposer:
 
     def add_solid(
         self,
-        solid: "TopoDS_Solid",
+        solid: TopoDS_Solid,
         name: str = "added_solid",
-        material: Optional[Material] = None,
-        structure: Optional[list[str]] = None,
-        colour: Optional[ColourRGB] = None,
+        material: Material | None = None,
+        structure: list[str] | None = None,
+        colour: ColourRGB | None = None,
     ) -> DecompositionSolid:
         """Add an OCP solid to the decomposer as a new decomposition solid.
 
@@ -655,12 +643,12 @@ class Decomposer:
 
         # define rows
         rows = [
-            [f"load_step_files", self._profile_time_load],
-            [f"extract_solids", self._profile_time_extract],
+            ["load_step_files", self._profile_time_load],
+            ["extract_solids", self._profile_time_extract],
             [f"decompose_{solids_decomposed}_cells", self._profile_time_decomposition],
-            [f"mcio_cell_generation", self._profile_time_generate_mcio_cells],
-            [f"recursive_octree_generation", self._profile_time_void_octree],
-            [f"model_generatoin", self._profile_time_model],
+            ["mcio_cell_generation", self._profile_time_generate_mcio_cells],
+            ["recursive_octree_generation", self._profile_time_void_octree],
+            ["model_generatoin", self._profile_time_model],
         ]
 
         # calculate total time taken
@@ -721,7 +709,7 @@ class Decomposer:
         self._decomposition_solids = decomposition_solids
 
     @property
-    def void_octree(self) -> Optional[VoidOctreeFaces]:
+    def void_octree(self) -> VoidOctreeFaces | None:
         """The void octree, generated on first access if not already present.
 
         Returns
@@ -755,7 +743,7 @@ class Decomposer:
             The MCIO model containing the decomposed and void cells.
         """
         if not self._model:
-            logger.debug(f"Decomposer() - generating model")
+            logger.debug("Decomposer() - generating model")
             self._model, self._profile_time_model = self._generate_mcio_model(
                 surface_number_min=self.surface_number_min,
                 cell_number_min=self.cell_number_min,
@@ -764,12 +752,12 @@ class Decomposer:
                 f"Decomposer() - model generated - time taken = {self._profile_time_model:.2e}"
             )
         else:
-            logger.debug(f"Decomposer() - model already generated")
+            logger.debug("Decomposer() - model already generated")
 
         return self._model
 
     def tallies_from_json(
-        self, input_path: Union[str, pathlib.Path, os.PathLike]
+        self, input_path: str | pathlib.Path | os.PathLike
     ) -> None:
         """Create tallies from a JSON file and add them to the model.
 
@@ -894,10 +882,10 @@ class Decomposer:
 
         # set description for progress bar
         desc_stage = (
-            f"[Decomposition (1 core debug)]"
+            "[Decomposition (1 core debug)]"
             if debug
             else (
-                f"[Decomposition (1 core)]"
+                "[Decomposition (1 core)]"
                 if cores == 1
                 else f"[Decomposition ({cores} cores)]"
             )
@@ -1085,7 +1073,7 @@ class Decomposer:
         if self._tallies_file_path:
             self.tallies_from_json(self._tallies_file_path)
 
-    def __add__(self, other: "Decomposer") -> None:
+    def __add__(self, other: Decomposer) -> None:
         """Add a decomposer to another (not yet implemented).
 
         Intended to assume void generation is not required, only adding the
@@ -1097,7 +1085,7 @@ class Decomposer:
             The decomposer to add.
         """
 
-    def __and__(self, other: "Decomposer") -> "Decomposer":
+    def __and__(self, other: Decomposer) -> Decomposer:
         """Combine two decomposers into a new decomposer.
 
         The void is reset, and all decomposition solids are assumed to be in
@@ -1174,8 +1162,8 @@ class Decomposer:
     @function_timer
     def _generate_mcio_model(
         self,
-        surface_number_min: Optional[int] = None,
-        cell_number_min: Optional[int] = None
+        surface_number_min: int | None = None,
+        cell_number_min: int | None = None
     ) -> Model:
         """Generate the MCIO model from the decomposed and void cells.
 
@@ -1196,7 +1184,7 @@ class Decomposer:
             receives ``(Model, time_taken)``).
         """
         # gather cells from all decomposition_solids
-        logger.debug(f"Decomposer() - getting mcio cells of solids")
+        logger.debug("Decomposer() - getting mcio cells of solids")
         cells, self._profile_time_generate_mcio_cells = _generate_mcio_cells(
             self._decomposition_solids, self.decom_params
         )
@@ -1205,14 +1193,14 @@ class Decomposer:
         )
 
         # set up dictionary of surfaces previously generated
-        logger.debug(f"DEcomposer() - getting map of duplicated")
+        logger.debug("DEcomposer() - getting map of duplicated")
         time_start = time.time()
         self._surfaces_generated = _map_of_duplicate_surfaces()
         time_total = time.time() - time_start
         logger.debug(f"Decomposer() - map of duplicated - time take = {time_total:.2e}")
 
         # generate void cells
-        logger.debug(f"VoidOctree() - getting .mcio_cells")
+        logger.debug("VoidOctree() - getting .mcio_cells")
         time_start = time.time()
         cells_voids = self.void_octree.mcio_cells
         time_total = time.time() - time_start
@@ -1298,11 +1286,7 @@ class Decomposer:
             The red, green and blue values, or (-1, -1, -1) if no colour is set.
         """
         colour_surf = Quantity_ColorRGBA()
-        if colour_tool.GetColor_s(ref_label, XCAFDoc_ColorSurf, colour_surf):
-            rgb = colour_surf.GetRGB()
-            red, green, blue = rgb.Values(Quantity_TOC_sRGB)
-            return round(red * 255), round(green * 255), round(blue * 255)
-        elif colour_tool.GetColor_s(label, XCAFDoc_ColorSurf, colour_surf):
+        if colour_tool.GetColor_s(ref_label, XCAFDoc_ColorSurf, colour_surf) or colour_tool.GetColor_s(label, XCAFDoc_ColorSurf, colour_surf):
             rgb = colour_surf.GetRGB()
             red, green, blue = rgb.Values(Quantity_TOC_sRGB)
             return round(red * 255), round(green * 255), round(blue * 255)

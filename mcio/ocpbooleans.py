@@ -9,92 +9,73 @@ sorting and grouping faces by surface type, coincidence, connectivity and area.
 
 from __future__ import annotations
 
-import math
-from io import BytesIO
-from dataclasses import dataclass
-import os
-from mcio import logger
 import copy
+import math
 from collections import OrderedDict, deque
-from typing import TYPE_CHECKING, Any
 from collections.abc import Callable
+from dataclasses import dataclass
+from io import BytesIO
+from typing import TYPE_CHECKING, Any
+
+from mcio import logger
 
 if TYPE_CHECKING:
     from OCP.TopAbs import TopAbs_ShapeEnum
 
 
 try:
-    import casadi
-    import OCP
-    from OCP.BRepAlgoAPI import (
-        BRepAlgoAPI_Common,
-        BRepAlgoAPI_Cut
+    from OCP.Bnd import Bnd_Box
+    from OCP.BOPAlgo import (
+        BOPAlgo_BOP,
+        BOPAlgo_COMMON,
+        BOPAlgo_CUT,
+        BOPAlgo_FUSE,
+        BOPAlgo_Splitter,
     )
+    from OCP.BRepAlgoAPI import BRepAlgoAPI_Common, BRepAlgoAPI_Cut
+    from OCP.BRepBndLib import BRepBndLib
     from OCP.BRepBuilderAPI import (
         BRepBuilderAPI_MakeFace,
         BRepBuilderAPI_MakeVertex,
-        BRepBuilderAPI_Transform
+        BRepBuilderAPI_Transform,
     )
-    from OCP.BRepGProp import (
-        BRepGProp
-    )
-    from OCP.Bnd import Bnd_Box
-    from OCP.BRepBndLib import BRepBndLib
+    from OCP.BRepGProp import BRepGProp
     from OCP.BRepPrimAPI import (
-        BRepPrimAPI_MakeHalfSpace,
-        BRepPrimAPI_MakeCylinder,
         BRepPrimAPI_MakeCone,
-        BRepPrimAPI_MakeTorus
-    )
-    from OCP.BOPAlgo import (
-        BOPAlgo_BOP,
-        BOPAlgo_CUT,
-        BOPAlgo_COMMON,
-        BOPAlgo_FUSE,
-        BOPAlgo_Splitter
+        BRepPrimAPI_MakeCylinder,
+        BRepPrimAPI_MakeHalfSpace,
+        BRepPrimAPI_MakeTorus,
     )
     from OCP.Geom import (
-        Geom_Surface,
-        Geom_Plane, 
-        Geom_CylindricalSurface,
-        Geom_SphericalSurface,
         Geom_ConicalSurface,
-        Geom_ToroidalSurface
+        Geom_CylindricalSurface,
+        Geom_Plane,
+        Geom_SphericalSurface,
+        Geom_Surface,
+        Geom_ToroidalSurface,
     )
     from OCP.GeomLProp import GeomLProp_SLProps
-    from OCP.gp import (
-        gp_Pnt,
-        gp_Vec,
-        gp_Dir,
-        gp_Ax1,
-        gp_Ax2,
-        gp_Cone,
-        gp_Trsf,
-        gp_Ax3
-    )
-    from OCP.GProp import (
-        GProp_GProps
-    )
-    from OCP.TDocStd import TDocStd_Document
+    from OCP.gp import gp_Ax1, gp_Ax2, gp_Ax3, gp_Cone, gp_Dir, gp_Pnt, gp_Trsf, gp_Vec
+    from OCP.GProp import GProp_GProps
     from OCP.TopAbs import (
+        TopAbs_COMPOUND,
+        TopAbs_COMPSOLID,
+        TopAbs_EDGE,
+        TopAbs_FACE,
         TopAbs_FORWARD,
         TopAbs_REVERSED,
-        TopAbs_FACE,
-        TopAbs_COMPOUND,
-        TopAbs_SOLID,
-        TopAbs_COMPSOLID,
+        TopAbs_SHAPE,
         TopAbs_SHELL,
-        TopAbs_EDGE,
+        TopAbs_SOLID,
         TopAbs_VERTEX,
         TopAbs_WIRE,
-        TopAbs_SHAPE
     )
     from OCP.TopoDS import (
         TopoDS,
-        TopoDS_Face,
-        TopoDS_Solid,
         TopoDS_CompSolid,
-        TopoDS_Shape
+        TopoDS_Face,
+        TopoDS_Shape,
+        TopoDS_Solid,
     )
 
     TOP_ABS_SHAPES: tuple[TopAbs_ShapeEnum, ...] = (TopAbs_COMPOUND,
@@ -118,43 +99,37 @@ try:
                                  TopAbs_SHAPE: lambda shape: shape}
 
 except Exception as e:
-    logger.warning(f'failed to load OCP')
+    logger.warning('failed to load OCP')
     logger.warning(f'{e}')
 
 
 from .decomposeparams import DecompositionParameters
 from .geometric import BoundingBox
-from .ocpboundingbox import (
-    bounding_box_from_shape,
-    ocp_box_from_bounding_box
-)
+from .ocpboundingbox import bounding_box_from_shape, ocp_box_from_bounding_box
 from .ocpfilereadwrite import (
-    extract_ocp_shape_type_from_shape,
+    STEPFileWriter,
     _get_ocp_surface_from_ocp_face,
-    downcast_ocp_shape
+    downcast_ocp_shape,
+    extract_ocp_shape_type_from_shape,
 )
 from .ocpproperties import (
-    _volume_of_ocp_solids,
-    _surface_area_of_ocp_solids,
-    _distance_between_shapes,
-    _midpoint_between_two_points,
     _distance_between_ocp_points,
+    _distance_between_shapes,
     _distance_of_point_along_vector,
     _get_uv_bounds_from_ocp_face,
-    check_solids_intersect_by_faces,
+    _midpoint_between_two_points,
+    _surface_area_of_ocp_solids,
+    _volume_of_ocp_solids,
     check_ocp_faces_connected,
     check_ocp_planes_coincident,
+    check_solids_intersect_by_faces,
+    ocp_cone_coincident,
     ocp_cylinders_coincident,
     ocp_sphere_coincident,
-    ocp_cone_coincident,
-    ocp_tori_coincident
+    ocp_tori_coincident,
 )
-from .ocprepair import (
-    _clean_solid
-)
-from .ocpfilereadwrite import (
-    STEPFileWriter
-)
+from .ocprepair import _clean_solid
+
 
 @dataclass
 class BooleanSolution:
@@ -177,7 +152,7 @@ class BooleanSolution:
     failed : bool
         Whether the operation failed, by default False
     """
-    solids: list["TopoDS_Solid"]
+    solids: list[TopoDS_Solid]
     fuzzy_value: float
     solid_tol_min: float
     solid_tol_max: float
@@ -188,25 +163,21 @@ class BooleanSolution:
 @dataclass
 class BooleanCommonSolidsResults(BooleanSolution):
     """Result of a boolean common operation on OCP solids."""
-    pass
 
 @dataclass
 class BooleanCutSolidsResults(BooleanSolution):
     """Result of a boolean cut operation on OCP solids."""
-    pass
 
 @dataclass
 class BooleanSplitSolidsResults(BooleanSolution):
     """Result of a boolean split operation on OCP solids."""
-    pass
 
 @dataclass
 class BooleanFuseSolidsResults(BooleanSolution):
     """Result of a boolean fuse operation on OCP solids."""
-    pass
 
 
-def _filter_degenerate_thin_solids_2(solid_original: "TopoDS_Solid", solids: list['TopoDS_Solid'], decom_params: DecompositionParameters, operation_type: Any) -> list[TopoDS_Solid]:
+def _filter_degenerate_thin_solids_2(solid_original: TopoDS_Solid, solids: list[TopoDS_Solid], decom_params: DecompositionParameters, operation_type: Any) -> list[TopoDS_Solid]:
     """Remove degenerate (tiny or thin) solids produced by a boolean operation.
 
     A solid is kept if its volume is at least
@@ -287,8 +258,8 @@ def _filter_degenerate_thin_solids_2(solid_original: "TopoDS_Solid", solids: lis
     return solids_filtered
 
 def _cut_ocp_solid(
-        shape_1: "TopoDS_Solid", 
-        shape_2: "TopoDS_Solid | TopoDS_Face",
+        shape_1: TopoDS_Solid, 
+        shape_2: TopoDS_Solid | TopoDS_Face,
         decom_params: DecompositionParameters,
         reverse_face_orientation: bool = False,
         min_solids_required: int = 0,
@@ -454,8 +425,8 @@ def _cut_ocp_solid(
     return result
 
 def _common_ocp_solid(
-        shape_1: "TopoDS_Solid | TopoDS_CompSolid",
-        shape_2: "TopoDS_Solid | TopoDS_CompSolid | TopoDS_Face",
+        shape_1: TopoDS_Solid | TopoDS_CompSolid,
+        shape_2: TopoDS_Solid | TopoDS_CompSolid | TopoDS_Face,
         decom_params: DecompositionParameters,
         reverse_face_orientation: bool = False,
         min_solids_required: int = 0,
@@ -598,7 +569,7 @@ def _common_ocp_solid(
 
     else:
         # try legacy boolean common method
-        logger.debug(f'_common_ocp_solid() - using legacy BRepAlgoAPI_Common')
+        logger.debug('_common_ocp_solid() - using legacy BRepAlgoAPI_Common')
         brep_common = BRepAlgoAPI_Common(shape_1, tool)
         brep_common.SetFuzzyValue(decom_params.bool_common_fuzzy_value)
         brep_common.SetNonDestructive(True)
@@ -615,7 +586,7 @@ def _common_ocp_solid(
         logger.warning(f'BOPAlgo_COMMON - failed to produce - tried legacy BRepAlgoAPI_Common method - return {len(common_solids)} solids')
 
         if check_solids_intersect_by_faces(shape_1, shape_2):
-            logger.fatal(f'BPOAlgo_COMMON - failed to produced required solids, but shape_1 is inside shape_2')
+            logger.fatal('BPOAlgo_COMMON - failed to produced required solids, but shape_1 is inside shape_2')
         
         step_writer = STEPFileWriter(decom_params)
         step_writer.add_solids([shape_1], 'shape_1')
@@ -654,8 +625,8 @@ def _common_ocp_solid(
 
 
 def _fuse_ocp_solid(
-        shape_1: "TopoDS_Solid | TopoDS_CompSolid",
-        shape_2: "TopoDS_Solid | TopoDS_CompSolid | TopoDS_Face",
+        shape_1: TopoDS_Solid | TopoDS_CompSolid,
+        shape_2: TopoDS_Solid | TopoDS_CompSolid | TopoDS_Face,
         decom_params: DecompositionParameters,
         reverse_face_orientation: bool = False,
         min_solids_required: int = 0,
@@ -755,8 +726,8 @@ def _fuse_ocp_solid(
     return downcast_ocp_shape(bop.Shape())
 
 def _split_ocp_solid(
-        shape_1: "TopoDS_Solid | TopoDS_CompSolid",
-        shape_2: "TopoDS_Solid | TopoDS_CompSolid | TopoDS_Face",
+        shape_1: TopoDS_Solid | TopoDS_CompSolid,
+        shape_2: TopoDS_Solid | TopoDS_CompSolid | TopoDS_Face,
         decom_params: DecompositionParameters,
         reverse_face_orientation: bool = False,
         min_solids_required: int = 0,
@@ -883,7 +854,7 @@ def _split_ocp_solid(
     # return result
     return split_solids
 
-def _recursively_split_ocp_solid(solid: "TopoDS_Solid", decom_params: DecompositionParameters) -> list["TopoDS_Solid"]:
+def _recursively_split_ocp_solid(solid: TopoDS_Solid, decom_params: DecompositionParameters) -> list[TopoDS_Solid]:
     """Recursively split a solid by the half spaces of its own faces.
 
     Faces are grouped and sorted with :func:`_sort_ocp_faces`, and the half
@@ -953,8 +924,8 @@ def _recursively_split_ocp_solid(solid: "TopoDS_Solid", decom_params: Decomposit
 
 
 def _solid_behind_planar_face(
-        solid: "TopoDS_Solid | TopoDS_CompSolid",
-        face: "TopoDS_Face",
+        solid: TopoDS_Solid | TopoDS_CompSolid,
+        face: TopoDS_Face,
         rel_tol: float = 1e-7) -> bool:
     """Return whether a solid lies entirely on the material side of a planar face.
 
@@ -1050,8 +1021,8 @@ def generate_half_spaces_from_solid(solid: TopoDS_Solid, decom_params: Decomposi
     return half_spaces
 
 def generate_ocp_half_space_from_face(
-        face: "TopoDS_Face",
-        solid: "TopoDS_Solid | TopoDS_CompSolid",
+        face: TopoDS_Face,
+        solid: TopoDS_Solid | TopoDS_CompSolid,
         decom_params: DecompositionParameters,
         reverse_halfspace: bool = False,
         halfspace_from_solid: bool = False,
@@ -1114,7 +1085,7 @@ def generate_ocp_half_space_from_face(
     props = GeomLProp_SLProps(surface, u_mid, v_mid, 1, 1e-6)
     if not props.IsNormalDefined():
         # check a normal is defined
-        msg = f'no normal defined at this point'
+        msg = 'no normal defined at this point'
         raise Exception(msg)
 
     # get normal and point on the surface at the u v mid point
@@ -1124,9 +1095,7 @@ def generate_ocp_half_space_from_face(
     # generate point from normal and off set to assign generate_half_spaces_from_solidside of face for half space
     if face.Orientation() == TopAbs_FORWARD and reverse_halfspace == False:
         offset_vec: gp_Vec = gp_Vec(normal.XYZ()) * -1.0 * OFFSET_ALONG_NORMAL
-    elif face.Orientation() == TopAbs_REVERSED and reverse_halfspace == False:
-        offset_vec: gp_Vec = gp_Vec(normal.XYZ()) * OFFSET_ALONG_NORMAL
-    elif face.Orientation() == TopAbs_FORWARD and reverse_halfspace:
+    elif face.Orientation() == TopAbs_REVERSED and reverse_halfspace == False or face.Orientation() == TopAbs_FORWARD and reverse_halfspace:
         offset_vec: gp_Vec = gp_Vec(normal.XYZ()) * OFFSET_ALONG_NORMAL
     elif face.Orientation() == TopAbs_REVERSED and reverse_halfspace:
         offset_vec: gp_Vec = gp_Vec(normal.XYZ()) * -1.0 * OFFSET_ALONG_NORMAL
@@ -1171,7 +1140,7 @@ def generate_ocp_half_space_from_face(
         logger.debug(f'generate_ocp manual creation of solid for surface type {surface}')
 
         if isinstance(surface, Geom_CylindricalSurface):
-            logger.debug(f'generate_ocp manual creation of stable cylinder')
+            logger.debug('generate_ocp manual creation of stable cylinder')
             
             cylinder = surface.Cylinder()
             radius = cylinder.Radius()
@@ -1232,13 +1201,13 @@ def generate_ocp_half_space_from_face(
             vol_half_space = _volume_of_ocp_solids(half_space_solids)
 
             if len(half_space_solids) > 1:
-                msg = f'half space common generated 1+ '
+                msg = 'half space common generated 1+ '
 
             logger.info(f'vol_bounding_box = {vol_bounding_box:.8e} vol_half_space = {vol_half_space:.8e}')
 
             if vol_bounding_box == vol_half_space:
                 # case where no solid cut from bounding box
-                logger.info(f'common operation failed in generate half space... using legacy common')
+                logger.info('common operation failed in generate half space... using legacy common')
                 logger.info(op_func)
 
                 decom_params_LOWER_FUZZY = copy.deepcopy(decom_params)
@@ -1328,9 +1297,7 @@ def generate_ocp_half_space_from_face(
 
             if face.Orientation() == TopAbs_FORWARD and reverse_halfspace == False:
                 half_space_solids = _common_ocp_solid(bounding_box_solid, cone_solid, decom_params, min_solids_required=1).solids
-            elif face.Orientation() == TopAbs_REVERSED and reverse_halfspace == False:
-                half_space_solids = _cut_ocp_solid(bounding_box_solid, cone_solid, decom_params, min_solids_required=1).solids
-            elif face.Orientation() == TopAbs_FORWARD and reverse_halfspace:
+            elif face.Orientation() == TopAbs_REVERSED and reverse_halfspace == False or face.Orientation() == TopAbs_FORWARD and reverse_halfspace:
                 half_space_solids = _cut_ocp_solid(bounding_box_solid, cone_solid, decom_params, min_solids_required=1).solids
             elif face.Orientation() == TopAbs_REVERSED and reverse_halfspace:
                 half_space_solids = _common_ocp_solid(bounding_box_solid, cone_solid, decom_params, min_solids_required=1).solids
@@ -1347,9 +1314,7 @@ def generate_ocp_half_space_from_face(
             
             if face.Orientation() == TopAbs_FORWARD and reverse_halfspace == False:
                 half_space_solids = [torus_solid]
-            elif face.Orientation() == TopAbs_REVERSED and reverse_halfspace == False:
-                half_space_solids = _cut_ocp_solid(bounding_box_solid, torus_solid, decom_params, min_solids_required=1).solids
-            elif face.Orientation() == TopAbs_FORWARD and reverse_halfspace:
+            elif face.Orientation() == TopAbs_REVERSED and reverse_halfspace == False or face.Orientation() == TopAbs_FORWARD and reverse_halfspace:
                 half_space_solids = _cut_ocp_solid(bounding_box_solid, torus_solid, decom_params, min_solids_required=1).solids
             elif face.Orientation() == TopAbs_REVERSED and reverse_halfspace:
                 half_space_solids = [torus_solid]
@@ -1413,7 +1378,7 @@ def generate_ocp_half_space_from_face(
     # return the common solid produced
     return half_space_solids[0]
 
-def _sort_solids_by_volume(solids: list['TopoDS_Solid'], ascending: bool = True) -> list['TopoDS_Solid']:
+def _sort_solids_by_volume(solids: list[TopoDS_Solid], ascending: bool = True) -> list[TopoDS_Solid]:
     """Sort solids by volume.
 
     Parameters
@@ -1438,7 +1403,7 @@ def _sort_solids_by_volume(solids: list['TopoDS_Solid'], ascending: bool = True)
     return solids_sorted
 
 
-def _sort_ocp_faces(faces: list["TopoDS_Face"], decom_params: DecompositionParameters) -> list[tuple[TopoDS_Face, ...]]:
+def _sort_ocp_faces(faces: list[TopoDS_Face], decom_params: DecompositionParameters) -> list[tuple[TopoDS_Face, ...]]:
     """Group faces by type and coincidence and sort the groups by area.
 
     Groups are ordered by surface type (plane, cylinder, sphere, cone, torus)
@@ -1473,7 +1438,7 @@ def _sort_ocp_faces(faces: list["TopoDS_Face"], decom_params: DecompositionParam
     # return list of sorted faces
     return faces_sorted
 
-def _sort_ocp_faces_by_connected(faces: list["TopoDS_Face"], decom_params: DecompositionParameters, ignore_planes: bool=False) -> dict[type[Geom_Surface], list[list[TopoDS_Face]]]:
+def _sort_ocp_faces_by_connected(faces: list[TopoDS_Face], decom_params: DecompositionParameters, ignore_planes: bool=False) -> dict[type[Geom_Surface], list[list[TopoDS_Face]]]:
     """Group faces by surface type, coincidence and connectivity.
 
     Within each group of coincident faces, faces connected to a reference face
@@ -1531,7 +1496,7 @@ def _sort_ocp_faces_by_connected(faces: list["TopoDS_Face"], decom_params: Decom
 
     return groups_of_connected_faces
 
-def _group_ocp_faces_by_coincident(faces: list["TopoDS_Face"], decom_params: DecompositionParameters, check_connected: bool=False) -> dict[type[Geom_Surface], list[list[TopoDS_Face]]]:
+def _group_ocp_faces_by_coincident(faces: list[TopoDS_Face], decom_params: DecompositionParameters, check_connected: bool=False) -> dict[type[Geom_Surface], list[list[TopoDS_Face]]]:
     """Group faces by surface type and then by coincident surfaces.
 
     A face joins an existing group if it has the same orientation as the
@@ -1616,7 +1581,7 @@ def _group_ocp_faces_by_coincident(faces: list["TopoDS_Face"], decom_params: Dec
 
     return faces_by_types_and_groups
 
-def ocp_surface_types_are_the_same(surface_1: "Geom_Surface", surface_2: "Geom_Surface") -> bool:
+def ocp_surface_types_are_the_same(surface_1: Geom_Surface, surface_2: Geom_Surface) -> bool:
     """Check that two surfaces are of the same type.
 
     Parameters
@@ -1634,7 +1599,7 @@ def ocp_surface_types_are_the_same(surface_1: "Geom_Surface", surface_2: "Geom_S
     # check that two surfaces are the same type
     return type(surface_1) == type(surface_2)
 
-def ocp_face_orientations_are_the_same(face_1: "TopoDS_Face", face_2: "TopoDS_Face") -> bool:
+def ocp_face_orientations_are_the_same(face_1: TopoDS_Face, face_2: TopoDS_Face) -> bool:
     """Check that two faces have the same orientation.
 
     Parameters
@@ -1666,7 +1631,7 @@ def _sort_groups_of_ocp_faces_by_area(groups_of_faces: list[list[TopoDS_Face]]) 
         The groups, as tuples, sorted by descending total area.
     """
     # set up variable to store 
-    faces_by_area: dict[tuple["TopoDS_Face"], float] = {}
+    faces_by_area: dict[tuple[TopoDS_Face], float] = {}
 
     for group_of_faces in groups_of_faces:
         area_total: float = 0.0
@@ -1682,7 +1647,7 @@ def _sort_groups_of_ocp_faces_by_area(groups_of_faces: list[list[TopoDS_Face]]) 
     # return faces sorted by area
     return [group_of_faces for group_of_faces, area in faces_by_area_sorted]
 
-def _sort_ocp_faces_by_type(faces: list["TopoDS_Face"]) -> OrderedDict[type[Geom_Surface], list[TopoDS_Face]]:
+def _sort_ocp_faces_by_type(faces: list[TopoDS_Face]) -> OrderedDict[type[Geom_Surface], list[TopoDS_Face]]:
     """Sort faces by their underlying surface type.
 
     Parameters

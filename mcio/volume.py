@@ -10,22 +10,19 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from mcio import logger
-from .inversion import (
-    _convert_mcio_half_volume_into_ocp_solid
-)
+
 from .geometric import BoundingBox
+from .inversion import _convert_mcio_half_volume_into_ocp_solid
+
 try:
-    from .ocpbooleans import (
-        _common_ocp_solid,
-        _fuse_ocp_solid
-    )
     from .decomposeparams import DecompositionParameters
+    from .ocpbooleans import _common_ocp_solid, _fuse_ocp_solid
 except:
     pass
 
 if TYPE_CHECKING:
-    from .surface import Surface
     from .macrobody import Macrobody
+    from .surface import Surface
 
     try:
         import openmc
@@ -168,7 +165,7 @@ class And(Boolean):
         return vol_openmc
 
     def ocp_solid(self, bounding_box: BoundingBox | None=None,
-                  decom_params: DecompositionParameters | None=None) -> "TopoDS_Shape":
+                  decom_params: DecompositionParameters | None=None) -> TopoDS_Shape:
         """Build an Open CASCADE solid of the intersection.
 
         Parameters
@@ -279,7 +276,7 @@ class Or(Boolean):
         return result
 
     @property
-    def openmc_region(self) -> "openmc.Region":
+    def openmc_region(self) -> openmc.Region:
         """OpenMC region formed by the union of all sub-boolean regions."""
         vol_openmc = self._sub_booleans[0].openmc_region
 
@@ -289,7 +286,7 @@ class Or(Boolean):
         return vol_openmc
 
     def ocp_solid(self, bounding_box: BoundingBox | None=None,
-                  decom_params: DecompositionParameters | None=None) -> "TopoDS_Shape":
+                  decom_params: DecompositionParameters | None=None) -> TopoDS_Shape:
         """Build an Open CASCADE solid of the union.
 
         Parameters
@@ -327,7 +324,7 @@ class Or(Boolean):
             string += sub_boolean.__str__()
         return f'{string}\n'.replace('\n', '\n ')
 
-class HalfVolume():
+class HalfVolume:
     """One side (half space) of a surface.
 
     Usually created with the unary ``+``/``-`` operators on a surface.
@@ -367,7 +364,7 @@ class HalfVolume():
 
         surface_hash = self._surface.__hash_string__()
         if surface_hash in surfaces:
-            logger.debug(f'surface already found...')
+            logger.debug('surface already found...')
             logger.debug(f'{surface_hash}')
             logger.debug(f'{self._surface.type}')
             logger.debug(f'{self._surface}')
@@ -413,7 +410,7 @@ class HalfVolume():
         return self._direction
 
     @property
-    def openmc_region(self) -> "openmc.Halfspace":
+    def openmc_region(self) -> openmc.Halfspace:
         """OpenMC half space for this side of the surface."""
         if self._direction == '+':
             return +self._surface.openmc_surface
@@ -421,7 +418,7 @@ class HalfVolume():
             return -self._surface.openmc_surface
 
     def ocp_solid(self, bounding_box: BoundingBox | None=None,
-                  decom_params: DecompositionParameters | None=None) -> "TopoDS_Shape":
+                  decom_params: DecompositionParameters | None=None) -> TopoDS_Shape:
         """Build an Open CASCADE solid of the half space clipped to a box.
 
         Parameters
@@ -613,12 +610,12 @@ class Volume:
         return self._boolean.mcnp_string
 
     @property
-    def openmc_region(self) -> "openmc.Region":
+    def openmc_region(self) -> openmc.Region:
         """OpenMC region for the volume."""
         return self._boolean.openmc_region
 
     def ocp_solid(self, bounding_box: BoundingBox | None=None,
-                  decom_params: DecompositionParameters | None=None) -> "TopoDS_Shape":
+                  decom_params: DecompositionParameters | None=None) -> TopoDS_Shape:
         """Build an Open CASCADE solid of the volume.
 
         Parameters

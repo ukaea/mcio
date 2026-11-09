@@ -8,12 +8,10 @@ slot holding its description.
 
 from __future__ import annotations
 
-from typing import Any
-
 import dataclasses
 import json
 import warnings
-
+from typing import Any
 
 from .table import Table
 

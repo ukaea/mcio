@@ -17,17 +17,18 @@ try:
 except:
     pass
 
+from .decomposeparams import DecompositionParameters
 from .formatting import formatting
 from .geometric import BoundingBox
-from .decomposeparams import DecompositionParameters
 from .material import Material
-from .mcnp import MCNPCard, MCNPCellParameters, MCNP_PARTICLE_DESIGNATORS
+from .mcnp import MCNP_PARTICLE_DESIGNATORS, MCNPCard, MCNPCellParameters
 from .transform import Transform
 from .universe import Universe, UniverseFill
 from .volume import Volume
 
 if TYPE_CHECKING:
     from OCP.TopoDS import TopoDS_Shape
+
     from .surface import Surface
 
 
@@ -89,7 +90,7 @@ class Cell:
 
         # store generated properties
         self._mcnp_card: MCNPCard = None
-        self._openmc_cell: "openmc.cell.Cell" = None
+        self._openmc_cell: openmc.cell.Cell = None
 
     @property
     def material(self) -> Material:
@@ -123,7 +124,7 @@ class Cell:
 
     def ocp_solid(
         self, bounding_box: BoundingBox, decom_params: DecompositionParameters
-    ) -> "TopoDS_Shape":
+    ) -> TopoDS_Shape:
         """Generate Open CASCADE CAD solid for the cell volume.
 
         Parameters
@@ -215,7 +216,7 @@ class Cell:
         return mcnp_card
 
     @property
-    def openmc_cell(self) -> "openmc.cell.Cell":
+    def openmc_cell(self) -> openmc.cell.Cell:
         """Generate or retrieve the corresponding OpenMC cell object.
 
         Returns

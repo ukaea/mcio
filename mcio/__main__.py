@@ -13,7 +13,6 @@ import argparse
 import os
 
 
-
 def run_decompose(args: argparse.Namespace) -> None:
     """Run the CAD to CSG decomposer and write the output models.
 
@@ -212,7 +211,6 @@ def stochastic_mcnp(args: argparse.Namespace) -> None:
     args : argparse.Namespace
         Parsed arguments of the ``stochastic_mcnp`` sub-command.
     """
-    pass
 
 
 def stochastic_openmc(args: argparse.Namespace) -> None:
@@ -223,7 +221,6 @@ def stochastic_openmc(args: argparse.Namespace) -> None:
     args : argparse.Namespace
         Parsed command line arguments.
     """
-    pass
 
 
 def main() -> argparse.Namespace | None:
@@ -416,8 +413,8 @@ def main() -> argparse.Namespace | None:
     args = parser.parse_args()
 
     # handle help for sub-parsers
-    if (args.command == "help") or isinstance(args.command, type(None)):
-        if isinstance(args.command, type(None)):
+    if (args.command == "help") or (args.command is None):
+        if args.command is None:
             parser.print_help()
         elif args.command == "help" and (args.topic in subparsers.choices):
             subparsers.choices[args.topic].print_help()
@@ -430,7 +427,6 @@ def main() -> argparse.Namespace | None:
 
 
 if __name__ == "__main__":
-    # 
     args = main()
 
     # store functions for command line methods
@@ -444,34 +440,25 @@ if __name__ == "__main__":
     # imports after parse of command line args, to avoid imoport of ocp as slow
     import importlib
     import importlib.util
-    import json
-    from multiprocessing import Pool
+
     from rich.progress import (
-        Progress,
-        ProgressColumn,
-        TextColumn,
-        MofNCompleteColumn,
         BarColumn,
+        MofNCompleteColumn,
+        Progress,
         TaskProgressColumn,
+        TextColumn,
         TimeElapsedColumn,
         TimeRemainingColumn,
     )
-    from rich.text import Text
 
     import mcio
+    from mcio import logger
+
     from . import LOGGER_LEVELS
-    from .diagnostic import lost_particles_from_mcnp_run
     from .decompose import Decomposer
     from .decomposeparams import DecompositionParameters
+    from .diagnostic import lost_particles_from_mcnp_run
     from .ocp import STEPFileWriter
-    from .decomposemultiprocess import _run_decomposer_solid
-    from mcio import logger
-    from .parallellogging import (
-        start_multiprocess_logging,
-        restore_main_process_logging,
-        configure_worker_logger,
-    )
-    from .utils import in_notebook
 
     if args.command in METHODS:
         METHODS[args.command](args)

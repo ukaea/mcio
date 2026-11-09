@@ -14,14 +14,11 @@ if TYPE_CHECKING:
     from OCP.TDF import TDF_Label
     from OCP.XCAFDoc import XCAFDoc_ShapeTool
 
-import os
 import functools
 import inspect
-
+import os
 
 try:
-    import casadi
-    import OCP
     from OCP.TDF import TDF_LabelSequence
 except:
     pass
@@ -82,8 +79,8 @@ class SerialisableFromDict:
             raise TypeError(msg)
         
         # filter for values which are not none
-        data_filtered_attr = {k: v for k, v in data.items() if k in class_instance._dictable_attributes and not isinstance(v, type(None))}
-        data_filtered_subcls = {k: v for k, v in data.items() if k in class_instance._dictable_sub_classes and not isinstance(v, type(None))}
+        data_filtered_attr = {k: v for k, v in data.items() if k in class_instance._dictable_attributes and not (v is None)}
+        data_filtered_subcls = {k: v for k, v in data.items() if k in class_instance._dictable_sub_classes and not (v is None)}
 
         # set the values within the new class instance
         for k, v in data_filtered_attr.items():

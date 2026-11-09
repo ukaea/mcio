@@ -4,15 +4,13 @@ is one part of a cad solid during the decomposition process.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Tuple, Union
 import pickle
+from typing import Any
 
 try:
-    import casadi
-    import OCP
     from OCP.BRepBuilderAPI import BRepBuilderAPI_MakeFace
-    from OCP.TopAbs import TopAbs_REVERSED, TopAbs_FACE
-    from OCP.TopoDS import TopoDS_Solid, TopoDS_Face
+    from OCP.TopAbs import TopAbs_FACE, TopAbs_REVERSED
+    from OCP.TopoDS import TopoDS_Face, TopoDS_Solid
 except Exception as e:
     from mcio import logger
 
@@ -20,25 +18,26 @@ except Exception as e:
     logger.warning(f"{e}")
 
 from mcio import logger
+
 from .cell import Cell
-from .volume import HalfVolume
 from .decomposeparams import DecompositionParameters
-from .ocp import (
-    extract_ocp_shape_type_from_shape,
-    bounding_box_from_shape,
-    convert_ocp_shape_to_binary,
-    convert_ocp_surface_to_binary,
-    convert_ocp_orientation_to_binary,
-    convert_surface_binary_to_ocp_surface,
-    convert_orientation_binary_to_ocp_orientation,
-    convert_shape_binary_to_ocp_shape,
-)
-from .ocptomcio import get_mcio_halfspace_from_ocp_face
-from .ocpboundingbox import oriented_bounding_box_from_shape
-from .ocpproperties import _volume_of_ocp_solids
 from .geometric import BoundingBox, OrientedBoundingBox
 from .model import Model
+from .ocp import (
+    bounding_box_from_shape,
+    convert_ocp_orientation_to_binary,
+    convert_ocp_shape_to_binary,
+    convert_ocp_surface_to_binary,
+    convert_orientation_binary_to_ocp_orientation,
+    convert_shape_binary_to_ocp_shape,
+    convert_surface_binary_to_ocp_surface,
+    extract_ocp_shape_type_from_shape,
+)
+from .ocpboundingbox import oriented_bounding_box_from_shape
+from .ocpproperties import _volume_of_ocp_solids
+from .ocptomcio import get_mcio_halfspace_from_ocp_face
 from .surface import Sphere
+from .volume import HalfVolume
 
 
 class SplitSolid:
@@ -90,19 +89,19 @@ class SplitSolid:
 
     def __init__(
         self,
-        split_solid: Union["TopoDS_Solid", bytes],
-        faces_with_auxiliaries: Dict[Any, List[Tuple[Any, Any]]],
+        split_solid: TopoDS_Solid | bytes,
+        faces_with_auxiliaries: dict[Any, list[tuple[Any, Any]]],
         decom_params: DecompositionParameters,
-        surfaces_generated: Optional[Dict[Any, Any]] = None,
+        surfaces_generated: dict[Any, Any] | None = None,
     ) -> None:
         """Initialise the SplitSolid and build its MCIO half-spaces and volume."""
         # store input variables
-        self.split_solid: Union["TopoDS_Solid", bytes] = split_solid
+        self.split_solid: TopoDS_Solid | bytes = split_solid
         self.decom_params: DecompositionParameters = decom_params
-        self._surfaces_generated: Dict[Any, Any] = (
+        self._surfaces_generated: dict[Any, Any] = (
             surfaces_generated if surfaces_generated is not None else {}
         )
-        self.faces_with_auxiliaries: Dict[Any, List[Tuple[Any, Any]]] = (
+        self.faces_with_auxiliaries: dict[Any, list[tuple[Any, Any]]] = (
             faces_with_auxiliaries
         )
 
@@ -123,21 +122,21 @@ class SplitSolid:
         )
 
         # generate dicts to store mcio halfspaces for faces and auxiliary surfaces
-        self.face_to_mcio_halfspaces: Dict[Any, Any] = {}
-        self.face_auxiliary_surfaces_to_mcio_halfspaces: Dict[Any, Dict[Any, Any]] = {}
+        self.face_to_mcio_halfspaces: dict[Any, Any] = {}
+        self.face_auxiliary_surfaces_to_mcio_halfspaces: dict[Any, dict[Any, Any]] = {}
 
         # generate bounding boxes for each face
-        self.face_bounding_boxes: Dict[Any, BoundingBox] = {}
+        self.face_bounding_boxes: dict[Any, BoundingBox] = {}
 
         # collect mcio half spaces for creation of mcio volume, for later passing to mcio cell.
-        mcio_half_spaces: List[Any] = []
+        mcio_half_spaces: list[Any] = []
 
         # store mcio csg volume
-        self.volume: Optional[Any] = None
+        self.volume: Any | None = None
 
         # store physical volume
-        self._geometric_volume: Optional[float] = None
-        self._fraction_of_bounding_box: Optional[float] = None
+        self._geometric_volume: float | None = None
+        self._fraction_of_bounding_box: float | None = None
 
         # produce mcio half spaces for faces and for auxiliary surfaces of faces
         for (face_ocp, auxiliary_surfaces) in faces_with_auxiliaries.items():
@@ -179,7 +178,7 @@ class SplitSolid:
         for mcio_half_space in mcio_half_spaces[1:]:
             self.volume = self.volume & mcio_half_space
 
-    def serialise(self) -> Dict["TopoDS_Face", bytes]:
+    def serialise(self) -> dict[TopoDS_Face, bytes]:
         """Convert OpenCASCADE shape objects and faces into binary byte strings.
 
         Returns
@@ -196,7 +195,7 @@ class SplitSolid:
         self.split_solid = convert_ocp_shape_to_binary(self.split_solid)
 
         # face_to_binary_lookup
-        face_to_binary_lookup: Dict[Any, bytes] = {}
+        face_to_binary_lookup: dict[Any, bytes] = {}
 
         # iterate over all faces
         for face in list(self.face_to_mcio_halfspaces):
@@ -251,7 +250,7 @@ class SplitSolid:
         self.split_solid = convert_shape_binary_to_ocp_shape(self.split_solid)
 
         # face_to_binary_lookup
-        face_binary_to_face_lookup: Dict[bytes, Any] = {}
+        face_binary_to_face_lookup: dict[bytes, Any] = {}
 
         # iterate over face binaries
         for face_binary in list(self.face_to_mcio_halfspaces):

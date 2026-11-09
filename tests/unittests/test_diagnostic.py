@@ -38,8 +38,7 @@ class MCIOUnitTestLostParticles(unittest.TestCase):
     def write_output(self, records):
         with open(self.input_path, 'w') as f:
             f.write(' mcnp     version 6     ld=...\n\n')
-            for record in records:
-                f.write(lost_particle_record(*record))
+            f.writelines(lost_particle_record(*record) for record in records)
             f.write(' run terminated when 100 particles were lost.\n')
 
     def run_extraction(self, **kwargs):

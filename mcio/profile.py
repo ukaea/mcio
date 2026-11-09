@@ -6,12 +6,10 @@ and placeholder dataclasses intended to hold profiling data.
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Any
-
 import time
-import dataclasses
+from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
 
 
 def function_timer(func: Callable[..., Any]) -> Callable[..., tuple[Any, float]]:
@@ -63,11 +61,9 @@ def function_timer(func: Callable[..., Any]) -> Callable[..., tuple[Any, float]]
 class ProfilerDecompositionSolid:
     """Placeholder for profiling data of a single decomposed solid."""
 
-    pass
 
 
 @dataclass
 class ProfilerDecomposer:
     """Placeholder for profiling data of a full decomposition run."""
 
-    pass

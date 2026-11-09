@@ -8,14 +8,13 @@ by point membership) and OCP solids (checked by volume).
 
 import unittest
 
-import mcio.surface as S
-from mcio.volume import And, Or, HalfVolume, Volume
-from mcio.geometric import BoundingBox
-from mcio.decomposeparams import DecompositionParameters
-from mcio.ocpproperties import _volume_of_ocp_solids
-
-
 from unitutils import CustomAssertions, requires_openmc
+
+import mcio.surface as S
+from mcio.decomposeparams import DecompositionParameters
+from mcio.geometric import BoundingBox
+from mcio.ocpproperties import _volume_of_ocp_solids
+from mcio.volume import And, HalfVolume, Or, Volume
 
 
 def _numbered(surface, number):

@@ -1,12 +1,8 @@
 import unittest
+
+from unitutils import HAS_OPENMC, CustomAssertions, CustomParameterChecks
+
 import mcio
-
-
-from unitutils import (
-    HAS_OPENMC,
-    CustomAssertions,
-    CustomParameterChecks
-)
 
 
 class MCIORegressionTestCSGsurfaces(unittest.TestCase, CustomAssertions, CustomParameterChecks):

@@ -12,13 +12,13 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from multiprocessing.queues import Queue as MPQueue
 
+import ctypes
 import logging
 import logging.handlers
 import queue
 import sys
-import ctypes
 from multiprocessing import Queue
-import mcio
+
 from mcio import LOGGER_FILE_HANDLER
 
 # seconds a worker waits for room in a full log queue before dropping a record
