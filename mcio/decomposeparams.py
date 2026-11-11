@@ -102,6 +102,7 @@ class DecompositionParameters(ParameterLookup):
     split_sew: bool = False
     split_skip_non_cutting_planes: bool = True
     split_skip_non_cutting_planes_rel_tol: float = 1e-7
+    split_solid_timeout: float = 200.0
 
     _def_split_max_distnace_between_face_and_halfspace: str = (
         "max dist between face and halfspace used to recursively split"
@@ -110,6 +111,7 @@ class DecompositionParameters(ParameterLookup):
     _def_split_sew: str = "split sew to solids following recursive splitting"
     _def_split_skip_non_cutting_planes: str = "skip the half space and split of planar faces whose plane leaves the whole solid on the material side (they cannot split it)"
     _def_split_skip_non_cutting_planes_rel_tol: str = "tolerance, relative to the solid size, for a solid to count as lying behind a planar face"
+    _def_split_solid_timeout: str = "multiprocess runs only: seconds a single solid may take to decompose before its worker is stopped and the solid is saved as failed to convert (0 for no limit)"
 
     # boolean operation settings
     bool_common_fuzzy_value: float = 1e-6

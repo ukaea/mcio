@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 import warnings
 from multiprocessing import parent_process
 
@@ -23,9 +24,14 @@ logger: logging.Logger = logging.getLogger("mcio")
 # Initialise as None
 LOGGER_FILE_HANDLER: logging.FileHandler | None = None
 
-# Robust check: If parent_process() is None, this is the Main Process.
-# In "spawn" mode (Windows), child processes will have a parent_process object.
-if parent_process() is None:
+# Only the main process writes the log file (workers log via a queue). A spawned
+# worker imports this package before parent_process() is set, with sys.argv
+# copied from the main process, so also check its real command line for the flag
+# multiprocessing adds - otherwise each new worker truncates the log file.
+_is_worker_process = (
+    parent_process() is not None or "--multiprocessing-fork" in sys.orig_argv
+)
+if not _is_worker_process:
     # set up logging with a top level handler
     formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 

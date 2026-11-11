@@ -16,7 +16,6 @@ import pathlib
 import pickle
 import time
 from collections.abc import Sequence
-from concurrent.futures import ProcessPoolExecutor
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -60,7 +59,11 @@ except Exception as e:
 
 
 from .colour import ColourRGB
-from .decomposemultiprocess import _run_decomposer_solid
+from .decomposemultiprocess import (
+    _run_decomposer_solid,
+    run_with_timeout,
+    save_failed_solid,
+)
 from .decomposeparams import DecompositionParameters
 from .decomposesolid import (
     DecompositionSolid,
@@ -995,21 +998,30 @@ class Decomposer:
                 for i, decomposition_solid in enumerate(self.decomposition_solids)
             ]
 
+            def on_failure(
+                i: int, task: Sequence[Any], reason: str
+            ) -> tuple[int, DecompositionSolid, str]:
+                """Save a solid whose worker timed out or stopped, as failed."""
+                decomposition_solid = task[3]
+                return (
+                    i,
+                    decomposition_solid,
+                    save_failed_solid(i, decomposition_solid, reason),
+                )
+
+            # a solid taking longer than split_solid_timeout is stopped and saved
+            # as failed, so one stuck solid cannot stall the whole decomposition
             try:
-                with ProcessPoolExecutor(
-                    max_workers=cores,
+                results = run_with_timeout(
+                    _run_decomposer_solid,
+                    enumerated_decomposition_solids,
+                    cores=cores,
+                    timeout=self.decom_params.split_solid_timeout,
+                    on_failure=on_failure,
                     initializer=configure_worker_logger,
                     initargs=(log_queue,),
-                ) as executor:
-                    results_generator = executor.map(
-                        _run_decomposer_solid,
-                        enumerated_decomposition_solids,
-                    )
-
-                    results = []
-                    for result in results_generator:
-                        results.append(result)
-                        update_progress()
+                    on_result=update_progress,
+                )
             finally:
                 close_progress()
 
@@ -1043,13 +1055,13 @@ class Decomposer:
                 logger.debug(f"{exception}", exc_info=True)
 
             msg = (
-                f"conversion failed - total of {len(results_with_exceptions)}"
-                + "failed to convert - see directory"
+                f"conversion failed - total of {len(results_with_exceptions)} "
+                + "failed to convert - see directory "
                 + f"{self.decom_params.debug_failed_to_convert_directory}"
                 + "\n\n"
             )
             msg += (
-                f"the following {len(results_with_exceptions)}"
+                f"the following {len(results_with_exceptions)} "
                 + "step files were produced:\n"
             )
             msg += msgs
