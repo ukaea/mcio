@@ -4,6 +4,17 @@
 import math
 import unittest
 
+# the openmc python api is not on PyPI, so tests that need it are skipped when it is
+# missing; CI installs it and sets MCIO_REQUIRE_OPENMC so nothing is skipped there
+try:
+    import openmc  # noqa: F401
+    HAS_OPENMC = True
+except Exception:
+    HAS_OPENMC = False
+
+#: decorator for tests that need the openmc python api
+requires_openmc = unittest.skipUnless(HAS_OPENMC, 'requires the openmc python package')
+
 
 
 class CustomAssertions():

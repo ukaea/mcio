@@ -310,14 +310,17 @@ class MCNPRunParameters:
         self._modes: list[str] = [p.lower() for p in modes]
         self.cut_parameters: dict[str, dict[str, float]] = cut_parameters if cut_parameters else {}
         self.physics_particles = physics_cards if physics_cards else []
-        self._stop_tallies: dict[Tally, float] = stop_tallies if stop_tallies else {}
+        # set via the properties so the inputs are validated
+        self.stop_tallies = stop_tallies if stop_tallies else {}
         self._xsdir: str | None = xsdir
         self._weight_window: dict[str, list[float]] | None = weight_window
         self._idums: list[int] | None = idums
         self._rdums: list[float] | None = rdums
         self._spabi: dict[str, dict[str, Any]] | None = spabi
         self._void: bool = void
-        self._forced_collisions: dict[str, dict[Cell, float]] | None = forced_collisions
+        self._forced_collisions: dict[str, dict[Cell, float]] | None = None
+        if forced_collisions is not None:
+            self.forced_collisions = forced_collisions
 
         # # set up physics parameter dictionaries for the phys particle types
         # self.cut_parameters = {p: {'t': 'j',
@@ -569,7 +572,7 @@ class MCNPRunParameters:
         """Run parameter cards as an NPS card with sub-cards.
 
         Sub-cards include PRDMP, MODE, LOST and, where set, VOID, PHYS, CUT,
-        STOP, WWP, IDUM, RDUMS, SPABI and FCL.
+        STOP, WWP, IDUM, RDUM, SPABI and FCL.
 
         Returns
         -------
@@ -616,7 +619,7 @@ class MCNPRunParameters:
             mcnp_card.add_subcard(MCNPCard('IDUM', [numbers_to_strings(self._idums)]))
 
         if self._rdums:
-            mcnp_card.add_subcard(MCNPCard('RDUMS', [numbers_to_strings(self._idums, dp=formatting.MCNP_DP)]))
+            mcnp_card.add_subcard(MCNPCard('RDUM', [numbers_to_strings(self._rdums, dp=formatting.MCNP_DP)]))
 
         # spabi card
         if self._spabi:

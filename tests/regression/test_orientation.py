@@ -39,7 +39,7 @@ from mcio.ocpfilereadwrite import extract_ocp_shape_type_from_shape
 from mcio.ocptomcio import get_mcio_halfspace_from_ocp_face
 
 
-from unitutils import TemporaryWorkingDirectory
+from unitutils import TemporaryWorkingDirectory, requires_openmc
 
 
 # run in a temporary working directory, as the decomposer writes files to the working directory
@@ -123,6 +123,7 @@ class MCIORegressionTestFaceOrientation(unittest.TestCase):
                     points.append((inside, outside))
         return points
 
+    @requires_openmc  # points are classified with the openmc region
     def test_face_half_spaces(self):
         params = DecompositionParameters()
         for name, solid in self.solids.items():
@@ -136,6 +137,7 @@ class MCIORegressionTestFaceOrientation(unittest.TestCase):
                         self.assertIn(inside, region)
                         self.assertNotIn(outside, region)
 
+    @requires_openmc  # points are classified with the openmc region
     def test_decomposed_cells_match_solid(self):
         rng = np.random.default_rng(0)
         for name in ('mirrored box with hole', 'mirrored cq spherical shell', 'mirrored torus',

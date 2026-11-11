@@ -198,7 +198,7 @@ class Box(Macrobody):
                               [self._vx, self._vy, self._vz,
                                self._a1x, self._a1y, self._a1z,
                                self._a2x, self._a2y, self._a2z,
-                               self._a3x, self._x3y, self._a3z],
+                               self._a3x, self._a3y, self._a3z],
                                self._number, self._transform)
 
     def ocp_shape(self) -> None:

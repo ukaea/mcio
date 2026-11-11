@@ -15,7 +15,7 @@ from mcio.decomposeparams import DecompositionParameters
 from mcio.ocpproperties import _volume_of_ocp_solids
 
 
-from unitutils import CustomAssertions
+from unitutils import CustomAssertions, requires_openmc
 
 
 def _numbered(surface, number):
@@ -136,6 +136,7 @@ class MCIOUnitTestBoolean(unittest.TestCase, CustomAssertions):
         volume = And([union.boolean, -self.sphere, union.boolean])
         self.assertEqual(len(volume.sub_booleans), 3)
 
+    @requires_openmc
     def test_deduplicated_region_unchanged(self):
         nested = Volume(And([+self.px0, And([+self.px0, -self.px1]), -self.sphere]))
         region = nested.openmc_region
@@ -203,6 +204,7 @@ class MCIOUnitTestBoolean(unittest.TestCase, CustomAssertions):
         for point in outside:
             self.assertNotIn(point, region, f'{point} should be outside')
 
+    @requires_openmc
     def test_openmc_region_and(self):
         self._assert_points(
             self.cube.openmc_region,
@@ -210,10 +212,12 @@ class MCIOUnitTestBoolean(unittest.TestCase, CustomAssertions):
             outside=[(-1, 5, 5), (5, 11, 5), (5, 5, 10.5)]
         )
 
+    @requires_openmc
     def test_openmc_region_or(self):
         region = ((-self.sphere) | ((+self.px1) & (-self.pz1))).openmc_region
         self._assert_points(region, inside=[(0, 0, 0), (20, 0, 0)], outside=[(6, 0, 0), (20, 0, 20)])
 
+    @requires_openmc
     def test_openmc_region_inverted(self):
         self._assert_points(
             (~self.cube).openmc_region,

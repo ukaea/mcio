@@ -13,7 +13,7 @@ import cadquery as cq
 from dataclasses import dataclass
 
 
-from unitutils import CustomAssertions, CustomCheckValue, TemporaryWorkingDirectory
+from unitutils import CustomAssertions, CustomCheckValue, TemporaryWorkingDirectory, HAS_OPENMC
 
 from referencebunker import generate_bunker_solids
 
@@ -200,7 +200,8 @@ class MCIORegressionTestDecomposeRGB(unittest.TestCase, CustomAssertions, Custom
             self.fail(f"decomposer.run() failed: {e}")
 
         decomposer.model.write_mcnp(self.mcnp_output_path)
-        decomposer.model.write_openmc(self.openmc_output_path)
+        if HAS_OPENMC:
+            decomposer.model.write_openmc(self.openmc_output_path)
 
         # six material cells, one per solid, plus void cells
         cells = decomposer.model.cells
@@ -233,8 +234,9 @@ class MCIORegressionTestDecomposeRGB(unittest.TestCase, CustomAssertions, Custom
                 self.assertIn(surface.number, surface_numbers)
 
         # OpenMC model files written
-        for file_name in ('geometry.xml', 'materials.xml', 'settings.xml'):
-            self.assertTrue(os.path.isfile(os.path.join(self.openmc_output_path, file_name)), file_name)
+        if HAS_OPENMC:
+            for file_name in ('geometry.xml', 'materials.xml', 'settings.xml'):
+                self.assertTrue(os.path.isfile(os.path.join(self.openmc_output_path, file_name)), file_name)
 
     def test_cells_have_no_repeated_terms(self):
         # operands of nested Ands are de-duplicated, so no cell repeats a term (e.g. "-12 -12")

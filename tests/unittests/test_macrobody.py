@@ -1,5 +1,5 @@
 """
-unittest: macrobodies (RPP, RCC) and transforms - MCNP cards, conversion to
+unittest: macrobodies (RPP, RCC, BOX) and transforms - MCNP cards, conversion to
 volumes of primitive surfaces and inversion into OCP solids.
 """
 
@@ -11,7 +11,7 @@ from OCP.BRepGProp import BRepGProp
 from OCP.gp import gp_Pnt
 
 import mcio.surface as S
-from mcio.macrobody import RectangularParallelepiped, RightCircularCylinder
+from mcio.macrobody import Box, RectangularParallelepiped, RightCircularCylinder
 from mcio.transform import Transform
 from mcio.volume import And, HalfVolume
 from mcio.geometric import BoundingBox
@@ -83,6 +83,18 @@ class MCIOUnitTestMacrobody(unittest.TestCase, CustomAssertions):
                          ['4', 'RCC', '1.000000', '2.000000', '3.000000', '0.000000', '0.000000', '10.000000', '4.000000'])
         for line in rcc.mcnp_card.as_string.splitlines():
             self.assertLess(len(line), 80)
+
+    # ---------------------------------------------------------------- BOX
+
+    def test_box_mcnp_card(self):
+        # regression: the card used a misspelt attribute and raised AttributeError
+        box = Box(1, 2, 3, 10, 0, 0, 0, 20, 0, 0, 0, 30)
+        box.number = 5
+        self.assertEqual(box.mcnp_card.as_string.split(),
+                         ['5', 'BOX', '1.000000', '2.000000', '3.000000',
+                          '10.000000', '0.000000', '0.000000',
+                          '0.000000', '20.000000', '0.000000',
+                          '0.000000', '0.000000', '30.000000'])
 
     def test_rcc_zero_height_raises(self):
         with self.assertRaises(ValueError):
