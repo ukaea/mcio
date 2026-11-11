@@ -1,13 +1,11 @@
-"""Numerical utility functions for MCIO.
-"""
+"""Numerical utility functions for MCIO."""
 
 from __future__ import annotations
 
-from decimal import Decimal, ROUND_HALF_UP
-from typing import Union
+from decimal import ROUND_HALF_UP, Decimal
 
 
-def custom_round(val: Union[float, int], digits: int) -> float:
+def custom_round(val: float, digits: int) -> float:
     """Round a numerical value to a specified number of decimal places using half-up rounding.
 
     This function formats the input number to a high-precision decimal representation
@@ -36,4 +34,6 @@ def custom_round(val: Union[float, int], digits: int) -> float:
     # Format to high precision float string first to avoid binary representation artifacts
     d = Decimal(f"{val:.16f}")
     return float(d.quantize(Decimal(10) ** -digits, rounding=ROUND_HALF_UP))
+
+
 1

@@ -5,27 +5,25 @@ Contains :class:`HalfVolume` (one side of a surface), the Boolean operators
 wraps a Boolean expression. These are exported to MCNP strings, OpenMC regions
 and Open CASCADE solids.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
 from mcio import logger
-from .inversion import (
-    _convert_mcio_half_volume_into_ocp_solid
-)
+
 from .geometric import BoundingBox
+from .inversion import _convert_mcio_half_volume_into_ocp_solid
+
 try:
-    from .ocpbooleans import (
-        _common_ocp_solid,
-        _fuse_ocp_solid
-    )
     from .decomposeparams import DecompositionParameters
+    from .ocpbooleans import _common_ocp_solid, _fuse_ocp_solid
 except:
     pass
 
 if TYPE_CHECKING:
-    from .surface import Surface
     from .macrobody import Macrobody
+    from .surface import Surface
 
     try:
         import openmc
@@ -86,7 +84,7 @@ class Boolean:
         Boolean
             The inverted Boolean.
         """
-        
+
         inv_bool = Or if isinstance(self, And) else And
         sub_booleans = [~sb for sb in self._sub_booleans]
 
@@ -148,10 +146,10 @@ class And(Boolean):
 
         for val in sb_strings:
             if isinstance(val, list):
-                result.append('(')
+                result.append("(")
                 for subval in val:
                     result.append(subval)
-                result.append(')')
+                result.append(")")
             else:
                 result.append(val)
 
@@ -167,8 +165,11 @@ class And(Boolean):
 
         return vol_openmc
 
-    def ocp_solid(self, bounding_box: BoundingBox | None=None,
-                  decom_params: DecompositionParameters | None=None) -> "TopoDS_Shape":
+    def ocp_solid(
+        self,
+        bounding_box: BoundingBox | None = None,
+        decom_params: DecompositionParameters | None = None,
+    ) -> TopoDS_Shape:
         """Build an Open CASCADE solid of the intersection.
 
         Parameters
@@ -186,7 +187,11 @@ class And(Boolean):
             Solid representing the intersection.
         """
         # use default bounds
-        bounding_box = bounding_box if bounding_box else BoundingBox(-1000, 1000, -1000, 1000, -1000, 1000)
+        bounding_box = (
+            bounding_box
+            if bounding_box
+            else BoundingBox(-1000, 1000, -1000, 1000, -1000, 1000)
+        )
         decom_params = decom_params if decom_params else DecompositionParameters()
 
         # get first volume in sub bools and ocp solid
@@ -195,22 +200,32 @@ class And(Boolean):
         # common all other sub bools to initial volume
         for sub_bool in self._sub_booleans[1:]:
             # generate common solids for all sub-booleans
-            common_solids = _common_ocp_solid(ocp_solid_vol, sub_bool.ocp_solid(bounding_box, decom_params), decom_params).solids
+            common_solids = _common_ocp_solid(
+                ocp_solid_vol,
+                sub_bool.ocp_solid(bounding_box, decom_params),
+                decom_params,
+            ).solids
 
             # fuse common solids, as _common_ocp_solid always extracts all solids from a common operation
             ocp_solid_vol = common_solids[0]
             for common_solid in common_solids[1:]:
-                ocp_solid_vol = _fuse_ocp_solid(ocp_solid_vol, common_solid, decom_params, min_solids_required=1, max_solids_required=1)
+                ocp_solid_vol = _fuse_ocp_solid(
+                    ocp_solid_vol,
+                    common_solid,
+                    decom_params,
+                    min_solids_required=1,
+                    max_solids_required=1,
+                )
 
         # return volume
         return ocp_solid_vol
 
     def __str__(self) -> str:
         """Return an indented tree representation of the intersection."""
-        string = 'and:\n'
+        string = "and:\n"
         for sub_boolean in self._sub_booleans:
             string += sub_boolean.__str__()
-        return f'{string}\n'.replace('\n', '\n ')
+        return f"{string}\n".replace("\n", "\n ")
 
 
 class Or(Boolean):
@@ -262,24 +277,24 @@ class Or(Boolean):
         """
         sb_strings = [sb.mcnp_string for sb in self._sub_booleans]
 
-        or_string = [':'] * (len(sb_strings) * 2 - 1)
+        or_string = [":"] * (len(sb_strings) * 2 - 1)
         or_string[0::2] = sb_strings
 
         result = []
 
         for val in or_string:
             if isinstance(val, list):
-                result.append('(')
+                result.append("(")
                 for subval in val:
                     result.append(subval)
-                result.append(')')
+                result.append(")")
             else:
                 result.append(val)
 
         return result
 
     @property
-    def openmc_region(self) -> "openmc.Region":
+    def openmc_region(self) -> openmc.Region:
         """OpenMC region formed by the union of all sub-boolean regions."""
         vol_openmc = self._sub_booleans[0].openmc_region
 
@@ -288,8 +303,11 @@ class Or(Boolean):
 
         return vol_openmc
 
-    def ocp_solid(self, bounding_box: BoundingBox | None=None,
-                  decom_params: DecompositionParameters | None=None) -> "TopoDS_Shape":
+    def ocp_solid(
+        self,
+        bounding_box: BoundingBox | None = None,
+        decom_params: DecompositionParameters | None = None,
+    ) -> TopoDS_Shape:
         """Build an Open CASCADE solid of the union.
 
         Parameters
@@ -307,7 +325,11 @@ class Or(Boolean):
             Solid representing the union.
         """
         # use default bounds
-        bounding_box = bounding_box if bounding_box else BoundingBox(-1000, 1000, -1000, 1000, -1000, 1000)
+        bounding_box = (
+            bounding_box
+            if bounding_box
+            else BoundingBox(-1000, 1000, -1000, 1000, -1000, 1000)
+        )
         decom_params = decom_params if decom_params else DecompositionParameters()
 
         # get first volume in sub bools and ocp solid
@@ -315,19 +337,24 @@ class Or(Boolean):
 
         # common all other sub bools to initial volume
         for sub_bool in self._sub_booleans[1:]:
-            ocp_solid_vol = _fuse_ocp_solid(ocp_solid_vol, sub_bool.ocp_solid(bounding_box, decom_params),decom_params)
+            ocp_solid_vol = _fuse_ocp_solid(
+                ocp_solid_vol,
+                sub_bool.ocp_solid(bounding_box, decom_params),
+                decom_params,
+            )
 
         # return volume
         return ocp_solid_vol
 
     def __str__(self) -> str:
         """Return an indented tree representation of the union."""
-        string = 'or:\n'
+        string = "or:\n"
         for sub_boolean in self._sub_booleans:
             string += sub_boolean.__str__()
-        return f'{string}\n'.replace('\n', '\n ')
+        return f"{string}\n".replace("\n", "\n ")
 
-class HalfVolume():
+
+class HalfVolume:
     """One side (half space) of a surface.
 
     Usually created with the unary ``+``/``-`` operators on a surface.
@@ -341,7 +368,7 @@ class HalfVolume():
     """
 
     # shared by all instances, so it is not copied onto each object or pickled with it
-    _INVERSE_DIRECTION = {'+': '-', '-': '+'}
+    _INVERSE_DIRECTION = {"+": "-", "-": "+"}
 
     def __init__(self, direction: str, surface: Surface | Macrobody) -> None:
         """Initialise the HalfVolume."""
@@ -362,16 +389,16 @@ class HalfVolume():
             in place.
         """
         # skip if a macrobody is found.
-        if self._surface.__class__.__mro__[-2].__name__ == 'Macrobody':
+        if self._surface.__class__.__mro__[-2].__name__ == "Macrobody":
             return
 
         surface_hash = self._surface.__hash_string__()
         if surface_hash in surfaces:
-            logger.debug(f'surface already found...')
-            logger.debug(f'{surface_hash}')
-            logger.debug(f'{self._surface.type}')
-            logger.debug(f'{self._surface}')
-            logger.debug(f'{surfaces[surface_hash]}')
+            logger.debug("surface already found...")
+            logger.debug(f"{surface_hash}")
+            logger.debug(f"{self._surface.type}")
+            logger.debug(f"{self._surface}")
+            logger.debug(f"{surfaces[surface_hash]}")
             self._surface = surfaces[surface_hash]
         else:
             surfaces[surface_hash] = self._surface
@@ -413,15 +440,18 @@ class HalfVolume():
         return self._direction
 
     @property
-    def openmc_region(self) -> "openmc.Halfspace":
+    def openmc_region(self) -> openmc.Halfspace:
         """OpenMC half space for this side of the surface."""
-        if self._direction == '+':
+        if self._direction == "+":
             return +self._surface.openmc_surface
         else:
             return -self._surface.openmc_surface
 
-    def ocp_solid(self, bounding_box: BoundingBox | None=None,
-                  decom_params: DecompositionParameters | None=None) -> "TopoDS_Shape":
+    def ocp_solid(
+        self,
+        bounding_box: BoundingBox | None = None,
+        decom_params: DecompositionParameters | None = None,
+    ) -> TopoDS_Shape:
         """Build an Open CASCADE solid of the half space clipped to a box.
 
         Parameters
@@ -439,10 +469,16 @@ class HalfVolume():
             Solid representing the bounded half space.
         """
         # use default bounds
-        bounding_box = bounding_box if bounding_box else BoundingBox(-1000, 1000, -1000, 1000, -1000, 1000)
+        bounding_box = (
+            bounding_box
+            if bounding_box
+            else BoundingBox(-1000, 1000, -1000, 1000, -1000, 1000)
+        )
         decom_params = decom_params if decom_params else DecompositionParameters()
 
-        half_space_ocp_solid = _convert_mcio_half_volume_into_ocp_solid(self, bounding_box, decom_params)
+        half_space_ocp_solid = _convert_mcio_half_volume_into_ocp_solid(
+            self, bounding_box, decom_params
+        )
 
         return half_space_ocp_solid
 
@@ -457,8 +493,8 @@ class HalfVolume():
             Hash string for duplicate detection.
         """
 
-        directions = {'+': '', '-': '-'}
-        return f'{directions[self._direction]}_{self._surface.__hash_string__()}'
+        directions = {"+": "", "-": "-"}
+        return f"{directions[self._direction]}_{self._surface.__hash_string__()}"
 
     def __and__(self, other: HalfVolume | Volume) -> Volume:
         """Return the intersection of this half volume with another operand.
@@ -507,12 +543,12 @@ class HalfVolume():
     @property
     def mcnp_string(self) -> str:
         """MCNP token for the half volume (signed surface number)."""
-        directions = {'+': '', '-': '-'}
-        return f'{directions[self._direction]}{self._surface.number}'
+        directions = {"+": "", "-": "-"}
+        return f"{directions[self._direction]}{self._surface.number}"
 
     def __str__(self) -> str:
         """Return a short text representation of the half volume."""
-        return f'half_vol: {self._direction}{self._surface}\n'
+        return f"half_vol: {self._direction}{self._surface}\n"
 
 
 class Volume:
@@ -526,7 +562,7 @@ class Volume:
         Volume value associated with the region, by default None
     """
 
-    def __init__(self, boolean: Boolean, volume: float | None=None) -> None:
+    def __init__(self, boolean: Boolean, volume: float | None = None) -> None:
         """Initialise the Volume."""
         self._boolean: Boolean = boolean
         self._volume: float | None = volume
@@ -576,7 +612,9 @@ class Volume:
         Volume
             Volume wrapping an :class:`And` Boolean.
         """
-        boolean = And([self.boolean, other if isinstance(other, HalfVolume) else other.boolean])
+        boolean = And(
+            [self.boolean, other if isinstance(other, HalfVolume) else other.boolean]
+        )
         volume = Volume(boolean)
         return volume
 
@@ -593,7 +631,9 @@ class Volume:
         Volume
             Volume wrapping an :class:`Or` Boolean.
         """
-        boolean = Or([self.boolean, other if isinstance(other, HalfVolume) else other.boolean])
+        boolean = Or(
+            [self.boolean, other if isinstance(other, HalfVolume) else other.boolean]
+        )
         volume = Volume(boolean)
         return volume
 
@@ -613,12 +653,15 @@ class Volume:
         return self._boolean.mcnp_string
 
     @property
-    def openmc_region(self) -> "openmc.Region":
+    def openmc_region(self) -> openmc.Region:
         """OpenMC region for the volume."""
         return self._boolean.openmc_region
 
-    def ocp_solid(self, bounding_box: BoundingBox | None=None,
-                  decom_params: DecompositionParameters | None=None) -> "TopoDS_Shape":
+    def ocp_solid(
+        self,
+        bounding_box: BoundingBox | None = None,
+        decom_params: DecompositionParameters | None = None,
+    ) -> TopoDS_Shape:
         """Build an Open CASCADE solid of the volume.
 
         Parameters
@@ -636,7 +679,11 @@ class Volume:
             Solid representing the volume.
         """
         # use default bounds
-        bounding_box = bounding_box if bounding_box else BoundingBox(-1000, 1000, -1000, 1000, -1000, 1000)
+        bounding_box = (
+            bounding_box
+            if bounding_box
+            else BoundingBox(-1000, 1000, -1000, 1000, -1000, 1000)
+        )
         decom_params = decom_params if decom_params else DecompositionParameters()
 
         return self._boolean.ocp_solid(bounding_box, decom_params)
@@ -648,4 +695,4 @@ class Volume:
 
     def __str__(self) -> str:
         """Return an indented tree representation of the volume."""
-        return f'vol:\n{self._boolean}'.replace('\n', '\n ')
+        return f"vol:\n{self._boolean}".replace("\n", "\n ")

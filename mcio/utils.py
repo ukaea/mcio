@@ -1,4 +1,4 @@
-""" Utilities
+"""Utilities
 
 General helpers: dictionary serialisation base class, dictionary printing, a
 decorator factory creating output folders, notebook detection and OCP XDE
@@ -14,14 +14,11 @@ if TYPE_CHECKING:
     from OCP.TDF import TDF_Label
     from OCP.XCAFDoc import XCAFDoc_ShapeTool
 
-import os
 import functools
 import inspect
-
+import os
 
 try:
-    import casadi
-    import OCP
     from OCP.TDF import TDF_LabelSequence
 except:
     pass
@@ -34,6 +31,7 @@ class SerialisableFromDict:
     stored directly) and ``_dictable_sub_classes`` (mapping of attribute name to
     a :class:`SerialisableFromDict` subclass, serialised recursively).
     """
+
     def to_dict(self) -> dict:
         """Convert the instance to a dictionary.
 
@@ -44,7 +42,7 @@ class SerialisableFromDict:
             ``_dictable_sub_classes`` attribute, keyed by attribute name.
         """
         data: dict = {k: getattr(self, k) for k in self._dictable_attributes}
-        
+
         for sub_class_attr in self._dictable_sub_classes:
             data[sub_class_attr] = getattr(self, sub_class_attr).to_dict()
 
@@ -78,12 +76,20 @@ class SerialisableFromDict:
 
         # check input is dictionary type
         if not isinstance(data, dict):
-            msg = f'from_dictionary type should be dict, not {type(data)}'
+            msg = f"from_dictionary type should be dict, not {type(data)}"
             raise TypeError(msg)
-        
+
         # filter for values which are not none
-        data_filtered_attr = {k: v for k, v in data.items() if k in class_instance._dictable_attributes and not isinstance(v, type(None))}
-        data_filtered_subcls = {k: v for k, v in data.items() if k in class_instance._dictable_sub_classes and not isinstance(v, type(None))}
+        data_filtered_attr = {
+            k: v
+            for k, v in data.items()
+            if k in class_instance._dictable_attributes and not (v is None)
+        }
+        data_filtered_subcls = {
+            k: v
+            for k, v in data.items()
+            if k in class_instance._dictable_sub_classes and not (v is None)
+        }
 
         # set the values within the new class instance
         for k, v in data_filtered_attr.items():
@@ -94,11 +100,12 @@ class SerialisableFromDict:
             setattr(class_instance, k, sub_class_instance)
 
         # run post init for the new class instance
-        if hasattr(class_instance, '__post_init__'):
+        if hasattr(class_instance, "__post_init__"):
             class_instance.__post_init__()
-        
+
         # return the class instance
         return class_instance
+
 
 def dict_as_string(dict: dict, level: int = 1) -> str:
     """Return a (possibly nested) dictionary as an indented string.
@@ -116,23 +123,23 @@ def dict_as_string(dict: dict, level: int = 1) -> str:
         String representation of the dictionary.
     """
     flag_ocp = False
-    
-    output_string = ''
+
+    output_string = ""
 
     for k, v in dict.items():
+        indent = "-" * level
 
-        indent = '-' * level
-
-        string_key = f'{indent} k={k}\n'
+        string_key = f"{indent} k={k}\n"
         output_string += string_key
 
         if isinstance(v, type(dict)):
-            output_string = dict_as_string(v, level=level+1)
+            output_string = dict_as_string(v, level=level + 1)
         else:
-            string_val = f'{indent + indent[0]} {v}'
+            string_val = f"{indent + indent[0]} {v}"
             output_string += string_val
 
     return output_string
+
 
 def check_folder_exists_for_file_path(
     param_name: str,
@@ -153,6 +160,7 @@ def check_folder_exists_for_file_path(
     Callable[[Callable[..., Any]], Callable[..., Any]]
         Decorator applying the folder check.
     """
+
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         """Wrap a function with the folder existence check.
 
@@ -166,6 +174,7 @@ def check_folder_exists_for_file_path(
         Callable[..., Any]
             Wrapped function.
         """
+
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             """Create the file path's folder if required, then call the function.
@@ -198,8 +207,11 @@ def check_folder_exists_for_file_path(
                 os.makedirs(directory, exist_ok=True)
 
             return func(*args, **kwargs)
+
         return wrapper
+
     return decorator
+
 
 def in_notebook() -> bool:
     """Check whether the code is running in a Jupyter notebook or lab.
@@ -216,6 +228,7 @@ def in_notebook() -> bool:
         return shell == "ZMQInteractiveShell"  # Jupyter notebook or lab
     except Exception:
         return False
+
 
 def build_parent_map(shape_tool: XCAFDoc_ShapeTool) -> dict[TDF_Label, TDF_Label]:
     """Build a map from each assembly component label to its parent label.
@@ -244,7 +257,7 @@ def build_parent_map(shape_tool: XCAFDoc_ShapeTool) -> dict[TDF_Label, TDF_Label
         shape_tool.GetComponents_s(label, children)
 
         for i in range(children.Length()):
-            child = children.Value(i+1)
+            child = children.Value(i + 1)
             parent_map[child] = label
             walk(child)
 
@@ -253,6 +266,6 @@ def build_parent_map(shape_tool: XCAFDoc_ShapeTool) -> dict[TDF_Label, TDF_Label
     shape_tool.GetFreeShapes(roots)
 
     for i in range(roots.Length()):
-        walk(roots.Value(i+1))
+        walk(roots.Value(i + 1))
 
     return parent_map

@@ -12,7 +12,7 @@ class OpenMCTallyParameters:
         Interpolation scheme for dose function data, by default 'linear-linear'
     """
 
-    def __init__(self, dose_interpolation: str = 'linear-linear') -> None:
+    def __init__(self, dose_interpolation: str = "linear-linear") -> None:
         """Initialise the OpenMC tally settings."""
         self.dose_interpolation: str = dose_interpolation
 
@@ -20,7 +20,7 @@ class OpenMCTallyParameters:
     def dose_interpolation(self) -> str:
         """str: Interpolation scheme for dose function data."""
         return self._dose_interpolation
-    
+
     @dose_interpolation.setter
     def dose_interpolation(self, dose_interpolation: str) -> None:
         """Set the dose function interpolation scheme.

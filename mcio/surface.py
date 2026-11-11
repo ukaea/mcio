@@ -5,10 +5,11 @@ Defines the :class:`Surface` base class and the concrete MCNP-style surface type
 write them as MCNP, Serpent and OpenMC surfaces, sort them, and map MCNP surface
 mnemonics to classes.
 """
+
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List, Type, Union
+from typing import Any
 
 from .formatting import formatting
 from .mcnp import MCNPCard
@@ -39,12 +40,14 @@ class Surface:
         Surface number assigned, by default None
     """
 
-    def __init__(self, 
-                 reflective: bool = False, 
-                 comment: str | None = None, 
-                 transform: Transform | None = None, 
-                 openmc_graveyard: bool = False,
-                 number: int | None = None) -> None:
+    def __init__(
+        self,
+        reflective: bool = False,
+        comment: str | None = None,
+        transform: Transform | None = None,
+        openmc_graveyard: bool = False,
+        number: int | None = None,
+    ) -> None:
         """Initialize the Surface base class.
 
         Parameters
@@ -67,7 +70,7 @@ class Surface:
         self.transform: Transform | None = transform
         self.type: str | None = None
         self.openmc_graveyard: bool = openmc_graveyard
-        
+
         self._openmc_surface: Any = None
 
     def _mcnp_format_card_type(self, card_type: str) -> str:
@@ -84,12 +87,12 @@ class Surface:
             MCNP card type string appended with transform number if present
         """
         if self.transform is not None:
-            return card_type + f'{self.transform.number}'
+            return card_type + f"{self.transform.number}"
         else:
             return card_type
 
     @classmethod
-    def from_mcnp_card(cls, mcnp_card: str) -> "Surface":
+    def from_mcnp_card(cls, mcnp_card: str) -> Surface:
         """Construct a Surface object from an MCNP card string.
 
         Parameters
@@ -103,26 +106,26 @@ class Surface:
             Constructed surface instance
         """
         regex_surf = re.compile(
-            r'(?:\s*)(?P<surf_number>([0-9]+))(?:\s+)(?P<transform>[0-9]*)(?:\s*)(?P<surf_type>[a-zA-Z/]+)(?P<params>.*)'
+            r"(?:\s*)(?P<surf_number>([0-9]+))(?:\s+)(?P<transform>[0-9]*)(?:\s*)(?P<surf_type>[a-zA-Z/]+)(?P<params>.*)"
         )
 
         groups_surf = re.search(regex_surf, mcnp_card).groupdict()
 
-        surf_number = int(groups_surf['surf_number'])
-        surf_type = groups_surf['surf_type']
-        surf_params = [float(v) for v in groups_surf['params'].split()]
+        surf_number = int(groups_surf["surf_number"])
+        surf_type = groups_surf["surf_type"]
+        surf_params = [float(v) for v in groups_surf["params"].split()]
 
-        if surf_type.lower() == 'p' and len(surf_params) == 9:
-            surf_type = 'P3P'
+        if surf_type.lower() == "p" and len(surf_params) == 9:
+            surf_type = "P3P"
 
         surface = MCNP_SURFACE_TYPES[surf_type.upper()](*surf_params)
         surface.number = surf_number
 
-        print('=' * 100)
+        print("=" * 100)
         print(mcnp_card)
-        print(f' -> number {surf_number}')
-        print(f' -> type    {surf_type}')
-        print(f' -> params  {surf_params}')
+        print(f" -> number {surf_number}")
+        print(f" -> type    {surf_type}")
+        print(f" -> params  {surf_params}")
 
         return surface
 
@@ -134,8 +137,8 @@ class Surface:
         HalfVolume
             Positive half-volume associated with the surface
         """
-        return HalfVolume('+', self)
-        
+        return HalfVolume("+", self)
+
     def __neg__(self) -> HalfVolume:
         """Return the negative half-space of the surface.
 
@@ -144,7 +147,7 @@ class Surface:
         HalfVolume
             Negative half-volume associated with the surface
         """
-        return HalfVolume('-', self)
+        return HalfVolume("-", self)
 
     def __str__(self) -> str:
         """Return string representation of the MCNP card.
@@ -179,7 +182,9 @@ class Surface:
         return surface_string
 
 
-def mcnp_surface(surface_type: str, parameters: List[str], surface: Surface) -> MCNPCard:
+def mcnp_surface(
+    surface_type: str, parameters: list[str], surface: Surface
+) -> MCNPCard:
     """Construct an MCNPCard representation for a surface.
 
     Parameters
@@ -196,21 +201,23 @@ def mcnp_surface(surface_type: str, parameters: List[str], surface: Surface) -> 
     MCNPCard
         Constructed MCNP surface card
     """
-    rows = [[f'{surface_type:<{formatting.MCNP_INDENT}}']]
+    rows = [[f"{surface_type:<{formatting.MCNP_INDENT}}"]]
     rows[0].extend(parameters)
 
     if surface.transform:
         rows[0].insert(0, str(surface.transform.number))
 
     if surface.reflective:
-        card_designator = f'*{surface.number}'
+        card_designator = f"*{surface.number}"
     else:
-        card_designator = f'{surface.number}'
+        card_designator = f"{surface.number}"
 
     return MCNPCard(card_designator, rows)
 
 
-def serpent_surface(surface_type: str, parameters: List[str], surface: Surface) -> SerpentCard:
+def serpent_surface(
+    surface_type: str, parameters: list[str], surface: Surface
+) -> SerpentCard:
     """Construct a SerpentCard representation for a surface.
 
     Parameters
@@ -228,7 +235,9 @@ def serpent_surface(surface_type: str, parameters: List[str], surface: Surface) 
         Constructed Serpent surface card
     """
     rows = [parameters]
-    card_designator = f'surf {surface.number} {surface_type:<{formatting.SERPENT_INDENT}}'
+    card_designator = (
+        f"surf {surface.number} {surface_type:<{formatting.SERPENT_INDENT}}"
+    )
     return SerpentCard(card_designator, rows)
 
 
@@ -246,11 +255,11 @@ def openmc_boundary_type(surface: Surface) -> str:
         OpenMC boundary type string ('vacuum', 'reflective', or 'transmission')
     """
     if surface.openmc_graveyard:
-        return 'vacuum'
+        return "vacuum"
     elif surface.reflective:
-        return 'reflective'
+        return "reflective"
     else:
-        return 'transmission'
+        return "transmission"
 
 
 class Plane(Surface):
@@ -271,7 +280,14 @@ class Plane(Surface):
         transform, openmc_graveyard, number).
     """
 
-    def __init__(self, a: float = 0.0, b: float = 0.0, c: float = 0.0, d: float = 0.0, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        a: float = 0.0,
+        b: float = 0.0,
+        c: float = 0.0,
+        d: float = 0.0,
+        **kwargs: Any,
+    ) -> None:
         """Initialise the Plane surface."""
         super().__init__(**kwargs)
         self.a: float = a
@@ -282,12 +298,12 @@ class Plane(Surface):
     @property
     def mcnp_card(self) -> MCNPCard:
         """MCNP card representation of the plane."""
-        surface_type = 'P'
+        surface_type = "P"
         surface_params = [
-            f'{self.a:{formatting.MCNP_FMT_SURFACE_PLANE_NORMAL}}',
-            f'{self.b:{formatting.MCNP_FMT_SURFACE_PLANE_NORMAL}}',
-            f'{self.c:{formatting.MCNP_FMT_SURFACE_PLANE_NORMAL}}',
-            f'{self.d:{formatting.MCNP_FMT_SURFACE_PLANE_DISPLACEMENT}}'
+            f"{self.a:{formatting.MCNP_FMT_SURFACE_PLANE_NORMAL}}",
+            f"{self.b:{formatting.MCNP_FMT_SURFACE_PLANE_NORMAL}}",
+            f"{self.c:{formatting.MCNP_FMT_SURFACE_PLANE_NORMAL}}",
+            f"{self.d:{formatting.MCNP_FMT_SURFACE_PLANE_DISPLACEMENT}}",
         ]
         return mcnp_surface(surface_type, surface_params, self)
 
@@ -300,11 +316,11 @@ class Plane(Surface):
                 b=self.b,
                 c=self.c,
                 d=self.d,
-                boundary_type=openmc_boundary_type(self)
+                boundary_type=openmc_boundary_type(self),
             )
         return self._openmc_surface
 
-    def __lt__(self, other: "Plane") -> bool:
+    def __lt__(self, other: Plane) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -340,10 +356,19 @@ class PlaneFromThreePoints(Surface):
         transform, openmc_graveyard, number).
     """
 
-    def __init__(self, x0: float = 0.0, y0: float = 0.0, z0: float = 0.0,
-                       x1: float = 0.0, y1: float = 0.0, z1: float = 0.0,
-                       x2: float = 0.0, y2: float = 0.0, z2: float = 0.0,
-                       **kwargs: Any) -> None:
+    def __init__(
+        self,
+        x0: float = 0.0,
+        y0: float = 0.0,
+        z0: float = 0.0,
+        x1: float = 0.0,
+        y1: float = 0.0,
+        z1: float = 0.0,
+        x2: float = 0.0,
+        y2: float = 0.0,
+        z2: float = 0.0,
+        **kwargs: Any,
+    ) -> None:
         """Initialise the PlaneFromThreePoints surface."""
         super().__init__(**kwargs)
         self.x0: float = x0
@@ -359,21 +384,21 @@ class PlaneFromThreePoints(Surface):
     @property
     def mcnp_card(self) -> MCNPCard:
         """MCNP card representation of the plane."""
-        surface_type = 'P'
+        surface_type = "P"
         surface_params = [
-            f'{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}', 
-            f'{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}', 
-            f'{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}', 
-            f'{self.x1:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}', 
-            f'{self.y1:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}', 
-            f'{self.z1:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}', 
-            f'{self.x2:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}', 
-            f'{self.y2:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}', 
-            f'{self.z2:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}'
+            f"{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.x1:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.y1:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.z1:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.x2:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.y2:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.z2:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
         ]
         return mcnp_surface(surface_type, surface_params, self)
 
-    def __lt__(self, other: "PlaneFromThreePoints") -> bool:
+    def __lt__(self, other: PlaneFromThreePoints) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -388,8 +413,28 @@ class PlaneFromThreePoints(Surface):
         bool
             True if this surface sorts before ``other``.
         """
-        vars_self = [self.x0, self.y0, self.z0, self.x1, self.y1, self.z1, self.x2, self.y2, self.z2]
-        vars_other = [other.x0, other.y0, other.z0, other.x1, other.y1, other.z1, other.x2, other.y2, other.z2]
+        vars_self = [
+            self.x0,
+            self.y0,
+            self.z0,
+            self.x1,
+            self.y1,
+            self.z1,
+            self.x2,
+            self.y2,
+            self.z2,
+        ]
+        vars_other = [
+            other.x0,
+            other.y0,
+            other.z0,
+            other.x1,
+            other.y1,
+            other.z1,
+            other.x2,
+            other.y2,
+            other.z2,
+        ]
         return _less_than_multi_variate(vars_self, vars_other)
 
 
@@ -413,21 +458,20 @@ class XPlane(Surface):
     @property
     def mcnp_card(self) -> MCNPCard:
         """MCNP card representation of the X-plane."""
-        surface_type = 'PX'
-        surface_params = [f'{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}']
+        surface_type = "PX"
+        surface_params = [f"{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}"]
         return mcnp_surface(surface_type, surface_params, self)
-    
+
     @property
     def openmc_surface(self) -> Any:
         """OpenMC surface object representation."""
         if not self._openmc_surface:
             self._openmc_surface = openmc.surface.XPlane(
-                x0=self.x0,
-                boundary_type=openmc_boundary_type(self)
+                x0=self.x0, boundary_type=openmc_boundary_type(self)
             )
         return self._openmc_surface
 
-    def __lt__(self, other: "XPlane") -> bool:
+    def __lt__(self, other: XPlane) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -465,8 +509,8 @@ class YPlane(Surface):
     @property
     def mcnp_card(self) -> MCNPCard:
         """MCNP card representation of the Y-plane."""
-        surface_type = 'PY'
-        surface_params = [f'{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}']
+        surface_type = "PY"
+        surface_params = [f"{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}"]
         return mcnp_surface(surface_type, surface_params, self)
 
     @property
@@ -474,12 +518,11 @@ class YPlane(Surface):
         """OpenMC surface object representation."""
         if not self._openmc_surface:
             self._openmc_surface = openmc.surface.YPlane(
-                y0=self.y0,
-                boundary_type=openmc_boundary_type(self)
+                y0=self.y0, boundary_type=openmc_boundary_type(self)
             )
         return self._openmc_surface
 
-    def __lt__(self, other: "YPlane") -> bool:
+    def __lt__(self, other: YPlane) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -517,8 +560,8 @@ class ZPlane(Surface):
     @property
     def mcnp_card(self) -> MCNPCard:
         """MCNP card representation of the Z-plane."""
-        surface_type = 'PZ'
-        surface_params = [f'{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}']
+        surface_type = "PZ"
+        surface_params = [f"{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}"]
         return mcnp_surface(surface_type, surface_params, self)
 
     @property
@@ -526,12 +569,11 @@ class ZPlane(Surface):
         """OpenMC surface object representation."""
         if not self._openmc_surface:
             self._openmc_surface = openmc.surface.ZPlane(
-                z0=self.z0,
-                boundary_type=openmc_boundary_type(self)
+                z0=self.z0, boundary_type=openmc_boundary_type(self)
             )
         return self._openmc_surface
 
-    def __lt__(self, other: "ZPlane") -> bool:
+    def __lt__(self, other: ZPlane) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -567,7 +609,14 @@ class Sphere(Surface):
         transform, openmc_graveyard, number).
     """
 
-    def __init__(self, x0: float = 0.0, y0: float = 0.0, z0: float = 0.0, radius: float = 0.0, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        x0: float = 0.0,
+        y0: float = 0.0,
+        z0: float = 0.0,
+        radius: float = 0.0,
+        **kwargs: Any,
+    ) -> None:
         """Initialise the Sphere surface."""
         super().__init__(**kwargs)
         self.x0: float = float(x0)
@@ -578,24 +627,24 @@ class Sphere(Surface):
     @property
     def mcnp_card(self) -> MCNPCard:
         """MCNP card representation of the sphere."""
-        surface_type = 'S'
+        surface_type = "S"
         surface_params = [
-            f'{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}',
-            f'{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}', 
-            f'{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}',
-            f'{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}'
+            f"{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}",
         ]
         return mcnp_surface(surface_type, surface_params, self)
 
     @property
     def serpent_card(self) -> SerpentCard:
         """Serpent card representation of the sphere."""
-        surface_type = 'sph'
+        surface_type = "sph"
         surface_params = [
-            f'{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}',
-            f'{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}', 
-            f'{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}',
-            f'{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}'
+            f"{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}",
         ]
         return serpent_surface(surface_type, surface_params, self)
 
@@ -608,11 +657,11 @@ class Sphere(Surface):
                 x0=self.x0,
                 y0=self.y0,
                 z0=self.z0,
-                boundary_type=openmc_boundary_type(self)
+                boundary_type=openmc_boundary_type(self),
             )
         return self._openmc_surface
 
-    def __lt__(self, other: "Sphere") -> bool:
+    def __lt__(self, other: Sphere) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -652,8 +701,8 @@ class SphereAtOrigin(Surface):
     @property
     def mcnp_card(self) -> MCNPCard:
         """MCNP card representation of the sphere at origin."""
-        surface_type = 'SO'
-        surface_params = [f'{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}']
+        surface_type = "SO"
+        surface_params = [f"{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}"]
         return mcnp_surface(surface_type, surface_params, self)
 
     @property
@@ -661,12 +710,11 @@ class SphereAtOrigin(Surface):
         """OpenMC surface object representation."""
         if not self._openmc_surface:
             return openmc.surface.Sphere(
-                r=self.radius,
-                boundary_type=openmc_boundary_type(self)
+                r=self.radius, boundary_type=openmc_boundary_type(self)
             )
         return self._openmc_surface
 
-    def __lt__(self, other: "SphereAtOrigin") -> bool:
+    def __lt__(self, other: SphereAtOrigin) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -707,10 +755,10 @@ class SphereOnXAxis(Surface):
     @property
     def mcnp_card(self) -> MCNPCard:
         """MCNP card representation of the sphere on X-axis."""
-        surface_type = 'SX'
+        surface_type = "SX"
         surface_params = [
-            f'{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}',
-            f'{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}'
+            f"{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}",
         ]
         return mcnp_surface(surface_type, surface_params, self)
 
@@ -719,13 +767,11 @@ class SphereOnXAxis(Surface):
         """OpenMC surface object representation."""
         if not self._openmc_surface:
             self._openmc_surface = openmc.surface.Sphere(
-                r=self.radius,
-                x0=self.x0,
-                boundary_type=openmc_boundary_type(self)
+                r=self.radius, x0=self.x0, boundary_type=openmc_boundary_type(self)
             )
         return self._openmc_surface
 
-    def __lt__(self, other: "SphereOnXAxis") -> bool:
+    def __lt__(self, other: SphereOnXAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -768,10 +814,10 @@ class SphereOnYAxis(Surface):
     @property
     def mcnp_card(self) -> MCNPCard:
         """MCNP card representation of the sphere on Y-axis."""
-        surface_type = 'SY'
+        surface_type = "SY"
         surface_params = [
-            f'{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}', 
-            f'{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}'
+            f"{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}",
         ]
         return mcnp_surface(surface_type, surface_params, self)
 
@@ -780,13 +826,11 @@ class SphereOnYAxis(Surface):
         """OpenMC surface object representation."""
         if not self._openmc_surface:
             self._openmc_surface = openmc.surface.Sphere(
-                r=self.radius,
-                y0=self.y0,
-                boundary_type=openmc_boundary_type(self)
+                r=self.radius, y0=self.y0, boundary_type=openmc_boundary_type(self)
             )
         return self._openmc_surface
 
-    def __lt__(self, other: "SphereOnYAxis") -> bool:
+    def __lt__(self, other: SphereOnYAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -829,10 +873,10 @@ class SphereOnZAxis(Surface):
     @property
     def mcnp_card(self) -> MCNPCard:
         """MCNP card representation of the sphere on Z-axis."""
-        surface_type = 'SZ'
+        surface_type = "SZ"
         surface_params = [
-            f'{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}', 
-            f'{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}'
+            f"{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}",
         ]
         return mcnp_surface(surface_type, surface_params, self)
 
@@ -841,13 +885,11 @@ class SphereOnZAxis(Surface):
         """OpenMC surface object representation."""
         if not self._openmc_surface:
             self._openmc_surface = openmc.surface.Sphere(
-                r=self.radius,
-                z0=self.z0,
-                boundary_type=openmc_boundary_type(self)
+                r=self.radius, z0=self.z0, boundary_type=openmc_boundary_type(self)
             )
         return self._openmc_surface
 
-    def __lt__(self, other: "SphereOnZAxis") -> bool:
+    def __lt__(self, other: SphereOnZAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -883,7 +925,9 @@ class CylinderParallelToXAxis(Surface):
         transform, openmc_graveyard, number).
     """
 
-    def __init__(self, y0: float = 0.0, z0: float = 0.0, radius: float = 0.0, **kwargs: Any) -> None:
+    def __init__(
+        self, y0: float = 0.0, z0: float = 0.0, radius: float = 0.0, **kwargs: Any
+    ) -> None:
         """Initialise the CylinderParallelToXAxis surface."""
         super().__init__(**kwargs)
         self.y0: float = y0
@@ -893,14 +937,14 @@ class CylinderParallelToXAxis(Surface):
     @property
     def mcnp_card(self) -> MCNPCard:
         """MCNP card representation of cylinder parallel to X-axis."""
-        surface_type = 'C/X'
+        surface_type = "C/X"
         surface_params = [
-            f'{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}',
-            f'{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}',
-            f'{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}'
+            f"{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}",
         ]
         return mcnp_surface(surface_type, surface_params, self)
-    
+
     @property
     def openmc_surface(self) -> Any:
         """OpenMC surface object representation."""
@@ -909,11 +953,11 @@ class CylinderParallelToXAxis(Surface):
                 r=self.radius,
                 y0=self.y0,
                 z0=self.z0,
-                boundary_type=openmc_boundary_type(self)
+                boundary_type=openmc_boundary_type(self),
             )
         return self._openmc_surface
 
-    def __lt__(self, other: "CylinderParallelToXAxis") -> bool:
+    def __lt__(self, other: CylinderParallelToXAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -949,7 +993,9 @@ class CylinderParallelToYAxis(Surface):
         transform, openmc_graveyard, number).
     """
 
-    def __init__(self, x0: float = 0.0, z0: float = 0.0, radius: float = 0.0, **kwargs: Any) -> None:
+    def __init__(
+        self, x0: float = 0.0, z0: float = 0.0, radius: float = 0.0, **kwargs: Any
+    ) -> None:
         """Initialise the CylinderParallelToYAxis surface."""
         super().__init__(**kwargs)
         self.x0: float = x0
@@ -959,11 +1005,11 @@ class CylinderParallelToYAxis(Surface):
     @property
     def mcnp_card(self) -> MCNPCard:
         """MCNP card representation of cylinder parallel to Y-axis."""
-        surface_type = 'C/Y'
+        surface_type = "C/Y"
         surface_params = [
-            f'{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}',
-            f'{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}',
-            f'{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}'
+            f"{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}",
         ]
         return mcnp_surface(surface_type, surface_params, self)
 
@@ -975,11 +1021,11 @@ class CylinderParallelToYAxis(Surface):
                 r=self.radius,
                 x0=self.x0,
                 z0=self.z0,
-                boundary_type=openmc_boundary_type(self)
+                boundary_type=openmc_boundary_type(self),
             )
         return self._openmc_surface
 
-    def __lt__(self, other: "CylinderParallelToYAxis") -> bool:
+    def __lt__(self, other: CylinderParallelToYAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -1015,7 +1061,9 @@ class CylinderParallelToZAxis(Surface):
         transform, openmc_graveyard, number).
     """
 
-    def __init__(self, x0: float = 0.0, y0: float = 0.0, radius: float = 0.0, **kwargs: Any) -> None:
+    def __init__(
+        self, x0: float = 0.0, y0: float = 0.0, radius: float = 0.0, **kwargs: Any
+    ) -> None:
         """Initialise the CylinderParallelToZAxis surface."""
         super().__init__(**kwargs)
         self.x0: float = x0
@@ -1025,14 +1073,14 @@ class CylinderParallelToZAxis(Surface):
     @property
     def mcnp_card(self) -> MCNPCard:
         """MCNP card representation of cylinder parallel to Z-axis."""
-        surface_type = 'C/Z'
+        surface_type = "C/Z"
         surface_params = [
-            f'{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}',
-            f'{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}',
-            f'{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}'
+            f"{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}",
         ]
         return mcnp_surface(surface_type, surface_params, self)
-    
+
     @property
     def openmc_surface(self) -> Any:
         """OpenMC surface object representation."""
@@ -1041,11 +1089,11 @@ class CylinderParallelToZAxis(Surface):
                 r=self.radius,
                 x0=self.x0,
                 y0=self.y0,
-                boundary_type=openmc_boundary_type(self)
+                boundary_type=openmc_boundary_type(self),
             )
         return self._openmc_surface
 
-    def __lt__(self, other: "CylinderParallelToZAxis") -> bool:
+    def __lt__(self, other: CylinderParallelToZAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -1085,21 +1133,20 @@ class CylinderOnXAxis(Surface):
     @property
     def mcnp_card(self) -> MCNPCard:
         """MCNP card representation of cylinder on X-axis."""
-        surface_type = 'CX'
-        surface_params = [f'{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}']
+        surface_type = "CX"
+        surface_params = [f"{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}"]
         return mcnp_surface(surface_type, surface_params, self)
-    
+
     @property
     def openmc_surface(self) -> Any:
         """OpenMC surface object representation."""
         if not self._openmc_surface:
             self._openmc_surface = openmc.surface.XCylinder(
-                r=self.radius,
-                boundary_type=openmc_boundary_type(self)
+                r=self.radius, boundary_type=openmc_boundary_type(self)
             )
         return self._openmc_surface
 
-    def __lt__(self, other: "CylinderOnXAxis") -> bool:
+    def __lt__(self, other: CylinderOnXAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -1137,21 +1184,20 @@ class CylinderOnYAxis(Surface):
     @property
     def mcnp_card(self) -> MCNPCard:
         """MCNP card representation of cylinder on Y-axis."""
-        surface_type = 'CY'
-        surface_params = [f'{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}']
+        surface_type = "CY"
+        surface_params = [f"{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}"]
         return mcnp_surface(surface_type, surface_params, self)
-    
+
     @property
     def openmc_surface(self) -> Any:
         """OpenMC surface object representation."""
         if not self._openmc_surface:
             self._openmc_surface = openmc.surface.YCylinder(
-                r=self.radius,
-                boundary_type=openmc_boundary_type(self)
+                r=self.radius, boundary_type=openmc_boundary_type(self)
             )
         return self._openmc_surface
 
-    def __lt__(self, other: "CylinderOnYAxis") -> bool:
+    def __lt__(self, other: CylinderOnYAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -1189,8 +1235,8 @@ class CylinderOnZAxis(Surface):
     @property
     def mcnp_card(self) -> MCNPCard:
         """MCNP card representation of cylinder on Z-axis."""
-        surface_type = 'CZ'
-        surface_params = [f'{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}']
+        surface_type = "CZ"
+        surface_params = [f"{self.radius:{formatting.MCNP_FMT_SURFACE_RADIUS}}"]
         return mcnp_surface(surface_type, surface_params, self)
 
     @property
@@ -1198,12 +1244,11 @@ class CylinderOnZAxis(Surface):
         """OpenMC surface object representation."""
         if not self._openmc_surface:
             self._openmc_surface = openmc.surface.ZCylinder(
-                r=self.radius,
-                boundary_type=openmc_boundary_type(self)
+                r=self.radius, boundary_type=openmc_boundary_type(self)
             )
         return self._openmc_surface
 
-    def __lt__(self, other: "CylinderOnZAxis") -> bool:
+    def __lt__(self, other: CylinderOnZAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -1241,7 +1286,15 @@ class ConeParallelToXAxis(Surface):
         transform, openmc_graveyard, number).
     """
 
-    def __init__(self, x0: float = 0.0, y0: float = 0.0, z0: float = 0.0, t_sq: float = 0.0, sheet: int = 0, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        x0: float = 0.0,
+        y0: float = 0.0,
+        z0: float = 0.0,
+        t_sq: float = 0.0,
+        sheet: int = 0,
+        **kwargs: Any,
+    ) -> None:
         """Initialise the ConeParallelToXAxis surface."""
         super().__init__(**kwargs)
         self.x0: float = x0
@@ -1253,13 +1306,13 @@ class ConeParallelToXAxis(Surface):
     @property
     def mcnp_card(self) -> MCNPCard:
         """MCNP card representation of cone parallel to X-axis."""
-        surface_type = 'K/X'
+        surface_type = "K/X"
         surface_params = [
-            f'{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}',
-            f'{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}',
-            f'{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}',
-            f'{self.t_sq:{formatting.MCNP_FMT_SURFACE_T_SQ}}', 
-            f'{self.sheet}'
+            f"{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.t_sq:{formatting.MCNP_FMT_SURFACE_T_SQ}}",
+            f"{self.sheet}",
         ]
         return mcnp_surface(surface_type, surface_params, self)
 
@@ -1273,7 +1326,7 @@ class ConeParallelToXAxis(Surface):
                     y0=self.y0,
                     z0=self.z0,
                     r2=self.t_sq,
-                    boundary_type=openmc_boundary_type(self)
+                    boundary_type=openmc_boundary_type(self),
                 )
             elif self.sheet == 1:
                 self._openmc_surface = openmc.model.XConeOneSided(
@@ -1282,7 +1335,7 @@ class ConeParallelToXAxis(Surface):
                     z0=self.z0,
                     r2=self.t_sq,
                     up=True,
-                    boundary_type=openmc_boundary_type(self)
+                    boundary_type=openmc_boundary_type(self),
                 )
             elif self.sheet == -1:
                 self._openmc_surface = openmc.model.XConeOneSided(
@@ -1291,15 +1344,15 @@ class ConeParallelToXAxis(Surface):
                     z0=self.z0,
                     r2=self.t_sq,
                     up=False,
-                    boundary_type=openmc_boundary_type(self)
+                    boundary_type=openmc_boundary_type(self),
                 )
             else:
-                msg = f' sheet of cone should be -1, 0, or 1 and not {self.sheet}'
+                msg = f" sheet of cone should be -1, 0, or 1 and not {self.sheet}"
                 raise ValueError(msg)
 
         return self._openmc_surface
 
-    def __lt__(self, other: "ConeParallelToXAxis") -> bool:
+    def __lt__(self, other: ConeParallelToXAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -1339,7 +1392,15 @@ class ConeParallelToYAxis(Surface):
         transform, openmc_graveyard, number).
     """
 
-    def __init__(self, x0: float = 0.0, y0: float = 0.0, z0: float = 0.0, t_sq: float = 0.0, sheet: int = 0, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        x0: float = 0.0,
+        y0: float = 0.0,
+        z0: float = 0.0,
+        t_sq: float = 0.0,
+        sheet: int = 0,
+        **kwargs: Any,
+    ) -> None:
         """Initialise the ConeParallelToYAxis surface."""
         super().__init__(**kwargs)
         self.x0: float = x0
@@ -1351,13 +1412,13 @@ class ConeParallelToYAxis(Surface):
     @property
     def mcnp_card(self) -> MCNPCard:
         """MCNP card representation of cone parallel to Y-axis."""
-        surface_type = 'K/Y'
+        surface_type = "K/Y"
         surface_params = [
-            f'{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}',
-            f'{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}',
-            f'{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}',
-            f'{self.t_sq:{formatting.MCNP_FMT_SURFACE_T_SQ}}', 
-            f'{self.sheet}'
+            f"{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.t_sq:{formatting.MCNP_FMT_SURFACE_T_SQ}}",
+            f"{self.sheet}",
         ]
         return mcnp_surface(surface_type, surface_params, self)
 
@@ -1371,7 +1432,7 @@ class ConeParallelToYAxis(Surface):
                     y0=self.y0,
                     z0=self.z0,
                     r2=self.t_sq,
-                    boundary_type=openmc_boundary_type(self)
+                    boundary_type=openmc_boundary_type(self),
                 )
             elif self.sheet == 1:
                 self._openmc_surface = openmc.model.YConeOneSided(
@@ -1380,7 +1441,7 @@ class ConeParallelToYAxis(Surface):
                     z0=self.z0,
                     r2=self.t_sq,
                     up=True,
-                    boundary_type=openmc_boundary_type(self)
+                    boundary_type=openmc_boundary_type(self),
                 )
             elif self.sheet == -1:
                 self._openmc_surface = openmc.model.YConeOneSided(
@@ -1389,12 +1450,12 @@ class ConeParallelToYAxis(Surface):
                     z0=self.z0,
                     r2=self.t_sq,
                     up=False,
-                    boundary_type=openmc_boundary_type(self)
+                    boundary_type=openmc_boundary_type(self),
                 )
 
         return self._openmc_surface
 
-    def __lt__(self, other: "ConeParallelToYAxis") -> bool:
+    def __lt__(self, other: ConeParallelToYAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -1434,7 +1495,15 @@ class ConeParallelToZAxis(Surface):
         transform, openmc_graveyard, number).
     """
 
-    def __init__(self, x0: float = 0.0, y0: float = 0.0, z0: float = 0.0, t_sq: float = 0.0, sheet: int = 0, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        x0: float = 0.0,
+        y0: float = 0.0,
+        z0: float = 0.0,
+        t_sq: float = 0.0,
+        sheet: int = 0,
+        **kwargs: Any,
+    ) -> None:
         """Initialise the ConeParallelToZAxis surface."""
         super().__init__(**kwargs)
         self.x0: float = x0
@@ -1446,13 +1515,13 @@ class ConeParallelToZAxis(Surface):
     @property
     def mcnp_card(self) -> MCNPCard:
         """MCNP card representation of cone parallel to Z-axis."""
-        surface_type = 'K/Z'
+        surface_type = "K/Z"
         surface_params = [
-            f'{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}',
-            f'{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}',
-            f'{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}',
-            f'{self.t_sq:{formatting.MCNP_FMT_SURFACE_T_SQ}}', 
-            f'{self.sheet}'
+            f"{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.t_sq:{formatting.MCNP_FMT_SURFACE_T_SQ}}",
+            f"{self.sheet}",
         ]
         return mcnp_surface(surface_type, surface_params, self)
 
@@ -1466,7 +1535,7 @@ class ConeParallelToZAxis(Surface):
                     y0=self.y0,
                     z0=self.z0,
                     r2=self.t_sq,
-                    boundary_type=openmc_boundary_type(self)
+                    boundary_type=openmc_boundary_type(self),
                 )
             elif self.sheet == 1:
                 self._openmc_surface = openmc.model.ZConeOneSided(
@@ -1475,7 +1544,7 @@ class ConeParallelToZAxis(Surface):
                     z0=self.z0,
                     r2=self.t_sq,
                     up=True,
-                    boundary_type=openmc_boundary_type(self)
+                    boundary_type=openmc_boundary_type(self),
                 )
             elif self.sheet == -1:
                 self._openmc_surface = openmc.model.ZConeOneSided(
@@ -1484,12 +1553,12 @@ class ConeParallelToZAxis(Surface):
                     z0=self.z0,
                     r2=self.t_sq,
                     up=False,
-                    boundary_type=openmc_boundary_type(self)
+                    boundary_type=openmc_boundary_type(self),
                 )
-        
+
         return self._openmc_surface
 
-    def __lt__(self, other: "ConeParallelToZAxis") -> bool:
+    def __lt__(self, other: ConeParallelToZAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -1525,7 +1594,9 @@ class ConeOnXAxis(Surface):
         transform, openmc_graveyard, number).
     """
 
-    def __init__(self, x0: float = 0.0, t_sq: float = 0.0, sheet: int = 0, **kwargs: Any) -> None:
+    def __init__(
+        self, x0: float = 0.0, t_sq: float = 0.0, sheet: int = 0, **kwargs: Any
+    ) -> None:
         """Initialise the ConeOnXAxis surface."""
         super().__init__(**kwargs)
         self.x0: float = x0
@@ -1535,11 +1606,11 @@ class ConeOnXAxis(Surface):
     @property
     def mcnp_card(self) -> MCNPCard:
         """MCNP card representation of cone on X-axis."""
-        surface_type = 'KX'
+        surface_type = "KX"
         surface_params = [
-            f'{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}',
-            f'{self.t_sq:{formatting.MCNP_FMT_SURFACE_T_SQ}}', 
-            f'{self.sheet}'
+            f"{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.t_sq:{formatting.MCNP_FMT_SURFACE_T_SQ}}",
+            f"{self.sheet}",
         ]
         return mcnp_surface(surface_type, surface_params, self)
 
@@ -1549,28 +1620,26 @@ class ConeOnXAxis(Surface):
         if not self._openmc_surface:
             if self.sheet == 0:
                 self._openmc_surface = openmc.surface.XCone(
-                    x0=self.x0,
-                    r2=self.t_sq,
-                    boundary_type=openmc_boundary_type(self)
+                    x0=self.x0, r2=self.t_sq, boundary_type=openmc_boundary_type(self)
                 )
             elif self.sheet == 1:
                 self._openmc_surface = openmc.model.XConeOneSided(
                     x0=self.x0,
                     r2=self.t_sq,
                     up=True,
-                    boundary_type=openmc_boundary_type(self)
+                    boundary_type=openmc_boundary_type(self),
                 )
             elif self.sheet == -1:
                 self._openmc_surface = openmc.model.XConeOneSided(
                     x0=self.x0,
                     r2=self.t_sq,
                     up=False,
-                    boundary_type=openmc_boundary_type(self)
+                    boundary_type=openmc_boundary_type(self),
                 )
 
         return self._openmc_surface
 
-    def __lt__(self, other: "ConeOnXAxis") -> bool:
+    def __lt__(self, other: ConeOnXAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -1606,7 +1675,9 @@ class ConeOnYAxis(Surface):
         transform, openmc_graveyard, number).
     """
 
-    def __init__(self, y0: float = 0.0, t_sq: float = 0.0, sheet: int = 0, **kwargs: Any) -> None:
+    def __init__(
+        self, y0: float = 0.0, t_sq: float = 0.0, sheet: int = 0, **kwargs: Any
+    ) -> None:
         """Initialise the ConeOnYAxis surface."""
         super().__init__(**kwargs)
         self.y0: float = y0
@@ -1616,11 +1687,11 @@ class ConeOnYAxis(Surface):
     @property
     def mcnp_card(self) -> MCNPCard:
         """MCNP card representation of cone on Y-axis."""
-        surface_type = 'KY'
+        surface_type = "KY"
         surface_params = [
-            f'{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}',
-            f'{self.t_sq:{formatting.MCNP_FMT_SURFACE_T_SQ}}', 
-            f'{self.sheet}'
+            f"{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.t_sq:{formatting.MCNP_FMT_SURFACE_T_SQ}}",
+            f"{self.sheet}",
         ]
         return mcnp_surface(surface_type, surface_params, self)
 
@@ -1630,28 +1701,26 @@ class ConeOnYAxis(Surface):
         if not self._openmc_surface:
             if self.sheet == 0:
                 self._openmc_surface = openmc.surface.YCone(
-                    y0=self.y0,
-                    r2=self.t_sq,
-                    boundary_type=openmc_boundary_type(self)
+                    y0=self.y0, r2=self.t_sq, boundary_type=openmc_boundary_type(self)
                 )
             elif self.sheet == 1:
                 self._openmc_surface = openmc.model.YConeOneSided(
                     y0=self.y0,
                     r2=self.t_sq,
                     up=True,
-                    boundary_type=openmc_boundary_type(self)
+                    boundary_type=openmc_boundary_type(self),
                 )
             elif self.sheet == -1:
                 self._openmc_surface = openmc.model.YConeOneSided(
                     y0=self.y0,
                     r2=self.t_sq,
                     up=False,
-                    boundary_type=openmc_boundary_type(self)
+                    boundary_type=openmc_boundary_type(self),
                 )
-        
+
         return self._openmc_surface
 
-    def __lt__(self, other: "ConeOnYAxis") -> bool:
+    def __lt__(self, other: ConeOnYAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -1687,7 +1756,9 @@ class ConeOnZAxis(Surface):
         transform, openmc_graveyard, number).
     """
 
-    def __init__(self, z0: float = 0.0, t_sq: float = 0.0, sheet: int = 0, **kwargs: Any) -> None:
+    def __init__(
+        self, z0: float = 0.0, t_sq: float = 0.0, sheet: int = 0, **kwargs: Any
+    ) -> None:
         """Initialise the ConeOnZAxis surface."""
         super().__init__(**kwargs)
         self.z0: float = z0
@@ -1697,11 +1768,11 @@ class ConeOnZAxis(Surface):
     @property
     def mcnp_card(self) -> MCNPCard:
         """MCNP card representation of cone on Z-axis."""
-        surface_type = 'KZ'
+        surface_type = "KZ"
         surface_params = [
-            f'{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}',
-            f'{self.t_sq:{formatting.MCNP_FMT_SURFACE_T_SQ}}', 
-            f'{self.sheet}'
+            f"{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.t_sq:{formatting.MCNP_FMT_SURFACE_T_SQ}}",
+            f"{self.sheet}",
         ]
         return mcnp_surface(surface_type, surface_params, self)
 
@@ -1711,28 +1782,26 @@ class ConeOnZAxis(Surface):
         if not self._openmc_surface:
             if self.sheet == 0:
                 self._openmc_surface = openmc.surface.ZCone(
-                    z0=self.z0,
-                    r2=self.t_sq,
-                    boundary_type=openmc_boundary_type(self)
+                    z0=self.z0, r2=self.t_sq, boundary_type=openmc_boundary_type(self)
                 )
             elif self.sheet == 1:
                 self._openmc_surface = openmc.model.ZConeOneSided(
                     z0=self.z0,
                     r2=self.t_sq,
                     up=True,
-                    boundary_type=openmc_boundary_type(self)
+                    boundary_type=openmc_boundary_type(self),
                 )
             elif self.sheet == -1:
                 self._openmc_surface = openmc.model.ZConeOneSided(
                     z0=self.z0,
                     r2=self.t_sq,
                     up=False,
-                    boundary_type=openmc_boundary_type(self)
+                    boundary_type=openmc_boundary_type(self),
                 )
 
         return self._openmc_surface
 
-    def __lt__(self, other: "ConeOnZAxis") -> bool:
+    def __lt__(self, other: ConeOnZAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -1766,9 +1835,20 @@ class Ellipsoid(Surface):
         transform, openmc_graveyard, number).
     """
 
-    def __init__(self, a: float = 0.0, b: float = 0.0, c: float = 0.0, d: float = 0.0, 
-                 e: float = 0.0, f: float = 0.0, g: float = 0.0, x0: float = 0.0, 
-                 y0: float = 0.0, z0: float = 0.0, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        a: float = 0.0,
+        b: float = 0.0,
+        c: float = 0.0,
+        d: float = 0.0,
+        e: float = 0.0,
+        f: float = 0.0,
+        g: float = 0.0,
+        x0: float = 0.0,
+        y0: float = 0.0,
+        z0: float = 0.0,
+        **kwargs: Any,
+    ) -> None:
         """Initialise the Ellipsoid surface."""
         super().__init__(**kwargs)
         self.a: float = a
@@ -1776,7 +1856,7 @@ class Ellipsoid(Surface):
         self.c: float = c
         self.d: float = d
         self.e: float = e
-        self.f: float = f 
+        self.f: float = f
         self.g: float = g
         self.x0: float = x0
         self.y0: float = y0
@@ -1785,22 +1865,22 @@ class Ellipsoid(Surface):
     @property
     def mcnp_card(self) -> MCNPCard:
         """MCNP card representation of the ellipsoid."""
-        surface_type = 'SQ'
+        surface_type = "SQ"
         surface_params = [
-            f'{self.a:{formatting.MCNP_FMT_SURFACE_ELIPSOID}}',
-            f'{self.b:{formatting.MCNP_FMT_SURFACE_ELIPSOID}}', 
-            f'{self.c:{formatting.MCNP_FMT_SURFACE_ELIPSOID}}', 
-            f'{self.d:{formatting.MCNP_FMT_SURFACE_ELIPSOID}}', 
-            f'{self.e:{formatting.MCNP_FMT_SURFACE_ELIPSOID}}', 
-            f'{self.f:{formatting.MCNP_FMT_SURFACE_ELIPSOID}}', 
-            f'{self.g:{formatting.MCNP_FMT_SURFACE_ELIPSOID}}', 
-            f'{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}',
-            f'{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}',
-            f'{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}'
+            f"{self.a:{formatting.MCNP_FMT_SURFACE_ELIPSOID}}",
+            f"{self.b:{formatting.MCNP_FMT_SURFACE_ELIPSOID}}",
+            f"{self.c:{formatting.MCNP_FMT_SURFACE_ELIPSOID}}",
+            f"{self.d:{formatting.MCNP_FMT_SURFACE_ELIPSOID}}",
+            f"{self.e:{formatting.MCNP_FMT_SURFACE_ELIPSOID}}",
+            f"{self.f:{formatting.MCNP_FMT_SURFACE_ELIPSOID}}",
+            f"{self.g:{formatting.MCNP_FMT_SURFACE_ELIPSOID}}",
+            f"{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
         ]
         return mcnp_surface(surface_type, surface_params, self)
-    
-    def __lt__(self, other: "Ellipsoid") -> bool:
+
+    def __lt__(self, other: Ellipsoid) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -1815,8 +1895,30 @@ class Ellipsoid(Surface):
         bool
             True if this surface sorts before ``other``.
         """
-        vars_self = [self.a, self.b, self.c, self.d, self.e, self.f, self.g, self.x0, self.y0, self.z0]
-        vars_other = [other.a, other.b, other.c, other.d, other.e, other.f, other.g, other.x0, other.y0, other.z0]
+        vars_self = [
+            self.a,
+            self.b,
+            self.c,
+            self.d,
+            self.e,
+            self.f,
+            self.g,
+            self.x0,
+            self.y0,
+            self.z0,
+        ]
+        vars_other = [
+            other.a,
+            other.b,
+            other.c,
+            other.d,
+            other.e,
+            other.f,
+            other.g,
+            other.x0,
+            other.y0,
+            other.z0,
+        ]
         return _less_than_multi_variate(vars_self, vars_other)
 
 
@@ -1832,9 +1934,20 @@ class GeneralQuadratic(Surface):
         transform, openmc_graveyard, number).
     """
 
-    def __init__(self, a: float = 0.0, b: float = 0.0, c: float = 0.0, d: float = 0.0, 
-                 e: float = 0.0, f: float = 0.0, g: float = 0.0, h: float = 0.0, 
-                 j: float = 0.0, k: float = 0.0, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        a: float = 0.0,
+        b: float = 0.0,
+        c: float = 0.0,
+        d: float = 0.0,
+        e: float = 0.0,
+        f: float = 0.0,
+        g: float = 0.0,
+        h: float = 0.0,
+        j: float = 0.0,
+        k: float = 0.0,
+        **kwargs: Any,
+    ) -> None:
         """Initialise the GeneralQuadratic surface."""
         super().__init__(**kwargs)
         self.a: float = a
@@ -1842,7 +1955,7 @@ class GeneralQuadratic(Surface):
         self.c: float = c
         self.d: float = d
         self.e: float = e
-        self.f: float = f 
+        self.f: float = f
         self.g: float = g
         self.h: float = h
         self.j: float = j
@@ -1851,21 +1964,21 @@ class GeneralQuadratic(Surface):
     @property
     def mcnp_card(self) -> MCNPCard:
         """MCNP card representation of the general quadratic surface."""
-        surface_type = 'GQ'
+        surface_type = "GQ"
         surface_params = [
-            f'{self.a:{formatting.MCNP_FMT_SURFACE_GENERAL_QUADRATIC}}', 
-            f'{self.b:{formatting.MCNP_FMT_SURFACE_GENERAL_QUADRATIC}}', 
-            f'{self.c:{formatting.MCNP_FMT_SURFACE_GENERAL_QUADRATIC}}', 
-            f'{self.d:{formatting.MCNP_FMT_SURFACE_GENERAL_QUADRATIC}}', 
-            f'{self.e:{formatting.MCNP_FMT_SURFACE_GENERAL_QUADRATIC}}', 
-            f'{self.f:{formatting.MCNP_FMT_SURFACE_GENERAL_QUADRATIC}}', 
-            f'{self.g:{formatting.MCNP_FMT_SURFACE_GENERAL_QUADRATIC}}', 
-            f'{self.h:{formatting.MCNP_FMT_SURFACE_GENERAL_QUADRATIC}}', 
-            f'{self.j:{formatting.MCNP_FMT_SURFACE_GENERAL_QUADRATIC}}',
-            f'{self.k:{formatting.MCNP_FMT_SURFACE_GENERAL_QUADRATIC}}'
+            f"{self.a:{formatting.MCNP_FMT_SURFACE_GENERAL_QUADRATIC}}",
+            f"{self.b:{formatting.MCNP_FMT_SURFACE_GENERAL_QUADRATIC}}",
+            f"{self.c:{formatting.MCNP_FMT_SURFACE_GENERAL_QUADRATIC}}",
+            f"{self.d:{formatting.MCNP_FMT_SURFACE_GENERAL_QUADRATIC}}",
+            f"{self.e:{formatting.MCNP_FMT_SURFACE_GENERAL_QUADRATIC}}",
+            f"{self.f:{formatting.MCNP_FMT_SURFACE_GENERAL_QUADRATIC}}",
+            f"{self.g:{formatting.MCNP_FMT_SURFACE_GENERAL_QUADRATIC}}",
+            f"{self.h:{formatting.MCNP_FMT_SURFACE_GENERAL_QUADRATIC}}",
+            f"{self.j:{formatting.MCNP_FMT_SURFACE_GENERAL_QUADRATIC}}",
+            f"{self.k:{formatting.MCNP_FMT_SURFACE_GENERAL_QUADRATIC}}",
         ]
         return mcnp_surface(surface_type, surface_params, self)
-    
+
     @property
     def openmc_surface(self) -> Any:
         """OpenMC surface object representation."""
@@ -1881,12 +1994,12 @@ class GeneralQuadratic(Surface):
                 h=self.h,
                 j=self.j,
                 k=self.k,
-                boundary_type=openmc_boundary_type(self)
+                boundary_type=openmc_boundary_type(self),
             )
 
         return self._openmc_surface
 
-    def __lt__(self, other: "GeneralQuadratic") -> bool:
+    def __lt__(self, other: GeneralQuadratic) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -1901,8 +2014,30 @@ class GeneralQuadratic(Surface):
         bool
             True if this surface sorts before ``other``.
         """
-        vars_self = [self.a, self.b, self.c, self.d, self.e, self.f, self.g, self.h, self.j, self.k]
-        vars_other = [other.a, other.b, other.c, other.d, other.e, other.f, other.g, other.h, other.j, other.k]
+        vars_self = [
+            self.a,
+            self.b,
+            self.c,
+            self.d,
+            self.e,
+            self.f,
+            self.g,
+            self.h,
+            self.j,
+            self.k,
+        ]
+        vars_other = [
+            other.a,
+            other.b,
+            other.c,
+            other.d,
+            other.e,
+            other.f,
+            other.g,
+            other.h,
+            other.j,
+            other.k,
+        ]
         return _less_than_multi_variate(vars_self, vars_other)
 
 
@@ -1920,8 +2055,16 @@ class ToriParralleltoXAxis(Surface):
         transform, openmc_graveyard, number).
     """
 
-    def __init__(self, x0: float = 0.0, y0: float = 0.0, z0: float = 0.0, 
-                 a: float = 0.0, b: float = 0.0, c: float = 0.0, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        x0: float = 0.0,
+        y0: float = 0.0,
+        z0: float = 0.0,
+        a: float = 0.0,
+        b: float = 0.0,
+        c: float = 0.0,
+        **kwargs: Any,
+    ) -> None:
         """Initialise the ToriParralleltoXAxis surface."""
         super().__init__(**kwargs)
         self.x0: float = x0
@@ -1934,17 +2077,17 @@ class ToriParralleltoXAxis(Surface):
     @property
     def mcnp_card(self) -> MCNPCard:
         """MCNP card representation of torus parallel to X-axis."""
-        surface_type = 'TX'
+        surface_type = "TX"
         surface_params = [
-            f'{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}',
-            f'{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}',
-            f'{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}',
-            f'{self.a:{formatting.MCNP_FMT_SURFACE_TORI}}',
-            f'{self.b:{formatting.MCNP_FMT_SURFACE_TORI}}',
-            f'{self.c:{formatting.MCNP_FMT_SURFACE_TORI}}'
+            f"{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.a:{formatting.MCNP_FMT_SURFACE_TORI}}",
+            f"{self.b:{formatting.MCNP_FMT_SURFACE_TORI}}",
+            f"{self.c:{formatting.MCNP_FMT_SURFACE_TORI}}",
         ]
         return mcnp_surface(surface_type, surface_params, self)
-    
+
     @property
     def openmc_surface(self) -> Any:
         """OpenMC surface object representation."""
@@ -1956,12 +2099,12 @@ class ToriParralleltoXAxis(Surface):
                 a=self.a,
                 b=self.b,
                 c=self.c,
-                boundary_type=openmc_boundary_type(self)
+                boundary_type=openmc_boundary_type(self),
             )
 
         return self._openmc_surface
 
-    def __lt__(self, other: "ToriParralleltoXAxis") -> bool:
+    def __lt__(self, other: ToriParralleltoXAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -1995,8 +2138,16 @@ class ToriParralleltoYAxis(Surface):
         transform, openmc_graveyard, number).
     """
 
-    def __init__(self, x0: float = 0.0, y0: float = 0.0, z0: float = 0.0, 
-                 a: float = 0.0, b: float = 0.0, c: float = 0.0, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        x0: float = 0.0,
+        y0: float = 0.0,
+        z0: float = 0.0,
+        a: float = 0.0,
+        b: float = 0.0,
+        c: float = 0.0,
+        **kwargs: Any,
+    ) -> None:
         """Initialise the ToriParralleltoYAxis surface."""
         super().__init__(**kwargs)
         self.x0: float = x0
@@ -2009,14 +2160,14 @@ class ToriParralleltoYAxis(Surface):
     @property
     def mcnp_card(self) -> MCNPCard:
         """MCNP card representation of torus parallel to Y-axis."""
-        surface_type = 'TY'
+        surface_type = "TY"
         surface_params = [
-            f'{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}', 
-            f'{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}', 
-            f'{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}', 
-            f'{self.a:{formatting.MCNP_FMT_SURFACE_TORI}}', 
-            f'{self.b:{formatting.MCNP_FMT_SURFACE_TORI}}', 
-            f'{self.c:{formatting.MCNP_FMT_SURFACE_TORI}}'
+            f"{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.a:{formatting.MCNP_FMT_SURFACE_TORI}}",
+            f"{self.b:{formatting.MCNP_FMT_SURFACE_TORI}}",
+            f"{self.c:{formatting.MCNP_FMT_SURFACE_TORI}}",
         ]
         return mcnp_surface(surface_type, surface_params, self)
 
@@ -2031,12 +2182,12 @@ class ToriParralleltoYAxis(Surface):
                 a=self.a,
                 b=self.b,
                 c=self.c,
-                boundary_type=openmc_boundary_type(self)
+                boundary_type=openmc_boundary_type(self),
             )
-        
+
         return self._openmc_surface
 
-    def __lt__(self, other: "ToriParralleltoYAxis") -> bool:
+    def __lt__(self, other: ToriParralleltoYAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -2070,8 +2221,16 @@ class ToriParralleltoZAxis(Surface):
         transform, openmc_graveyard, number).
     """
 
-    def __init__(self, x0: float = 0.0, y0: float = 0.0, z0: float = 0.0, 
-                 a: float = 0.0, b: float = 0.0, c: float = 0.0, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        x0: float = 0.0,
+        y0: float = 0.0,
+        z0: float = 0.0,
+        a: float = 0.0,
+        b: float = 0.0,
+        c: float = 0.0,
+        **kwargs: Any,
+    ) -> None:
         """Initialise the ToriParralleltoZAxis surface."""
         super().__init__(**kwargs)
         self.x0: float = x0
@@ -2084,14 +2243,14 @@ class ToriParralleltoZAxis(Surface):
     @property
     def mcnp_card(self) -> MCNPCard:
         """MCNP card representation of torus parallel to Z-axis."""
-        surface_type = 'TZ'
+        surface_type = "TZ"
         surface_params = [
-            f'{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}', 
-            f'{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}', 
-            f'{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}', 
-            f'{self.a:{formatting.MCNP_FMT_SURFACE_TORI}}', 
-            f'{self.b:{formatting.MCNP_FMT_SURFACE_TORI}}', 
-            f'{self.c:{formatting.MCNP_FMT_SURFACE_TORI}}'
+            f"{self.x0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.y0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.z0:{formatting.MCNP_FMT_SURFACE_CARTESIAN}}",
+            f"{self.a:{formatting.MCNP_FMT_SURFACE_TORI}}",
+            f"{self.b:{formatting.MCNP_FMT_SURFACE_TORI}}",
+            f"{self.c:{formatting.MCNP_FMT_SURFACE_TORI}}",
         ]
         return mcnp_surface(surface_type, surface_params, self)
 
@@ -2106,12 +2265,12 @@ class ToriParralleltoZAxis(Surface):
                 a=self.a,
                 b=self.b,
                 c=self.c,
-                boundary_type=openmc_boundary_type(self)
+                boundary_type=openmc_boundary_type(self),
             )
-        
+
         return self._openmc_surface
 
-    def __lt__(self, other: "ToriParralleltoZAxis") -> bool:
+    def __lt__(self, other: ToriParralleltoZAxis) -> bool:
         """Return whether this surface orders before another of the same type.
 
         Used to sort surfaces of one type by their parameters.
@@ -2131,7 +2290,9 @@ class ToriParralleltoZAxis(Surface):
         return _less_than_multi_variate(vars_self, vars_other)
 
 
-def _less_than_multi_variate(variables_1: List[float], variables_2: List[float]) -> bool:
+def _less_than_multi_variate(
+    variables_1: list[float], variables_2: list[float]
+) -> bool:
     """Helper comparison function for multi-variable ordering.
 
     Parameters
@@ -2154,7 +2315,7 @@ def _less_than_multi_variate(variables_1: List[float], variables_2: List[float])
     return False
 
 
-def _sort_surfaces_by_type(surfaces: List[Surface]) -> List[Surface]:
+def _sort_surfaces_by_type(surfaces: list[Surface]) -> list[Surface]:
     """Sort list of surfaces by surface type and then parameters.
 
     Parameters
@@ -2167,7 +2328,7 @@ def _sort_surfaces_by_type(surfaces: List[Surface]) -> List[Surface]:
     list of Surface
         Sorted list of surface objects
     """
-    surfaces_sorted_by_type: Dict[Type[Surface], List[Surface]] = {}
+    surfaces_sorted_by_type: dict[type[Surface], list[Surface]] = {}
     for surface in surfaces:
         if type(surface) not in surfaces_sorted_by_type:
             surfaces_sorted_by_type[type(surface)] = [surface]
@@ -2200,25 +2361,29 @@ def _sort_surfaces_by_type(surfaces: List[Surface]) -> List[Surface]:
         GeneralQuadratic: sorted,
         ToriParralleltoXAxis: sorted,
         ToriParralleltoYAxis: sorted,
-        ToriParralleltoZAxis: sorted
+        ToriParralleltoZAxis: sorted,
     }
 
     surfaces_sorted_by_type_and_order = {}
     for surface_type, surfaces_of_type in surfaces_sorted_by_type.items():
-        surfaces_sorted_by_type_and_order[surface_type] = SORT_METHODS[surface_type](surfaces_of_type)
+        surfaces_sorted_by_type_and_order[surface_type] = SORT_METHODS[surface_type](
+            surfaces_of_type
+        )
 
     surfaces_sorted = []
-    for surface_type in [s for s in SORT_METHODS if s in surfaces_sorted_by_type_and_order]:
+    for surface_type in [
+        s for s in SORT_METHODS if s in surfaces_sorted_by_type_and_order
+    ]:
         surfaces_sorted.extend(surfaces_sorted_by_type_and_order[surface_type])
-    
+
     if len(surfaces) != len(surfaces_sorted):
-        msg = f'[ERROR] - surfaces returned from _sort_surfaces_by_type not equal to number provided'
+        msg = "[ERROR] - surfaces returned from _sort_surfaces_by_type not equal to number provided"
         raise Exception(msg)
 
     return surfaces_sorted
 
 
-def _sorted_place_holder(surfaces: List[Surface]) -> List[Surface]:
+def _sorted_place_holder(surfaces: list[Surface]) -> list[Surface]:
     """Placeholder function where no sort method is yet implemented.
 
     Parameters
@@ -2234,7 +2399,7 @@ def _sorted_place_holder(surfaces: List[Surface]) -> List[Surface]:
     return surfaces
 
 
-def _map_of_duplicate_surfaces() -> Dict[Type[Surface], Dict[Any, Any]]:
+def _map_of_duplicate_surfaces() -> dict[type[Surface], dict[Any, Any]]:
     """Initialize map for storing duplicate surfaces.
 
     Returns
@@ -2268,38 +2433,38 @@ def _map_of_duplicate_surfaces() -> Dict[Type[Surface], Dict[Any, Any]]:
         GeneralQuadratic: {},
         ToriParralleltoXAxis: {},
         ToriParralleltoYAxis: {},
-        ToriParralleltoZAxis: {}
+        ToriParralleltoZAxis: {},
     }
-    
+
     return duplicate_surfaces
 
 
-MCNP_SURFACE_TYPES: Dict[str, Type[Surface]] = {
-    'PX': XPlane,
-    'PY': YPlane,
-    'PZ': ZPlane,
-    'P': Plane,
-    'P3P': PlaneFromThreePoints,
-    'C/X': CylinderParallelToXAxis,
-    'C/Y': CylinderParallelToYAxis,
-    'C/Z': CylinderParallelToZAxis,
-    'CX': CylinderOnXAxis,
-    'CY': CylinderOnYAxis,
-    'CZ': CylinderOnZAxis,
-    'KX': ConeOnXAxis,
-    'KY': ConeOnYAxis,
-    'KZ': ConeOnZAxis,
-    'K/X': ConeParallelToXAxis,
-    'K/Y': ConeParallelToYAxis,
-    'K/Z': ConeParallelToZAxis,
-    'SO': SphereAtOrigin,
-    'S': Sphere,
-    'SX': SphereOnXAxis,
-    'SY': SphereOnYAxis,
-    'SZ': SphereOnZAxis,
-    'SQ': Ellipsoid,
-    'GQ': GeneralQuadratic,
-    'TX': ToriParralleltoXAxis,
-    'TY': ToriParralleltoYAxis,
-    'TZ': ToriParralleltoZAxis
+MCNP_SURFACE_TYPES: dict[str, type[Surface]] = {
+    "PX": XPlane,
+    "PY": YPlane,
+    "PZ": ZPlane,
+    "P": Plane,
+    "P3P": PlaneFromThreePoints,
+    "C/X": CylinderParallelToXAxis,
+    "C/Y": CylinderParallelToYAxis,
+    "C/Z": CylinderParallelToZAxis,
+    "CX": CylinderOnXAxis,
+    "CY": CylinderOnYAxis,
+    "CZ": CylinderOnZAxis,
+    "KX": ConeOnXAxis,
+    "KY": ConeOnYAxis,
+    "KZ": ConeOnZAxis,
+    "K/X": ConeParallelToXAxis,
+    "K/Y": ConeParallelToYAxis,
+    "K/Z": ConeParallelToZAxis,
+    "SO": SphereAtOrigin,
+    "S": Sphere,
+    "SX": SphereOnXAxis,
+    "SY": SphereOnYAxis,
+    "SZ": SphereOnZAxis,
+    "SQ": Ellipsoid,
+    "GQ": GeneralQuadratic,
+    "TX": ToriParralleltoXAxis,
+    "TY": ToriParralleltoYAxis,
+    "TZ": ToriParralleltoZAxis,
 }

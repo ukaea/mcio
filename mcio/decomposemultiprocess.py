@@ -6,16 +6,15 @@ single-core mode) to run a single :class:`DecompositionSolid`.
 
 from __future__ import annotations
 
+import logging
+import os
+import traceback
 from collections.abc import Sequence
 from typing import Any
 
-import os
-import logging
-import traceback
-
+# import from where it is defined: decompose imports this module part way through loading
+from .decomposesolid import DecompositionSolid
 from .ocp import STEPFileWriter
-from .decompose import DecompositionSolid
-from .ocp import extract_ocp_shape_type_from_shape
 
 
 def _run_decomposer_solid(
@@ -61,8 +60,10 @@ def _run_decomposer_solid(
         decomposition_solid.run()
 
         # output sucess message to logger
-        msg = f'[COMPLETE] : {i: {padding_index}} of {n_total} - time taken' +\
-              f'= {decomposition_solid.profile_time_decomposition:.2e} seconds'
+        msg = (
+            f"[COMPLETE] : {i: {padding_index}} of {n_total} - time taken"
+            + f"= {decomposition_solid.profile_time_decomposition:.2e} seconds"
+        )
         logger.info(msg)
 
         return i, decomposition_solid, None

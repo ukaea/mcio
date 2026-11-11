@@ -6,16 +6,14 @@ attached to models, tallies, cells and materials (:class:`MCNPRunParameters`,
 :class:`MCNPTallyParameters`, :class:`MCNPCellParameters`,
 :class:`MCNPMaterialParameters`).
 """
+
 from __future__ import annotations
 
 import textwrap
 from typing import TYPE_CHECKING, Any
 
-import numpy as np
-
-
+from .checkvals import check_types, numbers_to_strings
 from .formatting import formatting
-from .checkvals import numbers_to_strings, check_types
 from .utils import SerialisableFromDict
 
 if TYPE_CHECKING:
@@ -25,47 +23,50 @@ if TYPE_CHECKING:
 
 
 # list MCNP particle types
-MCNP_PARTICLE_TYPES: dict[str, str] = {'n': 'neutron', 
-                       'p': 'photon',
-                       'e': 'electron',
-                       '|': 'negative_muon',
-                       'q': 'anti_neutron',
-                       'u': 'electron_neutrino',
-                       'v': 'muon_neutrino',
-                       'f': 'positron',
-                       'h': 'proton',
-                       'l': 'lambda_baryon',
-                       '+': 'positive_sigma_baryon',
-                       '-': 'negative_sigma_baryon',
-                       'x': 'cascade_xi_baryon',
-                       'y': 'negative_cascade_negative_xi_baryon',
-                       'o': 'omega_baryon',
-                       '!': 'positive_muon',
-                       '<': 'anti_electron_neutrino',
-                       '>': 'anti_muon_neutrino',
-                       'g': 'anti_proton',
-                       '/': 'positive_pion',
-                       'z': 'neutral_pion',
-                       'k': 'positive_kaon',
-                       '%': 'kaon_short',
-                       '^': 'kaon_long',
-                       'b': 'anti_lambda_baryon',
-                       '_': 'anti_positive_sigma_baryon',
-                       '~': 'anti_negative_sigma_baryon',
-                       'c': 'anti_cascade_anti_neutral_xi_baryon',
-                       'w': 'positive_cascade_positive_xi_baryon',
-                       '@': 'anti_omega',
-                       'd': 'deuteron',
-                       't': 'triton',
-                       's': 'helion',
-                       'a': 'alpha',
-                       '*': 'negative_pion',
-                       '?': 'negative_kaon',
-                       '#': 'heavy_ion'}
+MCNP_PARTICLE_TYPES: dict[str, str] = {
+    "n": "neutron",
+    "p": "photon",
+    "e": "electron",
+    "|": "negative_muon",
+    "q": "anti_neutron",
+    "u": "electron_neutrino",
+    "v": "muon_neutrino",
+    "f": "positron",
+    "h": "proton",
+    "l": "lambda_baryon",
+    "+": "positive_sigma_baryon",
+    "-": "negative_sigma_baryon",
+    "x": "cascade_xi_baryon",
+    "y": "negative_cascade_negative_xi_baryon",
+    "o": "omega_baryon",
+    "!": "positive_muon",
+    "<": "anti_electron_neutrino",
+    ">": "anti_muon_neutrino",
+    "g": "anti_proton",
+    "/": "positive_pion",
+    "z": "neutral_pion",
+    "k": "positive_kaon",
+    "%": "kaon_short",
+    "^": "kaon_long",
+    "b": "anti_lambda_baryon",
+    "_": "anti_positive_sigma_baryon",
+    "~": "anti_negative_sigma_baryon",
+    "c": "anti_cascade_anti_neutral_xi_baryon",
+    "w": "positive_cascade_positive_xi_baryon",
+    "@": "anti_omega",
+    "d": "deuteron",
+    "t": "triton",
+    "s": "helion",
+    "a": "alpha",
+    "*": "negative_pion",
+    "?": "negative_kaon",
+    "#": "heavy_ion",
+}
 
 # invert dictionary of MCNP particles types
-MCNP_PARTICLE_DESIGNATORS: dict[str, str] = {v: k for k, v in MCNP_PARTICLE_TYPES.items()}
-
+MCNP_PARTICLE_DESIGNATORS: dict[str, str] = {
+    v: k for k, v in MCNP_PARTICLE_TYPES.items()
+}
 
 
 class MCNPHeader:
@@ -83,7 +84,13 @@ class MCNPHeader:
     banner : list[str], optional
         Banner lines (stored but currently unused), by default None
     """
-    def __init__(self, header: str, data_pairs: dict[str, Any] | None = None, banner: list[str] | None = None) -> None:
+
+    def __init__(
+        self,
+        header: str,
+        data_pairs: dict[str, Any] | None = None,
+        banner: list[str] | None = None,
+    ) -> None:
         """Initialise the MCNPHeader."""
         # store user provided parameters
         self._header: str = header
@@ -102,25 +109,33 @@ class MCNPHeader:
         str
             Comment block, terminated with a newline.
         """
-        line_break = 'C ' + '=' * (formatting.MCNP_MAX_CHARS - 2) + '\n'
+        line_break = "C " + "=" * (formatting.MCNP_MAX_CHARS - 2) + "\n"
 
-        header = line_break[:formatting.MCNP_INDENT] + f' {self._header} '
-        header += line_break[formatting.MCNP_INDENT + len(self._header) + 2:]
+        header = line_break[: formatting.MCNP_INDENT] + f" {self._header} "
+        header += line_break[formatting.MCNP_INDENT + len(self._header) + 2 :]
 
-        output = ''.join([line_break, header, line_break])
+        output = "".join([line_break, header, line_break])
 
         if self._data_pairs:
-            LINE_INDENT = 'C ' + ('=' * 3)
-            LINE_SUMMARY = LINE_INDENT + '\n'
+            LINE_INDENT = "C " + ("=" * 3)
+            LINE_SUMMARY = LINE_INDENT + "\n"
             output += LINE_SUMMARY
             max_label_length = max([len(label) for label in self._data_pairs])
             for data_label, data in self._data_pairs.items():
                 if type(data) == float and data < 1e-4:
-                    line_data = LINE_INDENT + f' {data_label:<{max_label_length}} : {data:.4e} \n'
+                    line_data = (
+                        LINE_INDENT
+                        + f" {data_label:<{max_label_length}} : {data:.4e} \n"
+                    )
                 elif type(data) == float:
-                    line_data = LINE_INDENT + f' {data_label:<{max_label_length}} : {data:.4f} \n'
+                    line_data = (
+                        LINE_INDENT
+                        + f" {data_label:<{max_label_length}} : {data:.4f} \n"
+                    )
                 else:
-                    line_data = LINE_INDENT + f' {data_label:<{max_label_length}} : {data} \n'
+                    line_data = (
+                        LINE_INDENT + f" {data_label:<{max_label_length}} : {data} \n"
+                    )
                 output += line_data
 
             output += LINE_SUMMARY
@@ -155,10 +170,12 @@ class MCNPCardHeader:
         lines = [
             line
             for k, v in self._data.items()
-            for line in textwrap.wrap(f'C {k}: {v}', width=formatting.MCNP_MAX_CHARS, subsequent_indent='C   ')
+            for line in textwrap.wrap(
+                f"C {k}: {v}", width=formatting.MCNP_MAX_CHARS, subsequent_indent="C   "
+            )
         ]
-        comments = ''.join(f'{line}\n' for line in lines)
-        return 'C\n' + comments + 'C\n'
+        comments = "".join(f"{line}\n" for line in lines)
+        return "C\n" + comments + "C\n"
 
 
 class MCNPCard:
@@ -181,7 +198,13 @@ class MCNPCard:
         Data written as comment lines above the card, by default None
     """
 
-    def __init__(self, designator: str | int, rows: list[list[str]], subcards: list[MCNPCard] | None = None, header_data: dict[str, Any] | None = None) -> None:
+    def __init__(
+        self,
+        designator: str | int,
+        rows: list[list[str]],
+        subcards: list[MCNPCard] | None = None,
+        header_data: dict[str, Any] | None = None,
+    ) -> None:
         """Initialise the MCNPCard."""
         self._designator: str | int = designator
         self._rows: list[list[str]] = rows
@@ -219,19 +242,19 @@ class MCNPCard:
         """
         rows: list[str] = []
 
-        string = f'{self._designator:<{formatting.MCNP_INDENT}}'
+        string = f"{self._designator:<{formatting.MCNP_INDENT}}"
 
         for i, row in enumerate(self._rows):
             for j, entry in enumerate(row):
                 if (len(string) + len(entry) + 1) < formatting.MCNP_MAX_CHARS:
-                    string += f' {entry}'
+                    string += f" {entry}"
                 else:
-                    rows.append(f'{string}\n')
-                    string =  ' ' * (formatting.MCNP_INDENT) + f' {entry}'
-            rows.append(string + '\n')
-            string = ' ' * (formatting.MCNP_INDENT)
+                    rows.append(f"{string}\n")
+                    string = " " * (formatting.MCNP_INDENT) + f" {entry}"
+            rows.append(string + "\n")
+            string = " " * (formatting.MCNP_INDENT)
 
-        output_string = ''.join(rows)
+        output_string = "".join(rows)
 
         # add header comments
         if self._header_data is not None:
@@ -286,29 +309,33 @@ class MCNPRunParameters:
         Whether to write a VOID card, by default False
     """
 
-    def __init__(self, 
-                 modes: list[str]=['neutron'],
-                 nps: int=1e9,
-                 prdmp_intervals: int=10, 
-                 lost: int=100,
-                 write_mctal: bool=True, 
-                 xsdir: str | None = None, 
-                 cut_parameters: dict[str, dict[str, float]] | None = None,
-                 physics_cards: list[str] | None = None, 
-                 stop_tallies: dict[Tally, float] | None = None, 
-                 weight_window: dict[str, list[float]] | None = None, 
-                 idums: list[int] | None = None, 
-                 rdums: list[float] | None = None, 
-                 spabi: dict[str, dict[str, Any]] | None = None, 
-                 forced_collisions: dict[str, dict[Cell, float]] | None = None,
-                 void: bool = False) -> None:
+    def __init__(
+        self,
+        modes: list[str] = ["neutron"],
+        nps: int = 1e9,
+        prdmp_intervals: int = 10,
+        lost: int = 100,
+        write_mctal: bool = True,
+        xsdir: str | None = None,
+        cut_parameters: dict[str, dict[str, float]] | None = None,
+        physics_cards: list[str] | None = None,
+        stop_tallies: dict[Tally, float] | None = None,
+        weight_window: dict[str, list[float]] | None = None,
+        idums: list[int] | None = None,
+        rdums: list[float] | None = None,
+        spabi: dict[str, dict[str, Any]] | None = None,
+        forced_collisions: dict[str, dict[Cell, float]] | None = None,
+        void: bool = False,
+    ) -> None:
         """Initialise the MCNP run parameters."""
         self._nps: int = nps
         self._prdmp_intervals: int = prdmp_intervals
         self._lost: int = lost
         self._write_mctal: bool = write_mctal
         self._modes: list[str] = [p.lower() for p in modes]
-        self.cut_parameters: dict[str, dict[str, float]] = cut_parameters if cut_parameters else {}
+        self.cut_parameters: dict[str, dict[str, float]] = (
+            cut_parameters if cut_parameters else {}
+        )
         self.physics_particles = physics_cards if physics_cards else []
         # set via the properties so the inputs are validated
         self.stop_tallies = stop_tallies if stop_tallies else {}
@@ -339,7 +366,7 @@ class MCNPRunParameters:
             Particle names.
         """
         return self._physics_particles
-    
+
     @physics_particles.setter
     def physics_particles(self, physics_particles: list[str]) -> None:
         """Set the PHYS particles and reset their parameter lists to empty.
@@ -350,7 +377,9 @@ class MCNPRunParameters:
             Particle names.
         """
         self._physics_particles: list[str] = physics_particles
-        self._physics_parameters: dict[str, list[float]] = {p: [] for p in self._physics_particles}
+        self._physics_parameters: dict[str, list[float]] = {
+            p: [] for p in self._physics_particles
+        }
 
     @property
     def nps(self) -> int:
@@ -451,9 +480,9 @@ class MCNPRunParameters:
         """
         messages = []
         if self._xsdir:
-            messages.append(MCNPCard('MESSAGE:', [[f'XSDIR={self._xsdir}']]))
+            messages.append(MCNPCard("MESSAGE:", [[f"XSDIR={self._xsdir}"]]))
         return messages
-    
+
     @property
     def nps(self) -> int:
         """Number of particle histories.
@@ -464,7 +493,7 @@ class MCNPRunParameters:
             Number of histories.
         """
         return self._nps
-    
+
     @nps.setter
     def nps(self, nps: int) -> None:
         """Set the number of particle histories.
@@ -486,7 +515,7 @@ class MCNPRunParameters:
             Secondary particle biasing data.
         """
         return self._spabi
-    
+
     @secondary_particle_biasing.setter
     def secondary_particle_biasing(self, parameters: dict[str, dict[str, Any]]) -> None:
         """Set the SPABI card data.
@@ -505,10 +534,12 @@ class MCNPRunParameters:
         if isinstance(parameters, dict):
             self._spabi = parameters
         else:
-            msg = f'SPABI card requires dictionary of secondary particles types' \
-                  f'with a subdict of primary_particles, energies and multipliers'
+            msg = (
+                "SPABI card requires dictionary of secondary particles types"
+                "with a subdict of primary_particles, energies and multipliers"
+            )
             raise Exception(msg)
-        
+
     @property
     def stop_tallies(self) -> dict[Tally, float]:
         """STOP card relative error cutoff per tally.
@@ -519,9 +550,9 @@ class MCNPRunParameters:
             Tally to cutoff mapping.
         """
         return self._stop_tallies
-    
+
     @stop_tallies.setter
-    def stop_tallies(self, stop_tallies: dict[Tally, float]) -> None: 
+    def stop_tallies(self, stop_tallies: dict[Tally, float]) -> None:
         """Set the STOP card tallies.
 
         Parameters
@@ -532,9 +563,8 @@ class MCNPRunParameters:
         # cehck types
         check_types(stop_tallies, [dict])
 
-        # 
         self._stop_tallies = stop_tallies
-        
+
     @property
     def forced_collisions(self) -> dict[str, dict[Cell, float]] | None:
         """FCL card weighting per cell for each particle.
@@ -545,7 +575,7 @@ class MCNPRunParameters:
             Forced collision data.
         """
         return self._forced_collisions
-    
+
     @forced_collisions.setter
     def forced_collisions(self, parameters: dict[str, dict[Cell, float]]) -> None:
         """Set the FCL card data.
@@ -563,8 +593,10 @@ class MCNPRunParameters:
         if isinstance(parameters, dict):
             self._forced_collisions = parameters
         else:
-            msg = f'FCL card requires dictionary of particle type and sub-dict of' \
-                  f'cells with the fraction probability of forced collision'
+            msg = (
+                "FCL card requires dictionary of particle type and sub-dict of"
+                "cells with the fraction probability of forced collision"
+            )
             raise Exception(msg)
 
     @property
@@ -580,65 +612,125 @@ class MCNPRunParameters:
             The NPS card with the other run cards as sub-cards.
         """
         # setr up mcnp card
-        mcnp_card = MCNPCard('NPS', [[f'{self._nps:.{formatting.MCNP_DP}}']])
+        mcnp_card = MCNPCard("NPS", [[f"{self._nps:.{formatting.MCNP_DP}}"]])
 
         # add sub card for prdmp
-        mcnp_card.add_subcard(MCNPCard('PRDMP', [[f'{self._nps/self._prdmp_intervals:.{formatting.MCNP_DP}e}', f'{self._nps/self._prdmp_intervals:.{formatting.MCNP_DP}e}', f'{+(self._write_mctal)}', '1', f'{self._nps/self._prdmp_intervals:.{formatting.MCNP_DP}e}']]))
+        mcnp_card.add_subcard(
+            MCNPCard(
+                "PRDMP",
+                [
+                    [
+                        f"{self._nps / self._prdmp_intervals:.{formatting.MCNP_DP}e}",
+                        f"{self._nps / self._prdmp_intervals:.{formatting.MCNP_DP}e}",
+                        f"{+(self._write_mctal)}",
+                        "1",
+                        f"{self._nps / self._prdmp_intervals:.{formatting.MCNP_DP}e}",
+                    ]
+                ],
+            )
+        )
 
         # add sub card for modes
-        modes = ' '.join([MCNP_PARTICLE_DESIGNATORS[mode.lower()].upper() for mode in self._modes])
-        mcnp_card.add_subcard(MCNPCard(f'MODE {modes}', [[]]))
+        modes = " ".join(
+            [MCNP_PARTICLE_DESIGNATORS[mode.lower()].upper() for mode in self._modes]
+        )
+        mcnp_card.add_subcard(MCNPCard(f"MODE {modes}", [[]]))
 
         # set up card for max lost particles
-        mcnp_card.add_subcard(MCNPCard('LOST', [[f'{int(self._lost)}']]))
+        mcnp_card.add_subcard(MCNPCard("LOST", [[f"{int(self._lost)}"]]))
 
         # set up void card
         if self._void:
-            mcnp_card.add_subcard(MCNPCard('VOID', [[]]))
+            mcnp_card.add_subcard(MCNPCard("VOID", [[]]))
 
         # add physics cards
         for particle, parameters in self._physics_parameters.items():
-            mcnp_card.add_subcard(MCNPCard(f'PHYS:{MCNP_PARTICLE_DESIGNATORS[particle.lower()].upper()}', [[f'{v:.{6}}' for v in parameters]]))
+            mcnp_card.add_subcard(
+                MCNPCard(
+                    f"PHYS:{MCNP_PARTICLE_DESIGNATORS[particle.lower()].upper()}",
+                    [[f"{v:.{6}}" for v in parameters]],
+                )
+            )
 
         # add cut cards
         for particle, parameters in self.cut_parameters.items():
-            mcnp_card.add_subcard(MCNPCard(f'CUT:{MCNP_PARTICLE_DESIGNATORS[particle.lower()].upper()}', [[f'{v:.{6}}' for v in parameters.values()]]))
+            mcnp_card.add_subcard(
+                MCNPCard(
+                    f"CUT:{MCNP_PARTICLE_DESIGNATORS[particle.lower()].upper()}",
+                    [[f"{v:.{6}}" for v in parameters.values()]],
+                )
+            )
 
         # stop card
         for tally, cutoff in self._stop_tallies.items():
-            mcnp_card.add_subcard(MCNPCard('STOP', [[f'F{tally.number}{tally.mcnp_tally_designator}', f'{cutoff:.{formatting.MCNP_DP}}']]))
+            mcnp_card.add_subcard(
+                MCNPCard(
+                    "STOP",
+                    [
+                        [
+                            f"F{tally.number}{tally.mcnp_tally_designator}",
+                            f"{cutoff:.{formatting.MCNP_DP}}",
+                        ]
+                    ],
+                )
+            )
 
         # weight window
         if self._weight_window:
             for particle, parameters in self._weight_window.items():
                 as_strings = numbers_to_strings(parameters)
-                mcnp_card.add_subcard(MCNPCard(f'WWP:{particle.upper()}', [as_strings]))
+                mcnp_card.add_subcard(MCNPCard(f"WWP:{particle.upper()}", [as_strings]))
 
         # idums and rdums
         if self._idums:
-            mcnp_card.add_subcard(MCNPCard('IDUM', [numbers_to_strings(self._idums)]))
+            mcnp_card.add_subcard(MCNPCard("IDUM", [numbers_to_strings(self._idums)]))
 
         if self._rdums:
-            mcnp_card.add_subcard(MCNPCard('RDUM', [numbers_to_strings(self._rdums, dp=formatting.MCNP_DP)]))
+            mcnp_card.add_subcard(
+                MCNPCard(
+                    "RDUM", [numbers_to_strings(self._rdums, dp=formatting.MCNP_DP)]
+                )
+            )
 
         # spabi card
         if self._spabi:
             for particle, params in self._spabi.items():
                 spabi_values = []
-                spabi_values.append(''.join(params['primary_particles']))
-                for energy, multiplier in zip(params['energies'], params['multipliers']):
+                spabi_values.append("".join(params["primary_particles"]))
+                for energy, multiplier in zip(
+                    params["energies"], params["multipliers"]
+                ):
                     spabi_values.append(energy)
                     spabi_values.append(multiplier)
-                mcnp_card.add_subcard(MCNPCard(f'SPABI:{particle}', [numbers_to_strings(spabi_values, dp=formatting.MCNP_DP)]))
-    
+                mcnp_card.add_subcard(
+                    MCNPCard(
+                        f"SPABI:{particle}",
+                        [numbers_to_strings(spabi_values, dp=formatting.MCNP_DP)],
+                    )
+                )
+
         # forced collisions
         if self._forced_collisions:
             for particle, cell_weightings in self._forced_collisions.items():
-                cell_number_with_weightings = {cell.number: weighting for cell, weighting in cell_weightings.items()}
-                cell_weightings = [cell_number_with_weightings[cell_number] if cell_number in cell_number_with_weightings else 0.0 for cell_number  in range(1, max(cell_number_with_weightings)+1)]
-                mcnp_card.add_subcard(MCNPCard(f'FCL:{particle}', [numbers_to_strings(cell_weightings, dp=formatting.MCNP_DP)]))
+                cell_number_with_weightings = {
+                    cell.number: weighting
+                    for cell, weighting in cell_weightings.items()
+                }
+                cell_weightings = [
+                    cell_number_with_weightings[cell_number]
+                    if cell_number in cell_number_with_weightings
+                    else 0.0
+                    for cell_number in range(1, max(cell_number_with_weightings) + 1)
+                ]
+                mcnp_card.add_subcard(
+                    MCNPCard(
+                        f"FCL:{particle}",
+                        [numbers_to_strings(cell_weightings, dp=formatting.MCNP_DP)],
+                    )
+                )
 
         return mcnp_card
+
 
 class MCNPTallyParameters:
     """MCNP-specific tally options.
@@ -658,8 +750,14 @@ class MCNPTallyParameters:
         Interpolation for dose functions, by default 'log-log'
     """
 
-    def __init__(self, tally_divisor: float | list[float] | None = None, multiplier: float | None = None, cell_flags: list[Cell] | None = None, surface_flags: list[Surface] | None = None, 
-                 dose_interpolation: str='log-log') -> None:
+    def __init__(
+        self,
+        tally_divisor: float | list[float] | None = None,
+        multiplier: float | None = None,
+        cell_flags: list[Cell] | None = None,
+        surface_flags: list[Surface] | None = None,
+        dose_interpolation: str = "log-log",
+    ) -> None:
         """Initialise the MCNP tally parameters."""
         self._tally_divisor: float | list[float] | None = tally_divisor
         self._multiplier: float | None = multiplier
@@ -677,7 +775,7 @@ class MCNPTallyParameters:
             Tally divisor.
         """
         return self._tally_divisor
-    
+
     @property
     def multiplier(self) -> float | None:
         """Tally multiplier.
@@ -688,7 +786,7 @@ class MCNPTallyParameters:
             Multiplier.
         """
         return self._multiplier
-    
+
     @property
     def cell_flags(self) -> list[Cell] | None:
         """Cells used for cell flagging.
@@ -699,7 +797,7 @@ class MCNPTallyParameters:
             Flagged cells.
         """
         return self._cell_flags
-    
+
     @property
     def surface_flags(self) -> list[Surface] | None:
         """Surfaces used for surface flagging.
@@ -721,7 +819,7 @@ class MCNPTallyParameters:
             Interpolation scheme, e.g. 'log-log'.
         """
         return self._dose_interpolation
-    
+
     @tally_divisor.setter
     def tally_divisor(self, tally_divisor: float | list[float] | None) -> None:
         """Set the tally divisor.
@@ -793,10 +891,18 @@ class MCNPCellParameters:
         Manually assigned cell volume written as VOL, by default None
     """
 
-    def __init__(self, graveyard: bool = False, importances: dict[str, float] | None = None, volume: float | None = None) -> None:
+    def __init__(
+        self,
+        graveyard: bool = False,
+        importances: dict[str, float] | None = None,
+        volume: float | None = None,
+    ) -> None:
         """Initialise the MCNP cell parameters."""
-        self._importances: dict[str, float] = importances if importances \
-            else {p: 1.0 for p in ['neutron', 'photon', 'electron']}
+        self._importances: dict[str, float] = (
+            importances
+            if importances
+            else {p: 1.0 for p in ["neutron", "photon", "electron"]}
+        )
         self._graveyard: bool = graveyard
         self._volume: float | None = volume
 
@@ -817,7 +923,7 @@ class MCNPCellParameters:
             Graveyard flag.
         """
         return self._graveyard
-    
+
     @graveyard.setter
     def graveyard(self, graveyard: bool) -> None:
         """Set the graveyard flag (stored as ``_graveyward``, see Notes).
@@ -855,7 +961,7 @@ class MCNPCellParameters:
             Cell volume.
         """
         return self._volume
-    
+
     @volume.setter
     def volume(self, volume: float | None) -> None:
         """Set the manually assigned cell volume.
@@ -887,7 +993,12 @@ class MCNPMaterialParameters(SerialisableFromDict):
         self._library_by_isotope: dict[str, str] | None = None
 
         # load seralisable from dictionary
-        self._dictable_attributes: list[str] = ['sab_cards', 'libs', 'library', 'library_by_isotope']
+        self._dictable_attributes: list[str] = [
+            "sab_cards",
+            "libs",
+            "library",
+            "library_by_isotope",
+        ]
         self._dictable_sub_classes: dict[str, type] = {}
 
     @property
@@ -902,7 +1013,7 @@ class MCNPMaterialParameters(SerialisableFromDict):
         if self._library:
             return self._library
         else:
-            return ''
+            return ""
 
     @library.setter
     def library(self, library: str | None) -> None:

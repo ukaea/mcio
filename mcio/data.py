@@ -7,11 +7,10 @@ dictionaries.
 
 from __future__ import annotations
 
-from typing import Any
-
+import json
 import os
 import re
-import json
+from typing import Any
 
 # set
 ROOT_DIR: str = os.path.dirname(os.path.abspath(__file__))
@@ -84,7 +83,9 @@ ELEMENT_FROM_ISOTOPE = {
     isotope: "".join(c for c in isotope if not c.isnumeric())
     for isotope in RELATIVE_ATOMIC_MASS
 }
-ISOTOPE_FROM_ZAID: dict[str, str] = {zaid: isotope for isotope, zaid in ZAID_FROM_ISOTOPE.items()}
+ISOTOPE_FROM_ZAID: dict[str, str] = {
+    zaid: isotope for isotope, zaid in ZAID_FROM_ISOTOPE.items()
+}
 
 # calculate raltive atomic masses for each element
 for element in ISOTOPIC_COMPOSITION_BY_ATOM_FRACTION:

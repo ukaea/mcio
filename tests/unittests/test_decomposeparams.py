@@ -14,7 +14,7 @@ from mcio.decomposeparams import DecompositionParameters
 class MCIOUnitTestDecompositionParameters(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
-        self.path = os.path.join(self.tmp.name, 'decompose_parameters.json')
+        self.path = os.path.join(self.tmp.name, "decompose_parameters.json")
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -33,19 +33,19 @@ class MCIOUnitTestDecompositionParameters(unittest.TestCase):
         DecompositionParameters().write(self.path)
         with open(self.path) as f:
             data = json.load(f)
-        self.assertIn('void_min_width', data)
-        self.assertFalse(any(key.lower().startswith('_def_') for key in data))
+        self.assertIn("void_min_width", data)
+        self.assertFalse(any(key.lower().startswith("_def_") for key in data))
 
     def test_read_upper_case_keys_is_deprecated_but_works(self):
-        with open(self.path, 'w') as f:
-            json.dump({'VOID_MIN_WIDTH': 12.5}, f)
+        with open(self.path, "w") as f:
+            json.dump({"VOID_MIN_WIDTH": 12.5}, f)
         with self.assertWarns(DeprecationWarning):
             read = DecompositionParameters.read(self.path)
         self.assertEqual(read.void_min_width, 12.5)
 
     def test_read_unknown_key_raises(self):
-        with open(self.path, 'w') as f:
-            json.dump({'not_a_parameter': 1}, f)
+        with open(self.path, "w") as f:
+            json.dump({"not_a_parameter": 1}, f)
         with self.assertRaises(KeyError):
             DecompositionParameters.read(self.path)
 
@@ -63,10 +63,10 @@ class MCIOUnitTestDecompositionParameters(unittest.TestCase):
 
     def test_str_lists_parameters_with_descriptions(self):
         text = str(DecompositionParameters())
-        self.assertIn('void_min_width', text)
-        self.assertIn('void generation', text)  # category table title
+        self.assertIn("void_min_width", text)
+        self.assertIn("void generation", text)  # category table title
         self.assertIn(DecompositionParameters()._def_void_min_width, text)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -1,26 +1,25 @@
 """This module contains classes to track the number of intsances being processed and
 provide optional progress bars to show the user the number of items completed.
 """
+
 from __future__ import annotations
 
 from collections.abc import Hashable, Iterable
 from typing import Any
 
 from rich.progress import (
-    Progress,
-    TextColumn,
     BarColumn,
-    TaskProgressColumn,
     MofNCompleteColumn,
+    Progress,
+    TaskProgressColumn,
+    TextColumn,
     TimeElapsedColumn,
     TimeRemainingColumn,
 )
 from tqdm.notebook import tqdm as tqdm_notebook
 
 from .table import Table
-from .utils import (
-    in_notebook
-)
+from .utils import in_notebook
 
 
 class ProgressRegister:
@@ -78,7 +77,9 @@ class ProgressRegister:
         self._progress_bar: None = self._setup_register() if show_progress else None
 
         # set up dictionary to track instances of each key
-        self._register: dict[Hashable, int] = {item_to_track: 1 for item_to_track in items_to_track}
+        self._register: dict[Hashable, int] = {
+            item_to_track: 1 for item_to_track in items_to_track
+        }
         self._n_complete: int = 0
 
     def _setup_register(self) -> None:
@@ -89,20 +90,19 @@ class ProgressRegister:
         """
 
         # set progress bar stage description
-        desc_stage = f'[{self.title}]'
+        desc_stage = f"[{self.title}]"
 
         # set up progress bar
         if self._is_notebook:
-            desc = f'{desc_stage: <30}'
+            desc = f"{desc_stage: <30}"
             self._progress = tqdm_notebook(
                 total=self.n_items_to_process,
                 desc=self.title,
                 unit="item",
             )
         else:
-
-            desc_stage = f'[{self.title}]'
-            desc = f'[cyan]{desc_stage: <30}[/cyan]'
+            desc_stage = f"[{self.title}]"
+            desc = f"[cyan]{desc_stage: <30}[/cyan]"
 
             self._progress = Progress(
                 TextColumn(desc),
@@ -114,9 +114,7 @@ class ProgressRegister:
             )
             self._progress.start()
             self._task_id = self._progress.add_task(
-                "tracking", 
-                total=self.n_items_to_process, 
-                completed=0
+                "tracking", total=self.n_items_to_process, completed=0
             )
 
     def add(self, items_added: Iterable[Hashable]) -> None:
@@ -191,10 +189,10 @@ class ProgressRegister:
         # generate rows for table
         rows: list[list[Any]] = []
         for item, count in self._register.items():
-            rows.append([f'{item}', count])
+            rows.append([f"{item}", count])
 
         # set up table with rows and headers
-        table: Table = Table(rows=rows, headers=['item', 'count'])
+        table: Table = Table(rows=rows, headers=["item", "count"])
 
         # return table as string
         return table.as_string

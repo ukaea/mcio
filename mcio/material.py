@@ -5,11 +5,11 @@ MCNP, OpenMC and GDML output), the :class:`Materials` collection, and helper
 functions for loading materials from json files and assigning them to solids
 from CAD colour or ``_mN_`` structure labels.
 """
+
 from __future__ import annotations
 
 import json
 import re
-import copy
 from typing import TYPE_CHECKING
 
 try:
@@ -17,24 +17,23 @@ try:
 except ModuleNotFoundError:
     pass
 
-from .formatting import formatting
-from .mcnp import MCNPCard, MCNPMaterialParameters
-from .xml import XMLTag
+# import first to allow logging of optional modules
+from mcio import logger
+
 from .data import (
-    ATOMIC_NUMBER, 
+    ATOMIC_NUMBER,
+    ELEMENT,
+    ELEMENT_FROM_ISOTOPE,
     ISOTOPIC_COMPOSITION_BY_ATOM_FRACTION,
     ISOTOPIC_COMPOSITION_BY_WEIGHT_FRACTION,
+    RELATIVE_ATOMIC_MASS,
     ZAID_FROM_ISOTOPE,
-    ISOTOPE_FROM_ZAID,
-    RELATIVE_ATOMIC_MASS, 
-    ELEMENT_FROM_ISOTOPE, 
-    ELEMENT
-    )
+)
 from .decomposeparams import DecompositionParameters
+from .formatting import formatting
+from .mcnp import MCNPCard, MCNPMaterialParameters
 from .utils import SerialisableFromDict
-
-# import first to allow logging of optional modules 
-from mcio import logger
+from .xml import XMLTag
 
 if TYPE_CHECKING:
     import openmc
@@ -56,8 +55,9 @@ def _normalise_label(label: str) -> str:
     str
         The normalised label.
     """
-    label = label.replace('_', '')
-    return f'm{label}' if label.isdigit() else label
+    label = label.replace("_", "")
+    return f"m{label}" if label.isdigit() else label
+
 
 def _materials_from_json(json_path: str) -> tuple[str, dict[str, Material]]:
     """Load materials from a json file and detect the assignment method.
@@ -83,39 +83,46 @@ def _materials_from_json(json_path: str) -> tuple[str, dict[str, Material]]:
     KeyError
         If an rgb key is repeated, or keys are not all of a single type.
     """
-    RE_CHECK_RGB = re.compile(r'^\d{1,3}_\d{1,3}_\d{1,3}$')
-    RE_CHECK_MN = re.compile(r'^_*m?\d+_+$|^_*m?\d+$')
+    RE_CHECK_RGB = re.compile(r"^\d{1,3}_\d{1,3}_\d{1,3}$")
+    RE_CHECK_MN = re.compile(r"^_*m?\d+_+$|^_*m?\d+$")
 
-    with open(json_path, 'r') as input_file:
+    with open(json_path, "r") as input_file:
         data = json.load(input_file)
 
     # check each key type for either rgb or _mn_label
-    key_types = ['rgb' if RE_CHECK_RGB.match(k) else ('label' if RE_CHECK_MN.match(k) else None) for k in data ]
+    key_types = [
+        "rgb" if RE_CHECK_RGB.match(k) else ("label" if RE_CHECK_MN.match(k) else None)
+        for k in data
+    ]
     n_keys = len(data)
 
     # set up materials dictionary to store keys and material objects
     materials: dict[str, Material] = {}
 
-    if key_types.count('rgb') == n_keys:
-        assignment_method = 'rgb'
+    if key_types.count("rgb") == n_keys:
+        assignment_method = "rgb"
         for colour_label, mat_dict in data.items():
-            red, green, blue = colour_label.split('_')
-            colour = f'{red:0>3}_{green:0>3}_{blue:0>3}'
+            red, green, blue = colour_label.split("_")
+            colour = f"{red:0>3}_{green:0>3}_{blue:0>3}"
             if colour in materials:
-                msg = f'rgb key in materials json repeated ({colour})'
+                msg = f"rgb key in materials json repeated ({colour})"
                 logger.fatal(msg)
                 raise KeyError(msg)
             materials[colour] = Material.from_dict(mat_dict)
-    elif key_types.count('label') == n_keys:
-        assignment_method = 'label'
+    elif key_types.count("label") == n_keys:
+        assignment_method = "label"
         # case where all keys are labels
-        materials: dict[str, Material] = {_normalise_label(label): Material.from_dict(mat_dict) for label, mat_dict in data.items()}
+        materials: dict[str, Material] = {
+            _normalise_label(label): Material.from_dict(mat_dict)
+            for label, mat_dict in data.items()
+        }
     else:
-        msg = f'material json keys should all be either rgb (e.g. 015_150_025) or label (e.g. 1)'
+        msg = "material json keys should all be either rgb (e.g. 015_150_025) or label (e.g. 1)"
         logger.fatal(msg)
         raise KeyError(msg)
 
     return assignment_method, materials
+
 
 def _materials_by_colour_from_json(json_path: str) -> dict[str, Material]:
     """Load materials keyed by rgb colour from a json file.
@@ -134,21 +141,24 @@ def _materials_by_colour_from_json(json_path: str) -> dict[str, Material]:
         Dictionary mapping normalised rgb strings to materials.
     """
     # load material data from json file
-    with open(json_path, 'r') as input_file:
+    with open(json_path, "r") as input_file:
         data = json.load(input_file)
 
     # de-serialise dict data to mcio material instances
-    materials_raw: dict[str, Material] = {colour: Material.from_dict(mat_dict) for colour, mat_dict in data.items()}
+    materials_raw: dict[str, Material] = {
+        colour: Material.from_dict(mat_dict) for colour, mat_dict in data.items()
+    }
 
     # parse colour string to ensure rgb has format 001_022_333 (e.g. 17_210_1 -> 017_210_001)
     materials: dict[str, Material] = {}
     for colour_raw, material in materials_raw.items():
-        red, green, blue = colour_raw.split('_')
-        colour = f'{red:0>3}_{green:0>3}_{blue:0>3}'
+        red, green, blue = colour_raw.split("_")
+        colour = f"{red:0>3}_{green:0>3}_{blue:0>3}"
         materials[colour] = material
 
     # return materails to colour lookup dict
     return materials
+
 
 def _materials_by_label_from_json(json_path: str) -> dict[str, Material]:
     """Load materials keyed by label from a json file.
@@ -167,16 +177,28 @@ def _materials_by_label_from_json(json_path: str) -> dict[str, Material]:
         Dictionary mapping labels to materials.
     """
     # load material data from json file
-    with open(json_path, 'r') as input_file:
+    with open(json_path, "r") as input_file:
         data = json.load(input_file)
 
     # de-serialise dict data to mcio material instances
-    materials: dict[str, Material] = {_normalise_label(label): Material.from_dict(mat_dict) for label, mat_dict in data.items()}
+    materials: dict[str, Material] = {
+        _normalise_label(label): Material.from_dict(mat_dict)
+        for label, mat_dict in data.items()
+    }
 
     # return materails to colour lookup dict
     return materials
 
-def _material_lookup(material_assignment_method: str, red: int, green: int, blue: int, structure: list[str], materials: dict[str, Material], decom_params: DecompositionParameters) -> Material | None:
+
+def _material_lookup(
+    material_assignment_method: str,
+    red: int,
+    green: int,
+    blue: int,
+    structure: list[str],
+    materials: dict[str, Material],
+    decom_params: DecompositionParameters,
+) -> Material | None:
     """Find the material for a solid from its colour or structure labels.
 
     Solids whose structure tree contains ``_void_`` or ``_m0_`` are treated as
@@ -218,35 +240,36 @@ def _material_lookup(material_assignment_method: str, red: int, green: int, blue
         not recognised.
     """
     # join sub-structure tree into single string to allow regex
-    structure_as_string = '/'.join(structure)
+    structure_as_string = "/".join(structure)
 
     # define void regex checks in structure tree, and check if void (_void_ or _m0_ in structure string)
-    REGEX_COMPILED_VOID_LABEL = re.compile(r'_void_', re.IGNORECASE)
-    REGEX_COMPILED_VOID_MATERIAL = re.compile(f'_m0_', re.IGNORECASE)
+    REGEX_COMPILED_VOID_LABEL = re.compile(r"_void_", re.IGNORECASE)
+    REGEX_COMPILED_VOID_MATERIAL = re.compile("_m0_", re.IGNORECASE)
 
-    if bool(REGEX_COMPILED_VOID_LABEL.search(''.join(structure))) or bool(REGEX_COMPILED_VOID_MATERIAL.search(''.join(structure))):
+    if bool(REGEX_COMPILED_VOID_LABEL.search("".join(structure))) or bool(
+        REGEX_COMPILED_VOID_MATERIAL.search("".join(structure))
+    ):
         return None
 
-    if material_assignment_method == 'rgb':
-        rgb_as_string = f'{red:0>3}_{green:0>3}_{blue:0>3}'
+    if material_assignment_method == "rgb":
+        rgb_as_string = f"{red:0>3}_{green:0>3}_{blue:0>3}"
         if rgb_as_string in materials:
             return materials[rgb_as_string]
         else:
-            
-            msg = f'rgb value for {structure_as_string} {red} {green} {blue} ({rgb_as_string}) not found in materials data'
+            msg = f"rgb value for {structure_as_string} {red} {green} {blue} ({rgb_as_string}) not found in materials data"
             logger.fatal(msg)
             raise Exception(msg)
 
-    elif material_assignment_method == 'label':
+    elif material_assignment_method == "label":
         # get the bottom level m tag
         regex_m_label = re.compile(r"_(m\d+)_")
         m_labels = []
         for sub_structure in structure:
             m_labels.extend(re.findall(regex_m_label, sub_structure))
 
-        # look for unique m labels, as sometimes CAD codes will save a solid 
-        # into a component, 
-        # e.g. 
+        # look for unique m labels, as sometimes CAD codes will save a solid
+        # into a component,
+        # e.g.
         #  -container_m1_
         #  --solid_1
         #  --container_sub
@@ -254,36 +277,39 @@ def _material_lookup(material_assignment_method: str, red: int, green: int, blue
         #
         # solid_1 will contimes be placed in component called container_m1_
         # and hence will repeat application of mn labels in structure tree
-        
+
         # find unique labels in each node and parents of node
         m_labels = list(set(m_labels))
-        
-        # check only one m label in structure tree for this solid. 
+
+        # check only one m label in structure tree for this solid.
         if len(m_labels) == 1 and m_labels[0] in materials:
             return materials[m_labels[0]]
         elif len(m_labels) == 1 and m_labels[0] not in materials:
-            msg = f'material label {m_labels[0]} not found in materials json'
+            msg = f"material label {m_labels[0]} not found in materials json"
             logger.fatal(msg)
             raise ValueError(msg)
         elif len(m_labels) > 1:
-            m_labels_joined = ' '.join(m_labels)
-            structure_as_string = '/'.join(structure)
-            msg = f'only one _mn_ label should be assigned to a body, not {m_labels_joined} (from solid {structure_as_string})'
+            m_labels_joined = " ".join(m_labels)
+            structure_as_string = "/".join(structure)
+            msg = f"only one _mn_ label should be assigned to a body, not {m_labels_joined} (from solid {structure_as_string})"
             logger.fatal(msg)
             raise Exception(msg)
         elif len(m_labels) == 0 and decom_params.model_implicit_void_for_no_mateirals:
             pass
-        elif len(m_labels) == 0 and not decom_params.model_implicit_void_for_no_mateirals:
-            structure_as_string = '/'.join(structure)
-            msg = f'implicit void for cells is off, and {structure_as_string} not assigned any material...'
+        elif (
+            len(m_labels) == 0 and not decom_params.model_implicit_void_for_no_mateirals
+        ):
+            structure_as_string = "/".join(structure)
+            msg = f"implicit void for cells is off, and {structure_as_string} not assigned any material..."
             logger.fatal(msg)
             raise ValueError(msg)
     else:
-        msg = f'material_assignmnet_method hsould be rgb or label not {material_assignment_method}'
+        msg = f"material_assignmnet_method hsould be rgb or label not {material_assignment_method}"
         logger.fatal(msg)
         raise ValueError(msg)
 
-def openmc_material_to_mcio_material(material_openmc: "openmc.Material") -> Material:
+
+def openmc_material_to_mcio_material(material_openmc: openmc.Material) -> Material:
     """Convert an OpenMC material into an mcio material.
 
     Parameters
@@ -305,27 +331,31 @@ def openmc_material_to_mcio_material(material_openmc: "openmc.Material") -> Mate
     """
     # get a list of fraction types
     if not material_openmc.nuclides:
-        msg = f'openmc material passed to openmc_material_to_mcio_material()'+\
-              f' contains no elements or isotopes'
+        msg = (
+            "openmc material passed to openmc_material_to_mcio_material()"
+            + " contains no elements or isotopes"
+        )
         logger.fatal(msg)
         raise ValueError(msg)
-    elif all([ptype == 'ao' for _, _, ptype in material_openmc.nuclides]):
-        fraction_type = 'ao'
-    elif all([ptype == 'wo' for _, _, ptype in material_openmc.nuclides]):
-        fraction_type = 'wo'
+    elif all([ptype == "ao" for _, _, ptype in material_openmc.nuclides]):
+        fraction_type = "ao"
+    elif all([ptype == "wo" for _, _, ptype in material_openmc.nuclides]):
+        fraction_type = "wo"
     else:
-        msg = f'openmc material contains mixed fraction types. Can\'t convert'
+        msg = "openmc material contains mixed fraction types. Can't convert"
         logger.fatal(msg)
         raise ValueError(msg)
 
     # check density units
-    if material_openmc.density_units in ['g/cc', 'g/cm3']:
+    if material_openmc.density_units in ["g/cc", "g/cm3"]:
         density = material_openmc.density
-    elif material_openmc.density_units == 'kg/m3':
+    elif material_openmc.density_units == "kg/m3":
         density = material_openmc.density * 1e-3
     else:
-        msg = f'density_unit should be either g/cc g/cm3 or kg/m3 not' +\
-              f'{material_openmc.density_units}'
+        msg = (
+            "density_unit should be either g/cc g/cm3 or kg/m3 not"
+            + f"{material_openmc.density_units}"
+        )
         logger.fatal(msg)
         raise ValueError(msg)
 
@@ -339,7 +369,8 @@ def openmc_material_to_mcio_material(material_openmc: "openmc.Material") -> Mate
         density=density,
         composition=composition,
         name=material_openmc.name,
-        fraction_type=fraction_type)
+        fraction_type=fraction_type,
+    )
 
 
 class Material(SerialisableFromDict):
@@ -375,14 +406,16 @@ class Material(SerialisableFromDict):
         If ``fraction_type`` or ``density_unit`` is not recognised.
     """
 
-    def __init__(self,
-                 density: float = 0.0, 
-                 composition: dict[str, float] | None = None,
-                 fraction_type: str = 'ao', 
-                 density_unit: str = 'g/cm3',
-                 name: str | None = None, 
-                 reference: str | None = None,
-                 number: int | None = None) -> None:
+    def __init__(
+        self,
+        density: float = 0.0,
+        composition: dict[str, float] | None = None,
+        fraction_type: str = "ao",
+        density_unit: str = "g/cm3",
+        name: str | None = None,
+        reference: str | None = None,
+        number: int | None = None,
+    ) -> None:
         """Initialise the Material."""
         self.density: float = density
         self.composition: dict[str, float] = composition if composition else {}
@@ -394,9 +427,16 @@ class Material(SerialisableFromDict):
         self.mcnp: MCNPMaterialParameters = MCNPMaterialParameters()
 
         # load seralisable from dictionary
-        self._dictable_attributes: list[str] = ['density', 'composition', 'number', 'reference',
-                                     'fraction_type', 'density_unit', 'name']
-        self._dictable_sub_classes: dict[str, type] = {'mcnp': MCNPMaterialParameters}
+        self._dictable_attributes: list[str] = [
+            "density",
+            "composition",
+            "number",
+            "reference",
+            "fraction_type",
+            "density_unit",
+            "name",
+        ]
+        self._dictable_sub_classes: dict[str, type] = {"mcnp": MCNPMaterialParameters}
 
         # run post init
         self.__post_init__()
@@ -414,20 +454,18 @@ class Material(SerialisableFromDict):
         # self._dictable_attributes and self._dictable_sub_classes
 
         self._openmc_material: openmc.Material | None = None
-        
+
         # check fraction type
-        if self.fraction_type not in ['ao', 'wo']:
-            msg = f'fraction_type for material should be either ao for atom or wo for weight fraction'
+        if self.fraction_type not in ["ao", "wo"]:
+            msg = "fraction_type for material should be either ao for atom or wo for weight fraction"
             logger.fatal(msg)
             raise Exception(msg)
 
         # check density units
-        if self.density_unit not in ['g/cc', 'g/cm3', 'atoms/barn-cm']:
-            msg = f'density_unit should be either g/cc, g/cm3'
+        if self.density_unit not in ["g/cc", "g/cm3", "atoms/barn-cm"]:
+            msg = "density_unit should be either g/cc, g/cm3"
             logger.fatal(msg)
             raise Exception(msg)
-
-        pass
 
     @property
     def isotopes(self) -> list[str]:
@@ -469,7 +507,7 @@ class Material(SerialisableFromDict):
         int
             Hash of the MCNP card string.
         """
-        return hash(f'{self.mcnp_card.as_string}')
+        return hash(f"{self.mcnp_card.as_string}")
 
     def __hash_string__(self) -> str:
         """Return the MCNP card string of a copy of the material numbered 0.
@@ -516,28 +554,46 @@ class Material(SerialisableFromDict):
         """
         # isotopic fraction lookup for fraction types
         isotopic_fraction_lookup = {
-                'ao': ISOTOPIC_COMPOSITION_BY_ATOM_FRACTION,
-                'wo': ISOTOPIC_COMPOSITION_BY_WEIGHT_FRACTION
-            }
+            "ao": ISOTOPIC_COMPOSITION_BY_ATOM_FRACTION,
+            "wo": ISOTOPIC_COMPOSITION_BY_WEIGHT_FRACTION,
+        }
 
         # check all components for either being element, isotopes or zaids, else raise
         for component in self.composition:
-            if (component not in ATOMIC_NUMBER) and (not re.fullmatch(r"([A-Z][a-z]?)([1-9]\d*)", component.strip())) and ((not isinstance(component, str)) or (not isinstance(component, str))):
-                msg = f'component of materials should be either element, isotope or zaid as string, not {component}'
+            if (
+                (component not in ATOMIC_NUMBER)
+                and (not re.fullmatch(r"([A-Z][a-z]?)([1-9]\d*)", component.strip()))
+                and (
+                    (not isinstance(component, str)) or (not isinstance(component, str))
+                )
+            ):
+                msg = f"component of materials should be either element, isotope or zaid as string, not {component}"
                 logger.fatal(msg)
                 raise TypeError(msg)
 
         # split composition into elements and isotopes
-        isotopes = {component: fraction for component, fraction in self.composition.items() if component not in ATOMIC_NUMBER and not component.isnumeric()}
-        zaids = {component: fraction for component, fraction in self.composition.items() if component not in ATOMIC_NUMBER and component.isnumeric()}
-        elements = {component: fraction for component, fraction in self.composition.items() if component in ATOMIC_NUMBER}
+        isotopes = {
+            component: fraction
+            for component, fraction in self.composition.items()
+            if component not in ATOMIC_NUMBER and not component.isnumeric()
+        }
+        zaids = {
+            component: fraction
+            for component, fraction in self.composition.items()
+            if component not in ATOMIC_NUMBER and component.isnumeric()
+        }
+        elements = {
+            component: fraction
+            for component, fraction in self.composition.items()
+            if component in ATOMIC_NUMBER
+        }
 
         # combine zaids and isotopes
         for zaid, fraction in zaids.items():
             # convert zaid to isotope as string of element symbol and mass number
             atomic_number = int(zaid[:-3])
             mass_number = int(zaid[-3:])
-            isotope = f'{ELEMENT[atomic_number]}{mass_number}'
+            isotope = f"{ELEMENT[atomic_number]}{mass_number}"
 
             # check if isotope already defined
             if isotope in isotopes:
@@ -547,7 +603,9 @@ class Material(SerialisableFromDict):
 
         # split elements into natural abundances and combine with isotopes
         for element, fraction in elements.items():
-            for isotope, isotope_fraction_natural in isotopic_fraction_lookup[self.fraction_type][element].items():
+            for isotope, isotope_fraction_natural in isotopic_fraction_lookup[
+                self.fraction_type
+            ][element].items():
                 if isotope in isotopes:
                     isotopes[isotope] += fraction * isotope_fraction_natural
                 else:
@@ -569,27 +627,31 @@ class Material(SerialisableFromDict):
         ------
         TypeError
             TypeError raised if composition contains entrance that is neither
-            an element (as one or two letter symbol, e.g. Li), isotopes (as 
-            symbol and numeric value as mass number, e.g. Li6) or zaid 
+            an element (as one or two letter symbol, e.g. Li), isotopes (as
+            symbol and numeric value as mass number, e.g. Li6) or zaid
             (4-6 integer long numeric of the atomic number and mass number,
             e.g. 3006, 03006 or 003006).
         """
         # define data
-        data = {'name': self.name,
-                'density': f'{self.density:{formatting.MCNP_FMT_MATERIAL_DENSITY}} g/cc',
-                'reference': self.reference}
-        
+        data = {
+            "name": self.name,
+            "density": f"{self.density:{formatting.MCNP_FMT_MATERIAL_DENSITY}} g/cc",
+            "reference": self.reference,
+        }
+
         # set up mcnp card to store card data
-        mcnp_card = MCNPCard(f'M{self.number}', [], header_data=data)
+        mcnp_card = MCNPCard(f"M{self.number}", [], header_data=data)
 
         # fraction modifier for weight fraction
-        fraction_modifier_composition = {'ao': 1, 'wo': -1}
+        fraction_modifier_composition = {"ao": 1, "wo": -1}
 
         # split and combine composition into isotopes
         isotopes = self._combine_isotopes()
 
         # sort isotopes by atomic then mass numbers
-        zaids_sorted = {int(ZAID_FROM_ISOTOPE[isotope]): isotope for isotope in isotopes}
+        zaids_sorted = {
+            int(ZAID_FROM_ISOTOPE[isotope]): isotope for isotope in isotopes
+        }
 
         # iterate over components within material
         for zaid_sorted in sorted(zaids_sorted):
@@ -597,28 +659,34 @@ class Material(SerialisableFromDict):
             isotope = zaids_sorted[zaid_sorted]
             fraction = isotopes[isotope]
             zaid = ZAID_FROM_ISOTOPE[isotope]
-            
+
             # get the default library
-            library = self.mcnp.library if self.mcnp.library else ''
+            library = self.mcnp.library if self.mcnp.library else ""
 
             if self.mcnp.library_by_isotope and isotope in self.mcnp.library_by_isotope:
                 library = self.mcnp.library_by_isotope[isotope]
             elif self.mcnp.library:
                 library = self.mcnp.library
             else:
-                library = ''
+                library = ""
 
             # convert isotopes into zaid
-            mcnp_card.add_row([zaid+library, f'{fraction_modifier_composition[self.fraction_type] * fraction:{formatting.MCNP_FMT_FRACTION}}', f'$ {isotope}'])
+            mcnp_card.add_row(
+                [
+                    zaid + library,
+                    f"{fraction_modifier_composition[self.fraction_type] * fraction:{formatting.MCNP_FMT_FRACTION}}",
+                    f"$ {isotope}",
+                ]
+            )
 
         # add particle dependent libs
         if self.mcnp.libs:
             for particle, library in self.mcnp.libs.items():
-                mcnp_card.add_row([f'{particle.upper()}={library}'])
+                mcnp_card.add_row([f"{particle.upper()}={library}"])
 
         # add sab cards
         if self.mcnp.sab_cards:
-            mcnp_card.add_subcard(MCNPCard(f'MT{self.number}', [self.mcnp.sab_cards]))
+            mcnp_card.add_subcard(MCNPCard(f"MT{self.number}", [self.mcnp.sab_cards]))
 
         return mcnp_card
 
@@ -636,7 +704,6 @@ class Material(SerialisableFromDict):
             Currently returns None, as parsing is not implemented.
         """
         # parse mcnp card
-        pass
 
     @property
     def openmc_material(self) -> openmc.Material:
@@ -650,19 +717,27 @@ class Material(SerialisableFromDict):
         # check if openmc material already generated, else create openmc material and store it
         if not self._openmc_material:
             self._openmc_material = openmc.material.Material()
-            self._openmc_material.set_density(units='g/cc', density=self.density)
+            self._openmc_material.set_density(units="g/cc", density=self.density)
 
             for component, fraction in self.composition.items():
                 # case where zaid provided, convert to isotope, E.G. 006012 -> C12
                 if component.isnumeric():
                     atomic_number = int(component[:-3])
                     mass_number = int(component[-3:])
-                    component = f'{ELEMENT[atomic_number]}{mass_number}'
+                    component = f"{ELEMENT[atomic_number]}{mass_number}"
 
                 if component in ZAID_FROM_ISOTOPE:
-                    self._openmc_material.add_nuclide(nuclide=component, percent=fraction, percent_type=self.fraction_type)
+                    self._openmc_material.add_nuclide(
+                        nuclide=component,
+                        percent=fraction,
+                        percent_type=self.fraction_type,
+                    )
                 elif component in ATOMIC_NUMBER:
-                    self._openmc_material.add_element(element=component, percent=fraction, percent_type=self.fraction_type)
+                    self._openmc_material.add_element(
+                        element=component,
+                        percent=fraction,
+                        percent_type=self.fraction_type,
+                    )
 
         return self._openmc_material
 
@@ -676,7 +751,7 @@ class Material(SerialisableFromDict):
             Empty GDML material tag.
         """
         attributes: dict[str, str] = {}
-        material_tag = XMLTag(f'material', attributes=attributes)
+        material_tag = XMLTag("material", attributes=attributes)
 
         return material_tag
 
@@ -689,7 +764,6 @@ class Material(SerialisableFromDict):
         None
             Always None.
         """
-        pass
 
     def strip_isotopes(self, isotopes_to_strip: list[str]) -> None:
         """Replace the composition with its isotopes, excluding those given.
@@ -706,9 +780,11 @@ class Material(SerialisableFromDict):
         isotopes = self._combine_isotopes()
 
         # purge advantg isotopes to strip
-        self.composition = {isotope: fraction for isotope, fraction in isotopes.items() if isotope not in isotopes_to_strip}
-
-
+        self.composition = {
+            isotope: fraction
+            for isotope, fraction in isotopes.items()
+            if isotope not in isotopes_to_strip
+        }
 
 
 class Materials:
@@ -736,7 +812,7 @@ class Materials:
             The materials.
         """
         return self._materials
-    
+
     @property
     def isotopes(self) -> list[str]:
         """Isotopes appearing directly in any material composition.
@@ -783,14 +859,14 @@ class Materials:
             Materials tag with an ``isotope`` child per isotope and an
             ``element`` child per element.
         """
-        materials_tag = XMLTag('materials')
+        materials_tag = XMLTag("materials")
 
         # material_isotope_compositions = {}
 
         # for material in self._materials:
         #     isotopes = {}
         #     for composition, fraction in material.composition.items():
-        #         # if composition in 
+        #         # if composition in
         #         pass
 
         # write isotopes
@@ -800,14 +876,16 @@ class Materials:
             rel_atomic_mass = str(RELATIVE_ATOMIC_MASS[isotope])
 
             # create isotope tag
-            isotope_att = {'Z': str(ATOMIC_NUMBER[element_of_isotope]),
-                           'N': str(RELATIVE_ATOMIC_MASS[isotope]),
-                           'name': isotope}
-            isotope_tag = XMLTag('isotope', attributes=isotope_att)
-            
+            isotope_att = {
+                "Z": str(ATOMIC_NUMBER[element_of_isotope]),
+                "N": str(RELATIVE_ATOMIC_MASS[isotope]),
+                "name": isotope,
+            }
+            isotope_tag = XMLTag("isotope", attributes=isotope_att)
+
             # set relative atomic mass in atom tag
-            atom_att = {'type': 'A', 'value': rel_atomic_mass}
-            atom_tag = XMLTag('atom', attributes=atom_att)
+            atom_att = {"type": "A", "value": rel_atomic_mass}
+            atom_tag = XMLTag("atom", attributes=atom_att)
             isotope_tag.add_child(atom_tag)
 
             # add isotope tag to materials tag
@@ -816,11 +894,13 @@ class Materials:
         # gather isotopes into elements to be used in materials
         for element in self.elements:
             # create element tags
-            attributes = {'Z': str(ATOMIC_NUMBER[element]),
-                          'formula': element,
-                          'name': element}
-            element_tag = XMLTag('element', attributes=attributes)
-            
+            attributes = {
+                "Z": str(ATOMIC_NUMBER[element]),
+                "formula": element,
+                "name": element,
+            }
+            element_tag = XMLTag("element", attributes=attributes)
+
             # add element tag to materials tag
             materials_tag.add_child(element_tag)
 

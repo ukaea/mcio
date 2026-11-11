@@ -4,14 +4,14 @@ Contains energy and position distributions and source classes (point,
 spherical stochastic volume, rectangular volume, cylindrical volume, circular
 plane and read-from-file) that write MCNP ``SDEF`` / ``READ`` cards.
 """
+
 from __future__ import annotations
 
 import math
-
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from .formatting import formatting
-from .mcnp import MCNPCard, MCNP_PARTICLE_DESIGNATORS
+from .mcnp import MCNP_PARTICLE_DESIGNATORS, MCNPCard
 
 if TYPE_CHECKING:
     from .surface import Surface
@@ -25,7 +25,7 @@ def _particle_designator(particle: str) -> str:
     return MCNP_PARTICLE_DESIGNATORS.get(particle.lower(), particle).upper()
 
 
-class SourceEnergyDistribution():
+class SourceEnergyDistribution:
     """Source energy distribution written as MCNP SI1/SP1 cards.
 
     Parameters
@@ -39,8 +39,12 @@ class SourceEnergyDistribution():
         'discrete'
     """
 
-    def __init__(self, energies: list[float]=[0.0], distribution: list[float]=[1.0],
-                 distribution_type: str='discrete') -> None:
+    def __init__(
+        self,
+        energies: list[float] = [0.0],
+        distribution: list[float] = [1.0],
+        distribution_type: str = "discrete",
+    ) -> None:
         """Initialise the SourceEnergyDistribution."""
         self._distribution_type: str = distribution_type
         self._energies: list[float] = energies
@@ -49,20 +53,21 @@ class SourceEnergyDistribution():
     @property
     def mcnp_subcards(self) -> list[MCNPCard]:
         """MCNP ``SI1`` and ``SP1`` cards for the distribution."""
-        self._distribution_types = {'discrete': 'L',
-                                    'histogram': 'H'}
+        self._distribution_types = {"discrete": "L", "histogram": "H"}
 
-        energies = [[f'{float(e):.{formatting.MCNP_DP}}' for e in self._energies]]
-        distribution = [[f'{float(p):.{formatting.MCNP_DP}}' for p in self._distribution]]
+        energies = [[f"{float(e):.{formatting.MCNP_DP}}" for e in self._energies]]
+        distribution = [
+            [f"{float(p):.{formatting.MCNP_DP}}" for p in self._distribution]
+        ]
 
-        designator = 'SI1 ' + self._distribution_types[self._distribution_type]
+        designator = "SI1 " + self._distribution_types[self._distribution_type]
         card_energies = MCNPCard(designator, energies)
-        card_distributions = MCNPCard('SP1', distribution)
+        card_distributions = MCNPCard("SP1", distribution)
 
         return [card_energies, card_distributions]
 
 
-class SourcePositionDistribution():
+class SourcePositionDistribution:
     """Source position distribution written as MCNP SI2/SP2 cards.
 
     Parameters
@@ -76,8 +81,12 @@ class SourcePositionDistribution():
         'discrete'
     """
 
-    def __init__(self, positions: list[tuple[float, float, float]], distribution: list[float],
-                 distribution_type: str='discrete') -> None:
+    def __init__(
+        self,
+        positions: list[tuple[float, float, float]],
+        distribution: list[float],
+        distribution_type: str = "discrete",
+    ) -> None:
         """Initialise the SourcePositionDistribution."""
         self._distribution_type: str = distribution_type
         self._positions: list[tuple[float, float, float]] = positions
@@ -86,15 +95,21 @@ class SourcePositionDistribution():
     @property
     def mcnp_subcards(self) -> list[MCNPCard]:
         """MCNP ``SI2`` and ``SP2`` cards for the distribution."""
-        self._distribution_types = {'discrete': 'L',
-                                    'histogram': 'H'}
+        self._distribution_types = {"discrete": "L", "histogram": "H"}
 
-        positions = [[f'{float(p[0]):.{formatting.MCNP_DP}} {float(p[1]):.{formatting.MCNP_DP}} {float(p[2]):.{formatting.MCNP_DP}}' for p in self._positions]]
-        distribution = [[f'{float(p):.{formatting.MCNP_DP}}' for p in self._distribution]]
+        positions = [
+            [
+                f"{float(p[0]):.{formatting.MCNP_DP}} {float(p[1]):.{formatting.MCNP_DP}} {float(p[2]):.{formatting.MCNP_DP}}"
+                for p in self._positions
+            ]
+        ]
+        distribution = [
+            [f"{float(p):.{formatting.MCNP_DP}}" for p in self._distribution]
+        ]
 
-        designator = 'SI2 ' + self._distribution_types[self._distribution_type]
+        designator = "SI2 " + self._distribution_types[self._distribution_type]
         card_positions = MCNPCard(designator, positions)
-        card_distributions = MCNPCard('SP2', distribution)
+        card_distributions = MCNPCard("SP2", distribution)
 
         return [card_positions, card_distributions]
 
@@ -111,7 +126,9 @@ class Source:
         Source particle name, by default 'neutron'
     """
 
-    def __init__(self, energy: float | SourceEnergyDistribution=1.0, particle: str='neutron') -> None:
+    def __init__(
+        self, energy: float | SourceEnergyDistribution = 1.0, particle: str = "neutron"
+    ) -> None:
         """Initialise the Source base class."""
         self._energy: float | SourceEnergyDistribution = energy
         self._particle: str = particle
@@ -149,7 +166,8 @@ class MCNPSourceFromFile:
     @property
     def mcnp_card(self) -> MCNPCard:
         """MCNP ``READ file=`` card."""
-        return MCNPCard('READ', [[f'file= {self._file_path}']])
+        return MCNPCard("READ", [[f"file= {self._file_path}"]])
+
 
 class Point(Source):
     """Point source.
@@ -162,12 +180,17 @@ class Point(Source):
         Passed to :class:`Source` (``energy``, ``particle``).
     """
 
-    def __init__(self, position: tuple[float, float, float] | SourcePositionDistribution=(0,0,0),
-                 **kwargs: Any) -> None:
+    def __init__(
+        self,
+        position: tuple[float, float, float] | SourcePositionDistribution = (0, 0, 0),
+        **kwargs: Any,
+    ) -> None:
         """Initialise the Point source."""
         super().__init__(**kwargs)
 
-        self._position: tuple[float, float, float] | SourcePositionDistribution = position
+        self._position: tuple[float, float, float] | SourcePositionDistribution = (
+            position
+        )
 
     @property
     def position(self) -> tuple[float, float, float] | SourcePositionDistribution:
@@ -192,7 +215,10 @@ class Point(Source):
         energy_subcard_1, energy_subcard_2 = energy.mcnp_subcards
 
         # set up mcnp card
-        mcnp_card = MCNPCard('SDEF', [[f'PAR={_particle_designator(self._particle)}', 'ERG=D1', 'POS=D2']])
+        mcnp_card = MCNPCard(
+            "SDEF",
+            [[f"PAR={_particle_designator(self._particle)}", "ERG=D1", "POS=D2"]],
+        )
 
         # add energy distribution cards
         mcnp_card.add_subcard(energy_subcard_1)
@@ -202,6 +228,7 @@ class Point(Source):
         mcnp_card.add_subcard(pos_subcard_1)
         mcnp_card.add_subcard(pos_subcard_2)
         return mcnp_card
+
 
 class SphericalStochasticVolumeSource(Source):
     """Inward-directed surface source on a sphere for stochastic volume calculation.
@@ -219,7 +246,9 @@ class SphericalStochasticVolumeSource(Source):
         Passed to :class:`Source` (``energy``).
     """
 
-    def __init__(self, spherical_surface: Surface, particle: str='neutron', **kwargs: Any) -> None:
+    def __init__(
+        self, spherical_surface: Surface, particle: str = "neutron", **kwargs: Any
+    ) -> None:
         """Initialise the SphericalStochasticVolumeSource."""
         super().__init__(**kwargs)
 
@@ -237,22 +266,29 @@ class SphericalStochasticVolumeSource(Source):
         energy_subcard_1, energy_subcard_2 = energy.mcnp_subcards
 
         # set up source distribution
-        radial_distribution_intensity = MCNPCard('SI2', [[f'0 1']])
-        radial_distribution_probability = MCNPCard('SP2', [['-21 1']])
+        radial_distribution_intensity = MCNPCard("SI2", [["0 1"]])
+        radial_distribution_probability = MCNPCard("SP2", [["-21 1"]])
 
         # create mcnp card
-        particle_str = f'PAR={MCNP_PARTICLE_DESIGNATORS[self._particle].upper()}'
-        energy_str = 'ERG=D1'
-        normal_str = f'NRM=-1'
-        surface_str = f'SUR={self.spherical_surface.number}'
-        weight_str = f'WGT={math.pi * self.spherical_surface.radius ** 2:.12f}'
-        direction_str = 'DIR=D2'
-        mcnp_card = MCNPCard('SDEF', [[particle_str,
-                                       energy_str,
-                                       normal_str,
-                                       surface_str,
-                                       weight_str,
-                                       direction_str]])
+        particle_str = f"PAR={MCNP_PARTICLE_DESIGNATORS[self._particle].upper()}"
+        energy_str = "ERG=D1"
+        normal_str = "NRM=-1"
+        surface_str = f"SUR={self.spherical_surface.number}"
+        weight_str = f"WGT={math.pi * self.spherical_surface.radius**2:.12f}"
+        direction_str = "DIR=D2"
+        mcnp_card = MCNPCard(
+            "SDEF",
+            [
+                [
+                    particle_str,
+                    energy_str,
+                    normal_str,
+                    surface_str,
+                    weight_str,
+                    direction_str,
+                ]
+            ],
+        )
 
         # add sub cards
         mcnp_card.add_subcard(energy_subcard_1)
@@ -262,6 +298,7 @@ class SphericalStochasticVolumeSource(Source):
 
         # return mcnp card
         return mcnp_card
+
 
 class RectangularParallelepipedVolume(Source):
     """Uniform source in an axis-aligned box, mono-directional.
@@ -286,9 +323,17 @@ class RectangularParallelepipedVolume(Source):
         Passed to :class:`Source` (``energy``, ``particle``).
     """
 
-    def __init__(self, x_min: float=0.0, x_max: float=0.0, y_min: float=0.0, y_max: float=0.0,
-                 z_min: float=0.0, z_max: float=0.0,
-                 direction: tuple[float, float, float]=(1,0,0), **kwargs: Any) -> None:
+    def __init__(
+        self,
+        x_min: float = 0.0,
+        x_max: float = 0.0,
+        y_min: float = 0.0,
+        y_max: float = 0.0,
+        z_min: float = 0.0,
+        z_max: float = 0.0,
+        direction: tuple[float, float, float] = (1, 0, 0),
+        **kwargs: Any,
+    ) -> None:
         """Initialise the RectangularParallelepipedVolume source."""
         super().__init__(**kwargs)
 
@@ -315,41 +360,75 @@ class RectangularParallelepipedVolume(Source):
         energy_subcard_1, energy_subcard_2 = energy.mcnp_subcards
 
         # set up dir
-        direction_as_str = ' '.join([f'{dir:.{formatting.MCNP_DP}e}' for dir in self._direction])
+        direction_as_str = " ".join(
+            [f"{dir:.{formatting.MCNP_DP}e}" for dir in self._direction]
+        )
 
         # set up distributions for x, y and z for volume of source positions
-        subcard_x_range = MCNPCard('SI3', [[f'{self._x_min:.{formatting.MCNP_DP}e} {self._x_max:.{formatting.MCNP_DP}e}']])
-        subcard_x_range_distribution = MCNPCard('SP3', [['0 1']])
-        subcard_y_range = MCNPCard('SI4', [[f'{self._y_min:.{formatting.MCNP_DP}e} {self._y_max:.{formatting.MCNP_DP}e}']])
-        subcard_y_range_distribution = MCNPCard('SP4', [['0 1']])
-        subcard_z_range = MCNPCard('SI5', [[f'{self._z_min:.{formatting.MCNP_DP}e} {self._z_max:.{formatting.MCNP_DP}e}']])
-        subcard_z_range_distribution = MCNPCard('SP5', [['0 1']])
+        subcard_x_range = MCNPCard(
+            "SI3",
+            [
+                [
+                    f"{self._x_min:.{formatting.MCNP_DP}e} {self._x_max:.{formatting.MCNP_DP}e}"
+                ]
+            ],
+        )
+        subcard_x_range_distribution = MCNPCard("SP3", [["0 1"]])
+        subcard_y_range = MCNPCard(
+            "SI4",
+            [
+                [
+                    f"{self._y_min:.{formatting.MCNP_DP}e} {self._y_max:.{formatting.MCNP_DP}e}"
+                ]
+            ],
+        )
+        subcard_y_range_distribution = MCNPCard("SP4", [["0 1"]])
+        subcard_z_range = MCNPCard(
+            "SI5",
+            [
+                [
+                    f"{self._z_min:.{formatting.MCNP_DP}e} {self._z_max:.{formatting.MCNP_DP}e}"
+                ]
+            ],
+        )
+        subcard_z_range_distribution = MCNPCard("SP5", [["0 1"]])
 
         sub_cards_to_add: list[MCNPCard] = []
 
         # cases where degenerate along ax axis
         if self._x_min == self._x_max:
-            x_var = f'X={self._x_min}'
+            x_var = f"X={self._x_min}"
         else:
-            x_var = 'X=D3'
+            x_var = "X=D3"
             sub_cards_to_add.append(subcard_x_range)
             sub_cards_to_add.append(subcard_x_range_distribution)
         if self._y_min == self._y_max:
-            y_var = f'Y={self._y_min}'
+            y_var = f"Y={self._y_min}"
         else:
-            y_var = 'Y=D4'
+            y_var = "Y=D4"
             sub_cards_to_add.append(subcard_y_range)
             sub_cards_to_add.append(subcard_y_range_distribution)
         if self._z_min == self._z_max:
-            z_var = f'Z={self._z_min}'
+            z_var = f"Z={self._z_min}"
         else:
-            z_var = 'Z=D5'
+            z_var = "Z=D5"
             sub_cards_to_add.append(subcard_z_range)
             sub_cards_to_add.append(subcard_z_range_distribution)
 
-        mcnp_card = MCNPCard('SDEF', [[f'PAR={_particle_designator(self._particle)}', 'ERG=D1', x_var, y_var, z_var],
-                                      [f'VEC={direction_as_str}'],
-                                      ['DIR=1']])
+        mcnp_card = MCNPCard(
+            "SDEF",
+            [
+                [
+                    f"PAR={_particle_designator(self._particle)}",
+                    "ERG=D1",
+                    x_var,
+                    y_var,
+                    z_var,
+                ],
+                [f"VEC={direction_as_str}"],
+                ["DIR=1"],
+            ],
+        )
 
         # add energy distribution subcards
         mcnp_card.add_subcard(energy_subcard_1)
@@ -359,6 +438,7 @@ class RectangularParallelepipedVolume(Source):
             mcnp_card.add_subcard(sub_card)
 
         return mcnp_card
+
 
 class IsotropicCylindricalVolume(Source):
     """Isotropic source uniformly distributed in a cylinder.
@@ -387,9 +467,19 @@ class IsotropicCylindricalVolume(Source):
         Passed to :class:`Source` (``particle``).
     """
 
-    def __init__(self, x0: float=0, y0: float=0, z0: float=0, u0: float=0, v0: float=0,
-                 w0: float=0, radius: float=0.0, height: float=0.0,
-                 energy: float | SourceEnergyDistribution=0.0, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        x0: float = 0,
+        y0: float = 0,
+        z0: float = 0,
+        u0: float = 0,
+        v0: float = 0,
+        w0: float = 0,
+        radius: float = 0.0,
+        height: float = 0.0,
+        energy: float | SourceEnergyDistribution = 0.0,
+        **kwargs: Any,
+    ) -> None:
         """Initialise the IsotropicCylindricalVolume source."""
         super().__init__(**kwargs)
 
@@ -414,30 +504,54 @@ class IsotropicCylindricalVolume(Source):
             energy = self._energy
         energy_subcard_1, energy_subcard_2 = energy.mcnp_subcards
 
-        position_string = f'POS={self._x0:.{formatting.MCNP_DP}e} {self._y0:.{formatting.MCNP_DP}e} {self._z0:.{formatting.MCNP_DP}e}'
-        extend_string = f'EXT=d3'
-        axis_string = f'AXS={self._u0:.{formatting.MCNP_DP}e} {self._v0:.{formatting.MCNP_DP}e} {self._w0:.{formatting.MCNP_DP}e}'
+        position_string = f"POS={self._x0:.{formatting.MCNP_DP}e} {self._y0:.{formatting.MCNP_DP}e} {self._z0:.{formatting.MCNP_DP}e}"
+        extend_string = "EXT=d3"
+        axis_string = f"AXS={self._u0:.{formatting.MCNP_DP}e} {self._v0:.{formatting.MCNP_DP}e} {self._w0:.{formatting.MCNP_DP}e}"
 
-        mcnp_card = MCNPCard('SDEF', [[f'PAR={_particle_designator(self._particle)}'],
-                                      [f'ERG=D1'],
-                                      [position_string],
-                                      [extend_string],
-                                      [axis_string],
-                                      ['RAD=D2']])
+        mcnp_card = MCNPCard(
+            "SDEF",
+            [
+                [f"PAR={_particle_designator(self._particle)}"],
+                ["ERG=D1"],
+                [position_string],
+                [extend_string],
+                [axis_string],
+                ["RAD=D2"],
+            ],
+        )
 
         # add energy distributions subcards
         mcnp_card.add_subcard(energy_subcard_1)
         mcnp_card.add_subcard(energy_subcard_2)
 
         # add radial distribution subcards
-        mcnp_card.add_subcard(MCNPCard('SI2', [[f'{0.0:.{formatting.MCNP_DP}e} {self._radius:.{formatting.MCNP_DP}e}']]))
-        mcnp_card.add_subcard(MCNPCard('SP2', [['-21 1']]))
+        mcnp_card.add_subcard(
+            MCNPCard(
+                "SI2",
+                [
+                    [
+                        f"{0.0:.{formatting.MCNP_DP}e} {self._radius:.{formatting.MCNP_DP}e}"
+                    ]
+                ],
+            )
+        )
+        mcnp_card.add_subcard(MCNPCard("SP2", [["-21 1"]]))
 
         # add extend distribution subcards
-        mcnp_card.add_subcard(MCNPCard('SI3', [[f'{0.0:.{formatting.MCNP_DP}e} {self._height:.{formatting.MCNP_DP}e}']]))
+        mcnp_card.add_subcard(
+            MCNPCard(
+                "SI3",
+                [
+                    [
+                        f"{0.0:.{formatting.MCNP_DP}e} {self._height:.{formatting.MCNP_DP}e}"
+                    ]
+                ],
+            )
+        )
         # mcnp_card.add_subcard(MCNPCard('SP3', [['1']]))
 
         return mcnp_card
+
 
 class CircularPlaneParrallel(Source):
     """Mono-directional disc source emitting along its axis.
@@ -462,8 +576,17 @@ class CircularPlaneParrallel(Source):
         Passed to :class:`Source` (``energy``, ``particle``).
     """
 
-    def __init__(self, x0: float=0, y0: float=0, z0: float=0, u0: float=0, v0: float=0,
-                 w0: float=0, radius: float=0.0, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        x0: float = 0,
+        y0: float = 0,
+        z0: float = 0,
+        u0: float = 0,
+        v0: float = 0,
+        w0: float = 0,
+        radius: float = 0.0,
+        **kwargs: Any,
+    ) -> None:
         """Initialise the CircularPlaneParrallel source."""
         super().__init__(**kwargs)
 
@@ -486,25 +609,39 @@ class CircularPlaneParrallel(Source):
         energy_subcard_1, energy_subcard_2 = energy.mcnp_subcards
 
         # strings for positoin and axis
-        position_string = f'POS={self._x0:.{formatting.MCNP_DP}e} {self._y0:.{formatting.MCNP_DP}e} {self._z0:.{formatting.MCNP_DP}e}'
-        axis_string = f'AXS={self._u0:.{formatting.MCNP_DP}e} {self._v0:.{formatting.MCNP_DP}e} {self._w0:.{formatting.MCNP_DP}e}'
-        vector_string = f'VEC={self._u0:.{formatting.MCNP_DP}e} {self._v0:.{formatting.MCNP_DP}e} {self._w0:.{formatting.MCNP_DP}e}'
+        position_string = f"POS={self._x0:.{formatting.MCNP_DP}e} {self._y0:.{formatting.MCNP_DP}e} {self._z0:.{formatting.MCNP_DP}e}"
+        axis_string = f"AXS={self._u0:.{formatting.MCNP_DP}e} {self._v0:.{formatting.MCNP_DP}e} {self._w0:.{formatting.MCNP_DP}e}"
+        vector_string = f"VEC={self._u0:.{formatting.MCNP_DP}e} {self._v0:.{formatting.MCNP_DP}e} {self._w0:.{formatting.MCNP_DP}e}"
 
-        mcnp_card = MCNPCard('SDEF', [[f'PAR={_particle_designator(self._particle)}'],
-                                      [f'ERG=D1'],
-                                      [position_string],
-                                      [axis_string],
-                                      [vector_string],
-                                      ['EXT=0'],
-                                      ['DIR=1'],
-                                      ['RAD=D2']])
+        mcnp_card = MCNPCard(
+            "SDEF",
+            [
+                [f"PAR={_particle_designator(self._particle)}"],
+                ["ERG=D1"],
+                [position_string],
+                [axis_string],
+                [vector_string],
+                ["EXT=0"],
+                ["DIR=1"],
+                ["RAD=D2"],
+            ],
+        )
 
         # add energy distributions subcards
         mcnp_card.add_subcard(energy_subcard_1)
         mcnp_card.add_subcard(energy_subcard_2)
 
         # add radial distribution subcard
-        mcnp_card.add_subcard(MCNPCard('SI2', [[f'{0.0:.{formatting.MCNP_DP}e} {self._radius:.{formatting.MCNP_DP}e}']]))
-        mcnp_card.add_subcard(MCNPCard('SP2', [['-21 1']]))
+        mcnp_card.add_subcard(
+            MCNPCard(
+                "SI2",
+                [
+                    [
+                        f"{0.0:.{formatting.MCNP_DP}e} {self._radius:.{formatting.MCNP_DP}e}"
+                    ]
+                ],
+            )
+        )
+        mcnp_card.add_subcard(MCNPCard("SP2", [["-21 1"]]))
 
         return mcnp_card

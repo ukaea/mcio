@@ -3,22 +3,16 @@
 Contains small helper classes used to format Serpent 2 input: section header
 banners, comment headers and generic cards with automatic line wrapping.
 """
+
 from __future__ import annotations
 
 from typing import Any
 
 from .formatting import (
     SERPENT_INDENT,
-    SERPENT_FMT_SURFACE_CARTESIAN,
-    SERPENT_FMT_SURFACE_RADIUS,
-    SERPENT_FMT_SURFACE_PLANE_NORMAL,
-    SERPENT_FMT_SURFACE_PLANE_DISPLACEMENT,
-    SERPENT_FMT_SURFACE_T_SQ,
-    SERPENT_FMT_SURFACE_ELIPSOID,
-    SERPENT_FMT_SURFACE_GENERAL_QUADRATIC,
-    SERPENT_FMT_SURFACE_TORI,
-    SERPENT_MAX_CHARS
+    SERPENT_MAX_CHARS,
 )
+
 
 class SerpentHeader:
     """Section header banner for a Serpent 2 input file.
@@ -33,8 +27,12 @@ class SerpentHeader:
         Additional banner lines (stored but currently unused), by default None
     """
 
-    def __init__(self, header: str, data_pairs: dict[str, Any] | None=None,
-                 banner: list[str] | None=None) -> None:
+    def __init__(
+        self,
+        header: str,
+        data_pairs: dict[str, Any] | None = None,
+        banner: list[str] | None = None,
+    ) -> None:
         """Initialise the SerpentHeader."""
         # store user provided parameters
         self._header: str = header
@@ -53,31 +51,40 @@ class SerpentHeader:
         str
             The formatted header block, newline terminated.
         """
-        line_break = '% ' + '-' * (SERPENT_MAX_CHARS - 2) + '\n'
+        line_break = "% " + "-" * (SERPENT_MAX_CHARS - 2) + "\n"
 
-        header = line_break[:SERPENT_INDENT] + f' {self._header} '
-        header += line_break[SERPENT_INDENT + len(self._header) + 2:]
+        header = line_break[:SERPENT_INDENT] + f" {self._header} "
+        header += line_break[SERPENT_INDENT + len(self._header) + 2 :]
 
-        output = ''.join([line_break, header, line_break])
+        output = "".join([line_break, header, line_break])
 
         if self._data_pairs:
-            LINE_INDENT = '% ' + ('=' * 3)
-            LINE_SUMMARY = LINE_INDENT + '\n'
+            LINE_INDENT = "% " + ("=" * 3)
+            LINE_SUMMARY = LINE_INDENT + "\n"
             output += LINE_SUMMARY
             max_label_length = max([len(label) for label in self._data_pairs])
             for data_label, data in self._data_pairs.items():
                 if type(data) == float and data < 1e-4:
-                    line_data = LINE_INDENT + f' {data_label:<{max_label_length}} : {data:.4e} \n'
+                    line_data = (
+                        LINE_INDENT
+                        + f" {data_label:<{max_label_length}} : {data:.4e} \n"
+                    )
                 elif type(data) == float:
-                    line_data = LINE_INDENT + f' {data_label:<{max_label_length}} : {data:.4f} \n'
+                    line_data = (
+                        LINE_INDENT
+                        + f" {data_label:<{max_label_length}} : {data:.4f} \n"
+                    )
                 else:
-                    line_data = LINE_INDENT + f' {data_label:<{max_label_length}} : {data} \n'
+                    line_data = (
+                        LINE_INDENT + f" {data_label:<{max_label_length}} : {data} \n"
+                    )
                 output += line_data
 
             output += LINE_SUMMARY
             output += line_break
 
         return output
+
 
 class SerpentCardHeader:
     """Comment block written above a Serpent card.
@@ -102,8 +109,8 @@ class SerpentCardHeader:
             Comment lines of the form ``C key: value`` framed by ``C`` lines.
         """
         # serpent comments start with % (C is the MCNP comment card)
-        comments = ''.join([f'% {k}: {v}\n' for k, v in self._data.items()])
-        return '%\n' + comments + '%\n'
+        comments = "".join([f"% {k}: {v}\n" for k, v in self._data.items()])
+        return "%\n" + comments + "%\n"
 
 
 class SerpentCard:
@@ -121,9 +128,13 @@ class SerpentCard:
         Data written as a comment header above the card, by default None
     """
 
-    def __init__(self, designator: str, rows: list[list[str]],
-                 subcards: list[SerpentCard] | None=None,
-                 header_data: dict[str, Any] | None=None) -> None:
+    def __init__(
+        self,
+        designator: str,
+        rows: list[list[str]],
+        subcards: list[SerpentCard] | None = None,
+        header_data: dict[str, Any] | None = None,
+    ) -> None:
         """Initialise the SerpentCard."""
         self._designator: str = designator
         self._rows: list[list[str]] = rows
@@ -163,19 +174,19 @@ class SerpentCard:
             The card text including any header comments and sub-cards.
         """
         rows = []
-        string = f'{self._designator:<{SERPENT_INDENT}}'
+        string = f"{self._designator:<{SERPENT_INDENT}}"
 
         for i, row in enumerate(self._rows):
             for j, entry in enumerate(row):
                 if (len(string) + len(entry) + 1) < SERPENT_MAX_CHARS:
-                    string += f' {entry}'
+                    string += f" {entry}"
                 else:
-                    rows.append(f'{string}\n')
-                    string =  ' ' * (SERPENT_INDENT) + f' {entry}'
-            rows.append(string + '\n')
-            string = ' ' * (SERPENT_INDENT)
+                    rows.append(f"{string}\n")
+                    string = " " * (SERPENT_INDENT) + f" {entry}"
+            rows.append(string + "\n")
+            string = " " * (SERPENT_INDENT)
 
-        output_string = ''.join(rows)
+        output_string = "".join(rows)
 
         # add header comments
         if self._header_data is not None:

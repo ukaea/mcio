@@ -3,16 +3,18 @@
 Contains custom exceptions, numeric-to-string conversion helpers, option and
 type validators, and decorators enforcing argument types on setter methods.
 """
+
 from __future__ import annotations
 
 import functools
 import importlib
 import os
 import sys
-from numbers import Number
+from collections.abc import Callable, Sequence
 from decimal import Decimal
 from fractions import Fraction
-from typing import Any, Callable, Dict, List, Sequence, Type, Union
+from numbers import Number
+from typing import Any
 
 
 # define custom exceptions
@@ -41,7 +43,7 @@ def isnumeric(var: Any) -> bool:
     return isinstance(var, (Number, Decimal, Fraction))
 
 
-def number_to_string(var: Any, dp: int = 6) -> Union[str, Any]:
+def number_to_string(var: Any, dp: int = 6) -> str | Any:
     """Convert a numeric value to a string with specified decimal precision.
 
     Parameters
@@ -71,15 +73,11 @@ def number_to_string(var: Any, dp: int = 6) -> Union[str, Any]:
         return f"{var:.{dp}f}"
 
     # if is not numeric, the raise exception
-    msg = (
-        f"variable in list is neither str, int or float" f" and its type is {type(var)}"
-    )
+    msg = f"variable in list is neither str, int or float and its type is {type(var)}"
     raise TypeError(msg)
 
 
-def numbers_to_strings(
-    list_of_vars: Sequence[Any], dp: int = 6
-) -> List[Union[str, Any]]:
+def numbers_to_strings(list_of_vars: Sequence[Any], dp: int = 6) -> list[str | Any]:
     """Convert a sequence of numeric values to formatted strings.
 
     Parameters
@@ -138,7 +136,7 @@ def check_option(option: Any, options: Sequence[Any]) -> bool:
 
 def check_types(
     variable: Any,
-    variable_types: Sequence[Type],
+    variable_types: Sequence[type],
     error_message: str = None,
     iterable: bool = False,
 ) -> None:
@@ -175,7 +173,7 @@ def check_types(
         raise TypeException(msg)
 
 
-def check_module_loaded(module_name: str, global_vars: Dict[str, Any]) -> Any:
+def check_module_loaded(module_name: str, global_vars: dict[str, Any]) -> Any:
     """Ensure a module is imported and available in global variables.
 
     Parameters

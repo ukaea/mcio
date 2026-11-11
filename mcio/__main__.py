@@ -13,7 +13,6 @@ import argparse
 import os
 
 
-
 def run_decompose(args: argparse.Namespace) -> None:
     """Run the CAD to CSG decomposer and write the output models.
 
@@ -48,7 +47,7 @@ def run_decompose(args: argparse.Namespace) -> None:
         materials_file_path=args.materials if args.materials else None,
         decompose_parameters=decom_params,
         surface_number_min=args.surface_number_minimum,
-        cell_number_min=args.cell_number_minimum
+        cell_number_min=args.cell_number_minimum,
     )
 
     decomposer.run(cores=args.cores, debug=args.debug)
@@ -82,7 +81,9 @@ def run_decompose(args: argparse.Namespace) -> None:
         n_split_solids = len(decomposition_solid.split_solids)
         if n_split_solids > decomposer.decom_params.debug_large_number_of_split_solids:
             step_file_writer = STEPFileWriter(decomposer.decom_params)
-            step_file_writer.add_solids([decomposition_solid.original_solid], "original_solid")
+            step_file_writer.add_solids(
+                [decomposition_solid.original_solid], "original_solid"
+            )
             step_file_writer.add_solids(
                 [
                     split_solid.split_solid
@@ -125,29 +126,35 @@ def run_decompose(args: argparse.Namespace) -> None:
                 f"solid_{i} produced {n_split_solids} split solids - see {output_path}"
             )
 
-        output_path = decomposition_solid.save(os.path.join(decomposer.decom_params.debug_save_solid, f'decomposed_solid_{i}.step'))
+        output_path = decomposition_solid.save(
+            os.path.join(
+                decomposer.decom_params.debug_save_solid, f"decomposed_solid_{i}.step"
+            )
+        )
 
     # save void octree
     if args.save_voids:
         all_voids = decomposer._void_octree.voids
         start_index = len(decomposer.decomposition_solids) + 1
 
-        desc_stage = '[Saving void octree]'
-        desc = f'[cyan]{desc_stage: <30}[/cyan]'
+        desc_stage = "[Saving void octree]"
+        desc = f"[cyan]{desc_stage: <30}[/cyan]"
         progress = Progress(
             TextColumn(desc),
             BarColumn(),
             TaskProgressColumn(),
             MofNCompleteColumn(),
             TimeElapsedColumn(),
-            TimeRemainingColumn()
+            TimeRemainingColumn(),
         )
 
         with progress:
             task_id = progress.add_task("saving_voids", total=len(all_voids))
 
             for i, void_octree in enumerate(all_voids, start=start_index):
-                void_octree.save(os.path.join("analysis", "voids", f"void_octree_{i}.stp"))
+                void_octree.save(
+                    os.path.join("analysis", "voids", f"void_octree_{i}.stp")
+                )
                 progress.advance(task_id)
 
     # write alternative mcnp output for advantg removing mising isotopes
@@ -212,7 +219,6 @@ def stochastic_mcnp(args: argparse.Namespace) -> None:
     args : argparse.Namespace
         Parsed arguments of the ``stochastic_mcnp`` sub-command.
     """
-    pass
 
 
 def stochastic_openmc(args: argparse.Namespace) -> None:
@@ -223,7 +229,6 @@ def stochastic_openmc(args: argparse.Namespace) -> None:
     args : argparse.Namespace
         Parsed command line arguments.
     """
-    pass
 
 
 def main() -> argparse.Namespace | None:
@@ -245,8 +250,10 @@ def main() -> argparse.Namespace | None:
     help_parser.add_argument("topic", nargs="?")
 
     # sub_parser - decompose
-    decomp_help_msg = 'run cad to csg decomposer, e.g. ' +\
-                      'python -m mcio decompose -i model.stp model_2.stp -c 12'
+    decomp_help_msg = (
+        "run cad to csg decomposer, e.g. "
+        + "python -m mcio decompose -i model.stp model_2.stp -c 12"
+    )
     decomp = subparsers.add_parser("decompose", help=decomp_help_msg)
     decomp.add_argument("--input", "-i", nargs="+", help="list of step files")
     decomp.add_argument(
@@ -264,7 +271,7 @@ def main() -> argparse.Namespace | None:
     decomp.add_argument(
         "--output_mcnp_advantg",
         "-oa",
-        default=os.path.join('output', 'model_advantg.i'),
+        default=os.path.join("output", "model_advantg.i"),
         help="generate model without missing advantg isotopes",
     )
     decomp.add_argument(
@@ -325,35 +332,36 @@ def main() -> argparse.Namespace | None:
         "--debug",
         "-d",
         action="store_true",
-        help="no debugging will allow fatal exceptions to be raised and " +\
-             "halt program if a problematic solid is found",
+        help="no debugging will allow fatal exceptions to be raised and "
+        + "halt program if a problematic solid is found",
     )
     decomp.add_argument(
         "--save_voids",
         "-sv",
         action="store_true",
-        help="save void octree with interseting solids to step files " +\
-             "(warning, can produce large volumes of files)",
+        help="save void octree with interseting solids to step files "
+        + "(warning, can produce large volumes of files)",
     )
     decomp.add_argument(
         "--surface_number_minimum",
-        '-snm',
+        "-snm",
         default=None,
         type=int,
-        help='minimum surface number for mcnp surface decks'
+        help="minimum surface number for mcnp surface decks",
     )
     decomp.add_argument(
-            "--cell_number_minimum",
-            '-cnm',
-            default=None,
-            type=int,
-            help='minimum cell number for mcnp surface decks'
-        )
-
+        "--cell_number_minimum",
+        "-cnm",
+        default=None,
+        type=int,
+        help="minimum cell number for mcnp surface decks",
+    )
 
     # sub_parser - lost_particles
-    lp_help_msg = "lost particles to cad, e.g. python -m mcio " +\
-                  "lost_particles -i run1.o -o lost_particles.stp"
+    lp_help_msg = (
+        "lost particles to cad, e.g. python -m mcio "
+        + "lost_particles -i run1.o -o lost_particles.stp"
+    )
     lp = subparsers.add_parser("lost_particles", help=lp_help_msg)
     lp.add_argument("--input", "-i", required=True, help="path to mcnp output")
     lp.add_argument(
@@ -416,8 +424,8 @@ def main() -> argparse.Namespace | None:
     args = parser.parse_args()
 
     # handle help for sub-parsers
-    if (args.command == "help") or isinstance(args.command, type(None)):
-        if isinstance(args.command, type(None)):
+    if (args.command == "help") or (args.command is None):
+        if args.command is None:
             parser.print_help()
         elif args.command == "help" and (args.topic in subparsers.choices):
             subparsers.choices[args.topic].print_help()
@@ -428,9 +436,7 @@ def main() -> argparse.Namespace | None:
     return args
 
 
-
 if __name__ == "__main__":
-    # 
     args = main()
 
     # store functions for command line methods
@@ -444,34 +450,25 @@ if __name__ == "__main__":
     # imports after parse of command line args, to avoid imoport of ocp as slow
     import importlib
     import importlib.util
-    import json
-    from multiprocessing import Pool
+
     from rich.progress import (
-        Progress,
-        ProgressColumn,
-        TextColumn,
-        MofNCompleteColumn,
         BarColumn,
+        MofNCompleteColumn,
+        Progress,
         TaskProgressColumn,
+        TextColumn,
         TimeElapsedColumn,
         TimeRemainingColumn,
     )
-    from rich.text import Text
 
     import mcio
+    from mcio import logger
+
     from . import LOGGER_LEVELS
-    from .diagnostic import lost_particles_from_mcnp_run
     from .decompose import Decomposer
     from .decomposeparams import DecompositionParameters
+    from .diagnostic import lost_particles_from_mcnp_run
     from .ocp import STEPFileWriter
-    from .decomposemultiprocess import _run_decomposer_solid
-    from mcio import logger
-    from .parallellogging import (
-        start_multiprocess_logging,
-        restore_main_process_logging,
-        configure_worker_logger,
-    )
-    from .utils import in_notebook
 
     if args.command in METHODS:
         METHODS[args.command](args)
