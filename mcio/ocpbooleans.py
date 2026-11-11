@@ -579,10 +579,12 @@ def _common_ocp_solid(
                 common_solids = [shape_1]
                 common_failed = True
 
-            # output warning message to logger
+            # output warning message to logger - routine OCC alerts are debug only (as for
+            # BOPAlgo_CUT), a self intersection changes the result so is a warning
             n_warnings = len(warning_strings)
+            log_warning = logger.warning if common_failed else logger.debug
             for i, warning_string in enumerate(warning_strings, start=1):
-                logger.error(f'BOPAlgo_COMMON HasWarnings {i} of {n_warnings} = {warning_string}')
+                log_warning(f'BOPAlgo_COMMON HasWarnings {i} of {n_warnings} = {warning_string}')
 
             if logger.level <= 10:
                 # write warnings solids to analysis folder for debugging            
@@ -1216,7 +1218,7 @@ def generate_ocp_half_space_from_face(
             if cyl_solid.ShapeType() != TopAbs_SOLID:
                 logger.error("Cylinder is not a solid!")
             else:
-                logger.error("Cylinder is a solid")
+                logger.debug("Cylinder is a solid")
 
             # 6. Boolean Logic
             is_forward = (face.Orientation() == TopAbs_FORWARD)
@@ -1265,11 +1267,14 @@ def generate_ocp_half_space_from_face(
                     if vol_bounding_box == vol_half_space:
                         raise Exception('half space cylinder rotation failed to create half space')
 
-            step_file_writer = STEPFileWriter(decom_params)
-            step_file_writer.add_solids([cyl_solid], 'cyl_solid')
-            step_file_writer.add_solids(half_space_solids, 'half_space_solids')
-            output_path = step_file_writer.write('making_halfspace_manual_cylinder.stp')
-            # print(f'step file written to {output_path}')
+            if logger.level <= 10:
+                # write the cylinder and half space for debugging
+                step_file_writer = STEPFileWriter(decom_params)
+                step_file_writer.add_solids([cyl_solid], 'cyl_solid')
+                step_file_writer.add_solids(half_space_solids, 'half_space_solids')
+                output_path = step_file_writer.write(decom_params.debug_halfspace_manual_cylinder_path,
+                                                     enumerate_files=True)
+                logger.debug(f'manual cylinder half space - see {output_path}')
 
         elif isinstance(surface, Geom_ConicalSurface):
             # print_ocp_cone_params(surface)

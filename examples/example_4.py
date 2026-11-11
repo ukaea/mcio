@@ -45,7 +45,7 @@ step_file_writer.write('model.stp')
 # cells
 cell_main_body = mcio.cell.Cell(volume=vol)
 cell_void = mcio.cell.Cell(volume=~vol & -surf_graveyard)
-cell_graveyard = mcio.cell.Cell(volume=+surf_graveyard)
+cell_graveyard = mcio.cell.Cell(volume=+surf_graveyard, graveyard=True)
 
 # model 
 model = mcio.model.Model(cells=[cell_main_body, cell_void, cell_graveyard])

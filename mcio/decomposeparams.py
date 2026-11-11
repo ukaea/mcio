@@ -276,6 +276,7 @@ class DecompositionParameters(ParameterLookup):
 
     debug_cut_common_path: str = 'analysis/cut_andcut_common/cut_common.stp'
     debug_volume_conserved_path: str = 'analysis/vol_not_conserved/vol_not_conserved.stp'
+    debug_halfspace_manual_cylinder_path: str = 'analysis/halfspace_manual_cylinder/halfspace_manual_cylinder.stp'
 
     debug_pipe_splitter: str = 'analysis/pre_pipe_splitter/pre_pipe_split.stp'
     debug_concentric_splitter: str = 'analysis/concentric_splitter/pre_concentric_split.stp'
@@ -319,6 +320,7 @@ class DecompositionParameters(ParameterLookup):
 
     _def_debug_cut_common_path: str = 'debugging: path of cut and common operation where 2+ commons created'
     _def_debug_volume_conserved_path: str = 'debugging: path of failed conserved volume operations, dumps solids to step file'
+    _def_debug_halfspace_manual_cylinder_path: str = 'debugging: path for the cylinder and half space made when a cylinder half space is built manually (debug logging only)'
 
     _def_debug_pipe_splitter: str = 'debugging: path of step output following successful split of pipe'
     _def_debug_concentric_splitter: str = 'debugging: path to step output following successful split of concentril second order surfaces'
