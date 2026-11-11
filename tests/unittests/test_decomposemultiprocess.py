@@ -12,8 +12,9 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest import mock
 
-from mcio.decomposemultiprocess import run_with_timeout
+from mcio.decomposemultiprocess import _PoolProcess, run_with_timeout
 
 
 def run(function, tasks, cores=2, timeout=0.0):
@@ -81,6 +82,30 @@ class MCIOUnitTestRunWithTimeout(unittest.TestCase):
 
     def test_no_tasks(self):
         self.assertEqual(run(math.sqrt, [])[0], [])
+
+    def test_all_workers_start_before_any_task_is_sent(self):
+        # regression: a new worker spends seconds importing mcio, and sending it
+        # a task blocks until it is reading, so starting and submitting one worker
+        # at a time made start-up serial (seconds per worker)
+        events = []
+        init, submit = _PoolProcess.__init__, _PoolProcess.submit
+
+        def logged_init(self, *args, **kwargs):
+            init(self, *args, **kwargs)
+            events.append("start")
+
+        def logged_submit(self, *args, **kwargs):
+            events.append("submit")
+            submit(self, *args, **kwargs)
+
+        with (
+            mock.patch.object(_PoolProcess, "__init__", logged_init),
+            mock.patch.object(_PoolProcess, "submit", logged_submit),
+        ):
+            results, _, _ = run(math.sqrt, [1.0] * 6, cores=3)
+        self.assertEqual(results, [1.0] * 6)
+        self.assertEqual(events[:3], ["start"] * 3)
+        self.assertNotIn("start", events[3:])
 
 
 class MCIOUnitTestWorkerLogFile(unittest.TestCase):

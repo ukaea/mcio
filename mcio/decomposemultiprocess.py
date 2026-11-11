@@ -199,7 +199,16 @@ class _PoolProcess:
     def submit(self, index: int, task: Any) -> None:
         """Send a task to the process; its clock starts when the process replies."""
         self.index, self.time_start = index, None
-        self.connection.send((index, task))
+        try:
+            self.connection.send((index, task))
+        except (BrokenPipeError, ConnectionResetError) as error:
+            msg = (
+                "worker process exited before it could be given a task (exit code "
+                + f"{self.process.exitcode}). If running from a script, put the code "
+                + "that runs the decomposition under `if __name__ == '__main__':`, "
+                + "as worker processes import the main script."
+            )
+            raise RuntimeError(msg) from error
 
     def stop(self, wait_time: float = 0.0) -> None:
         """Stop the process, after waiting up to ``wait_time`` seconds for it to exit."""
@@ -280,9 +289,13 @@ def run_with_timeout(
             worker.submit(*next_task)
 
     try:
+        # start every worker before sending any task: a new worker spends seconds
+        # importing mcio and a task is bigger than the pipe buffer, so each send
+        # blocks until that worker is reading. Starting and submitting one worker
+        # at a time would make start-up serial (seconds per worker)
         for _ in range(min(max(cores, 1), len(tasks))):
-            worker = _PoolProcess(context, args)
-            workers.append(worker)
+            workers.append(_PoolProcess(context, args))
+        for worker in workers:
             submit_next(worker)
 
         while n_remaining:
