@@ -271,8 +271,8 @@ def main() -> argparse.Namespace | None:
     decomp.add_argument(
         "--output_mcnp_advantg",
         "-oa",
-        default=os.path.join("output", "model_advantg.i"),
-        help="generate model without missing advantg isotopes",
+        default=None,
+        help="output path for a model without missing advantg isotopes",
     )
     decomp.add_argument(
         "--cores",
