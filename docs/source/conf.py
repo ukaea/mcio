@@ -4,6 +4,7 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
 import sys
+import tomllib
 from pathlib import Path
 
 # make the mcio package importable for autodoc without installing it
@@ -18,11 +19,9 @@ sys.path.append(str(Path(__file__).resolve().parent / "_ext"))
 project = 'mcio'
 copyright = '2026, UKAEA'
 author = 'R. Worrall'
-try:
-    from importlib.metadata import version as _version
-    release = _version('mcio')
-except Exception:
-    release = '0.1.0b1'
+# the version is set once, in pyproject.toml
+with open(Path(__file__).resolve().parents[2] / 'pyproject.toml', 'rb') as _pyproject:
+    release = tomllib.load(_pyproject)['project']['version']
 version = release
 
 # -- General configuration ---------------------------------------------------
