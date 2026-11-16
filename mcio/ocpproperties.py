@@ -9,14 +9,13 @@ rotation matrix construction from OCP vectors.
 from __future__ import annotations
 
 import math
-import numpy as np
-import os
-
-# import first to allow logging of optional modules 
-from mcio import logger
-
 from collections.abc import Callable
 from typing import TYPE_CHECKING
+
+import numpy as np
+
+# import first to allow logging of optional modules
+from mcio import logger
 
 if TYPE_CHECKING:
     from OCP.gp import gp_Torus
@@ -24,114 +23,89 @@ if TYPE_CHECKING:
 
 
 try:
-    import cadquery as cq
+    pass
 except:
     pass
 
 try:
-    from jupyter_cadquery import show
+    pass
 except:
     pass
 
 try:
-    import casadi
-    import OCP
-    from OCP.BRep import (
-        BRep_Tool
-    )
-    from OCP.BRepAlgoAPI import (
-        BRepAlgoAPI_Section
-    )
-    from OCP.BRepGProp import (
-        BRepGProp
-    )
-    from OCP.BRepTools import (
-        BRepTools
-    )
-    from OCP.BRepPrimAPI import (
-        BRepPrimAPI_MakeSphere
-    )
+    from OCP.BRep import BRep_Tool
+    from OCP.BRepAlgoAPI import BRepAlgoAPI_Section
     from OCP.BRepExtrema import BRepExtrema_DistShapeShape
+    from OCP.BRepGProp import BRepGProp
+    from OCP.BRepPrimAPI import BRepPrimAPI_MakeSphere
+    from OCP.BRepTools import BRepTools
     from OCP.Geom import (
-        Geom_Surface,
-        Geom_Plane, 
-        Geom_CylindricalSurface,
-        Geom_SphericalSurface,
         Geom_ConicalSurface,
-        Geom_ToroidalSurface
+        Geom_CylindricalSurface,
+        Geom_Plane,
+        Geom_SphericalSurface,
+        Geom_Surface,
+        Geom_ToroidalSurface,
     )
-    from OCP.gp import (
-        gp_Pnt,
-        gp_Vec,
-        gp_Dir,
-        gp_Ax3,
-        gp_Pln
-    )
-    from OCP.GProp import (
-        GProp_GProps
-    )
+    from OCP.gp import gp_Ax3, gp_Dir, gp_Pln, gp_Pnt, gp_Vec
+    from OCP.GProp import GProp_GProps
     from OCP.TopAbs import (
-        TopAbs_FACE,
         TopAbs_COMPOUND,
-        TopAbs_SOLID,
         TopAbs_COMPSOLID,
-        TopAbs_SHELL,
         TopAbs_EDGE,
+        TopAbs_FACE,
+        TopAbs_SHAPE,
+        TopAbs_SHELL,
+        TopAbs_SOLID,
         TopAbs_VERTEX,
         TopAbs_WIRE,
-        TopAbs_SHAPE
     )
-    from OCP.TopExp import (
-        TopExp
-    )
-    from OCP.TopoDS import (
-        TopoDS,
-        TopoDS_Face,
-        TopoDS_Solid,
-        TopoDS_Shape
-    )
-    from OCP.TopTools import (
-        TopTools_IndexedMapOfShape
+    from OCP.TopExp import TopExp
+    from OCP.TopoDS import TopoDS, TopoDS_Face, TopoDS_Shape, TopoDS_Solid
+    from OCP.TopTools import TopTools_IndexedMapOfShape
+
+    TOP_ABS_SHAPES: tuple[TopAbs_ShapeEnum, ...] = (
+        TopAbs_COMPOUND,
+        TopAbs_COMPSOLID,
+        TopAbs_SOLID,
+        TopAbs_SHELL,
+        TopAbs_FACE,
+        TopAbs_WIRE,
+        TopAbs_EDGE,
+        TopAbs_VERTEX,
+        TopAbs_SHAPE,
     )
 
-    TOP_ABS_SHAPES: tuple[TopAbs_ShapeEnum, ...] = (TopAbs_COMPOUND,
-                            TopAbs_COMPSOLID,
-                            TopAbs_SOLID,
-                            TopAbs_SHELL,
-                            TopAbs_FACE,
-                            TopAbs_WIRE,
-                            TopAbs_EDGE,
-                            TopAbs_VERTEX,
-                            TopAbs_SHAPE)
-
-    TOPODS_CAST_METHODS: dict[TopAbs_ShapeEnum, Callable[[TopoDS_Shape], TopoDS_Shape]] = {TopAbs_COMPOUND: TopoDS.Compound_s,
-                                 TopAbs_COMPSOLID: TopoDS.CompSolid_s,
-                                 TopAbs_SOLID: TopoDS.Solid_s,
-                                 TopAbs_SHELL: TopoDS.Shell_s,
-                                 TopAbs_FACE: TopoDS.Face_s,
-                                 TopAbs_WIRE: TopoDS.Wire_s,
-                                 TopAbs_EDGE: TopoDS.Edge_s,
-                                 TopAbs_VERTEX: TopoDS.Vertex_s,
-                                 TopAbs_SHAPE: lambda shape: shape}
+    TOPODS_CAST_METHODS: dict[
+        TopAbs_ShapeEnum, Callable[[TopoDS_Shape], TopoDS_Shape]
+    ] = {
+        TopAbs_COMPOUND: TopoDS.Compound_s,
+        TopAbs_COMPSOLID: TopoDS.CompSolid_s,
+        TopAbs_SOLID: TopoDS.Solid_s,
+        TopAbs_SHELL: TopoDS.Shell_s,
+        TopAbs_FACE: TopoDS.Face_s,
+        TopAbs_WIRE: TopoDS.Wire_s,
+        TopAbs_EDGE: TopoDS.Edge_s,
+        TopAbs_VERTEX: TopoDS.Vertex_s,
+        TopAbs_SHAPE: lambda shape: shape,
+    }
 except Exception as e:
-    logger.warning(f'failed to load OCP')
-    logger.warning(f'{e}')
+    logger.warning("failed to load OCP")
+    logger.warning(f"{e}")
 
+from .decomposeparams import DecompositionParameters
 from .geometric import (
     angle_between_vectors,
+    distance_between_points,
     values_within_tolerance,
-    distance_between_points
 )
 from .ocpfilereadwrite import (
+    _get_ocp_surface_from_ocp_face,
     extract_ocp_shape_type_from_shape,
-    _get_ocp_surface_from_ocp_face
-)
-from .decomposeparams import (
-    DecompositionParameters
 )
 
 
-def _volume_of_ocp_solids(solids: list["TopoDS_Solid"]) -> float:
+def _volume_of_ocp_solids(solids: list[TopoDS_Solid]) -> float:
     """calculate the volume of a list of ocp solids
 
     Parameters
@@ -156,7 +130,8 @@ def _volume_of_ocp_solids(solids: list["TopoDS_Solid"]) -> float:
     # return the total volume of all solids
     return volume
 
-def _surface_area_of_ocp_face(face: "TopoDS_Face") -> float:
+
+def _surface_area_of_ocp_face(face: TopoDS_Face) -> float:
     """calculate the area of an ocp TopoDS_Face
 
     Parameters
@@ -180,7 +155,7 @@ def _surface_area_of_ocp_face(face: "TopoDS_Face") -> float:
     return props.Mass()
 
 
-def _surface_area_of_ocp_solids(solids: list["TopoDS_Solid"]) -> float:
+def _surface_area_of_ocp_solids(solids: list[TopoDS_Solid]) -> float:
     """calculate the total surface area of a list of solids/compsolids
 
     Parameters
@@ -193,7 +168,7 @@ def _surface_area_of_ocp_solids(solids: list["TopoDS_Solid"]) -> float:
     float
         The total surface area of all solids.
     """
-    
+
     # sum total surface areas of all solids / compsolids
     area: float = 0.0
 
@@ -207,12 +182,12 @@ def _surface_area_of_ocp_solids(solids: list["TopoDS_Solid"]) -> float:
             props = GProp_GProps()
             BRepGProp.SurfaceProperties_s(face, props)
             area += props.Mass()
-    
+
     # return total surface area
     return area
 
 
-def _distance_between_shapes(shape_1: "TopoDS_Shape", shape_2: "TopoDS_Shape") -> float:
+def _distance_between_shapes(shape_1: TopoDS_Shape, shape_2: TopoDS_Shape) -> float:
     """Calculate the minimum distance between two OCP shapes.
 
     Parameters
@@ -233,16 +208,19 @@ def _distance_between_shapes(shape_1: "TopoDS_Shape", shape_2: "TopoDS_Shape") -
         If the distance calculation does not complete.
     """
     # calculate the distance
-    distance_data: BRepExtrema_DistShapeShape = BRepExtrema_DistShapeShape(shape_1, shape_2)
+    distance_data: BRepExtrema_DistShapeShape = BRepExtrema_DistShapeShape(
+        shape_1, shape_2
+    )
 
     # check that a distance was calculated
     if distance_data.IsDone():
         return distance_data.Value()
     else:
-        msg = f'_distance_between_shapes() failed to calculate distance'
+        msg = "_distance_between_shapes() failed to calculate distance"
         raise Exception(msg)
 
-def _distance_between_ocp_points(point_1: "gp_Pnt", point_2: "gp_Pnt") -> float:
+
+def _distance_between_ocp_points(point_1: gp_Pnt, point_2: gp_Pnt) -> float:
     """Calculate the euclidean distance between two gp_Pnt instances.
 
     Parameters
@@ -261,10 +239,10 @@ def _distance_between_ocp_points(point_1: "gp_Pnt", point_2: "gp_Pnt") -> float:
     dy = point_1.Y() - point_2.Y()
     dz = point_1.Z() - point_2.Z()
 
-    return math.sqrt(dx ** 2 + dy ** 2 + dz ** 2)
+    return math.sqrt(dx**2 + dy**2 + dz**2)
 
 
-def _midpoint_between_two_points(point_1: "gp_Pnt", point_2: "gp_Pnt") -> "gp_Pnt":
+def _midpoint_between_two_points(point_1: gp_Pnt, point_2: gp_Pnt) -> gp_Pnt:
     """Produce a gp_Pnt at the mid point between two gp_Pnt instances.
 
     Parameters
@@ -282,12 +260,15 @@ def _midpoint_between_two_points(point_1: "gp_Pnt", point_2: "gp_Pnt") -> "gp_Pn
     mid_point = gp_Pnt(
         0.5 * (point_1.X() + point_2.X()),
         0.5 * (point_1.Y() + point_2.Y()),
-        0.5 * (point_1.Z() + point_2.Z())
+        0.5 * (point_1.Z() + point_2.Z()),
     )
 
     return mid_point
 
-def _distance_of_point_along_vector(origin: "gp_Pnt", vector: "gp_Vec", point: "gp_Pnt") -> float:
+
+def _distance_of_point_along_vector(
+    origin: gp_Pnt, vector: gp_Vec, point: gp_Pnt
+) -> float:
     """Find the projection of a point along a vector.
 
     Computes ``|vector| * dot(point - origin, vector)``.
@@ -316,7 +297,7 @@ def _distance_of_point_along_vector(origin: "gp_Pnt", vector: "gp_Vec", point: "
     return length
 
 
-def print_ocp_vec(vec: "gp_Vec") -> None:
+def print_ocp_vec(vec: gp_Vec) -> None:
     """Print the components of a gp_Vec to stdout.
 
     Parameters
@@ -337,7 +318,8 @@ def print_ocp_vec(vec: "gp_Vec") -> None:
     print(f"  Z: {vec.Z()}")
     print(f"  Magnitude: {vec.Magnitude()}")
 
-def print_ocp_dir(dir: "gp_Dir") -> None:
+
+def print_ocp_dir(dir: gp_Dir) -> None:
     """Print the components of a gp_Dir to stdout.
 
     Parameters
@@ -357,7 +339,8 @@ def print_ocp_dir(dir: "gp_Dir") -> None:
     print(f"  Y: {dir.Y()}")
     print(f"  Z: {dir.Z()}")
 
-def print_ocp_pnt(pnt: "gp_Pnt") -> None:
+
+def print_ocp_pnt(pnt: gp_Pnt) -> None:
     """Print the components of a gp_Pnt to stdout.
 
     Parameters
@@ -376,6 +359,7 @@ def print_ocp_pnt(pnt: "gp_Pnt") -> None:
     print(f"  X: {pnt.X()}")
     print(f"  Y: {pnt.Y()}")
     print(f"  Z: {pnt.Z()}")
+
 
 def ocp_surface_params_as_string(ocp_surface: Geom_Surface) -> str:
     """Describe the parameters of an OCP geometric surface as a string.
@@ -400,12 +384,13 @@ def ocp_surface_params_as_string(ocp_surface: Geom_Surface) -> str:
         Geom_CylindricalSurface: ocp_surface_params_as_string_cylinder,
         Geom_ConicalSurface: ocp_surface_params_as_string_cone,
         Geom_SphericalSurface: ocp_surface_params_as_string_sphere,
-        Geom_ToroidalSurface: ocp_surface_params_as_string_torus
+        Geom_ToroidalSurface: ocp_surface_params_as_string_torus,
     }
 
     as_string: str = string_lookups[type(ocp_surface)](ocp_surface)
 
     return as_string
+
 
 def ocp_surface_params_as_string_plane(geom_plane: Geom_Plane) -> str:
     """Describe the parameters of a plane as a string.
@@ -424,17 +409,24 @@ def ocp_surface_params_as_string_plane(geom_plane: Geom_Plane) -> str:
     plane: gp_Pln = geom_plane.Pln()
 
     # get the properties
-    position: gp_Ax3 = plane.Position()       # position
-    location: gp_Pnt = plane.Location()       # location
-    normal: gp_Dir = position.Direction()     # normal
+    position: gp_Ax3 = plane.Position()  # position
+    location: gp_Pnt = plane.Location()  # location
+    normal: gp_Dir = position.Direction()  # normal
 
-    as_string: str = 'Plane parameters:'
-    as_string += f'  Origin: ({location.X():.6e}, {location.Y():.6e}, {location.Z():.6e})'
-    as_string += f'  Normal direction: ({normal.X():.6e}, {normal.Y():.6e}, {normal.Z():.6e})'
+    as_string: str = "Plane parameters:"
+    as_string += (
+        f"  Origin: ({location.X():.6e}, {location.Y():.6e}, {location.Z():.6e})"
+    )
+    as_string += (
+        f"  Normal direction: ({normal.X():.6e}, {normal.Y():.6e}, {normal.Z():.6e})"
+    )
 
     return as_string
 
-def ocp_surface_params_as_string_cylinder(geom_cylinder: Geom_CylindricalSurface) -> str:
+
+def ocp_surface_params_as_string_cylinder(
+    geom_cylinder: Geom_CylindricalSurface,
+) -> str:
     """Describe the parameters of a cylinder as a string.
 
     Parameters
@@ -452,12 +444,13 @@ def ocp_surface_params_as_string_cylinder(geom_cylinder: Geom_CylindricalSurface
     loc = axis.Location()
     dir = axis.Direction()
 
-    as_string: str = 'Cylinder parameters:'
-    as_string += f'  Radius: {cyl.Radius():.6e}'
-    as_string += f'  Axis origin: ({loc.X():.6e}, {loc.Y():.6e}, {loc.Z():.6e})'
-    as_string += f'  Axis direction: ({dir.X():.6e}, {dir.Y():.6e}, {dir.Z():.6e})'
+    as_string: str = "Cylinder parameters:"
+    as_string += f"  Radius: {cyl.Radius():.6e}"
+    as_string += f"  Axis origin: ({loc.X():.6e}, {loc.Y():.6e}, {loc.Z():.6e})"
+    as_string += f"  Axis direction: ({dir.X():.6e}, {dir.Y():.6e}, {dir.Z():.6e})"
 
     return as_string
+
 
 def ocp_surface_params_as_string_cone(geom_cone: Geom_ConicalSurface) -> str:
     """Describe the parameters of a cone as a string.
@@ -479,14 +472,15 @@ def ocp_surface_params_as_string_cone(geom_cone: Geom_ConicalSurface) -> str:
     semi_angle = geom_cone.SemiAngle()
     ref_radius = geom_cone.RefRadius()
 
-    as_string: str = 'Conical surface parameters:'
-    as_string += f'  Semi-angle: {semi_angle:.6e} radians ({semi_angle:.6e} degrees)'
-    as_string += f'  Reference radius: {ref_radius:.6e}'
-    as_string += f'  Apex: ({apex.X():.6e}, {apex.Y():.6e}, {apex.Z():.6e})'
-    as_string += f'  Axis origin: ({loc.X():.6e}, {loc.Y():.6e}, {loc.Z():.6e})'
-    as_string += f'  Axis direction: ({direction.X():.6e}, {direction.Y():.6e}, {direction.Z():.6e})'
+    as_string: str = "Conical surface parameters:"
+    as_string += f"  Semi-angle: {semi_angle:.6e} radians ({semi_angle:.6e} degrees)"
+    as_string += f"  Reference radius: {ref_radius:.6e}"
+    as_string += f"  Apex: ({apex.X():.6e}, {apex.Y():.6e}, {apex.Z():.6e})"
+    as_string += f"  Axis origin: ({loc.X():.6e}, {loc.Y():.6e}, {loc.Z():.6e})"
+    as_string += f"  Axis direction: ({direction.X():.6e}, {direction.Y():.6e}, {direction.Z():.6e})"
 
     return as_string
+
 
 def ocp_surface_params_as_string_sphere(geom_sphere: Geom_SphericalSurface) -> str:
     """Describe the parameters of a sphere as a string.
@@ -508,12 +502,13 @@ def ocp_surface_params_as_string_sphere(geom_sphere: Geom_SphericalSurface) -> s
     dir = axis.Direction()
 
     # combine string
-    as_string: str = 'Spherical surface parameters:'
-    as_string += f'  Radius: {sph.Radius():.6e}'
-    as_string += f'  Axis origin: ({loc.X():.6e}, {loc.Y():.6e}, {loc.Z():.6e})'
-    as_string += f'  Axis direction: ({dir.X():.6e}, {dir.Y():.6e}, {dir.Z():.6e})'
+    as_string: str = "Spherical surface parameters:"
+    as_string += f"  Radius: {sph.Radius():.6e}"
+    as_string += f"  Axis origin: ({loc.X():.6e}, {loc.Y():.6e}, {loc.Z():.6e})"
+    as_string += f"  Axis direction: ({dir.X():.6e}, {dir.Y():.6e}, {dir.Z():.6e})"
 
     return as_string
+
 
 def ocp_surface_params_as_string_torus(geom_torus: Geom_ToroidalSurface) -> str:
     """Describe the parameters of a torus as a string.
@@ -534,15 +529,16 @@ def ocp_surface_params_as_string_torus(geom_torus: Geom_ToroidalSurface) -> str:
     dir = axis.Direction()
 
     # combine string
-    as_string: str = 'Toroidal surface parameters:'
-    as_string += f'  Axis origin: ({loc.X():.6e}, {loc.Y():.6e}, {loc.Z():.6e})'
-    as_string += f'  Axis direction: ({dir.X():.6e}, {dir.Y():.6e}, {dir.Z():.6e})'
-    as_string += f'  Major radius: ({torus.MajorRadius():.6e})'
-    as_string += f'  Minor radius: ({torus.MinorRadius():.6e})'
+    as_string: str = "Toroidal surface parameters:"
+    as_string += f"  Axis origin: ({loc.X():.6e}, {loc.Y():.6e}, {loc.Z():.6e})"
+    as_string += f"  Axis direction: ({dir.X():.6e}, {dir.Y():.6e}, {dir.Z():.6e})"
+    as_string += f"  Major radius: ({torus.MajorRadius():.6e})"
+    as_string += f"  Minor radius: ({torus.MinorRadius():.6e})"
 
     return as_string
 
-def ocp_face_params_as_string(face: "TopoDS_Face") -> str:
+
+def ocp_face_params_as_string(face: TopoDS_Face) -> str:
     """Describe the surface parameters and UV bounds of an OCP face as a string.
 
     Parameters
@@ -570,24 +566,33 @@ def ocp_face_params_as_string(face: "TopoDS_Face") -> str:
     # get the underlying geometric surface properties
     as_string = ocp_surface_params_as_string(surface)
 
-    as_string += f'u_min = {u_min:.6e}'
-    as_string += f'u_min_val: x={u_min_val.X():.6e} {u_min_val.Y():.6e} {u_min_val.Z():.6e}'
-    as_string += f'u_max = {u_max:.6e}'
-    as_string += f'u_max_val: x={u_max_val.X():.6e} {u_max_val.Y():.6e} {u_max_val.Z():.6e}'
+    as_string += f"u_min = {u_min:.6e}"
+    as_string += (
+        f"u_min_val: x={u_min_val.X():.6e} {u_min_val.Y():.6e} {u_min_val.Z():.6e}"
+    )
+    as_string += f"u_max = {u_max:.6e}"
+    as_string += (
+        f"u_max_val: x={u_max_val.X():.6e} {u_max_val.Y():.6e} {u_max_val.Z():.6e}"
+    )
 
-    as_string += f'v_min = {v_min:.6e}'
-    as_string += f'v_min_val: x={v_min_val.X():.6e} {v_min_val.Y():.6e} {v_min_val.Z():.6e}'
-    as_string += f'v_max = {v_max:.6e}'
-    as_string += f'v_max_val: x={v_max_val.X():.6e} {v_max_val.Y():.6e} {v_max_val.Z():.6e}'
+    as_string += f"v_min = {v_min:.6e}"
+    as_string += (
+        f"v_min_val: x={v_min_val.X():.6e} {v_min_val.Y():.6e} {v_min_val.Z():.6e}"
+    )
+    as_string += f"v_max = {v_max:.6e}"
+    as_string += (
+        f"v_max_val: x={v_max_val.X():.6e} {v_max_val.Y():.6e} {v_max_val.Z():.6e}"
+    )
 
     return as_string
 
+
 def _get_uv_bounds_from_ocp_faces(
-        faces: list["TopoDS_Face"],
-        u_range_max: float = math.inf,
-        v_range_max: float = math.inf,
-        normalise_periodic_boundaries: bool = True
-    ) -> tuple[float, float, float, float]:
+    faces: list[TopoDS_Face],
+    u_range_max: float = math.inf,
+    v_range_max: float = math.inf,
+    normalise_periodic_boundaries: bool = True,
+) -> tuple[float, float, float, float]:
     """Get the combined UV parameter bounds across a list of OCP faces.
 
     Parameters
@@ -610,10 +615,10 @@ def _get_uv_bounds_from_ocp_faces(
     TOL = 1e-4
 
     # set variables to get min and max of all u v parmaeters
-    u_min_all = float('inf')
-    u_max_all = -float('inf')
-    v_min_all = float('inf')
-    v_max_all = -float('inf')
+    u_min_all = float("inf")
+    u_max_all = -float("inf")
+    v_min_all = float("inf")
+    v_max_all = -float("inf")
 
     # collect face uv params across all faces
     for i, face in enumerate(faces):
@@ -622,22 +627,21 @@ def _get_uv_bounds_from_ocp_faces(
             face, normalise_periodic_params=normalise_periodic_boundaries
         )
 
-        if u_min < u_min_all:
-            u_min_all = u_min
+        u_min_all = min(u_min_all, u_min)
 
-        if u_max > u_max_all:
-            u_max_all = u_max
+        u_max_all = max(u_max_all, u_max)
 
-        if v_min < v_min_all:
-            v_min_all = v_min
+        v_min_all = min(v_min_all, v_min)
 
-        if v_max > v_max_all:
-            v_max_all = v_max
+        v_max_all = max(v_max_all, v_max)
 
     # return u v min / max values
     return u_min_all, u_max_all, v_min_all, v_max_all
 
-def _get_uv_bounds_from_ocp_face(face: "TopoDS_Face", normalise_periodic_params: bool = True) -> tuple[float, float, float, float]:
+
+def _get_uv_bounds_from_ocp_face(
+    face: TopoDS_Face, normalise_periodic_params: bool = True
+) -> tuple[float, float, float, float]:
     """Get the UV parameter bounds of an OCP face.
 
     Parameters
@@ -658,23 +662,23 @@ def _get_uv_bounds_from_ocp_face(face: "TopoDS_Face", normalise_periodic_params:
     Exception
         If the shape type is not supported.
     """
-    
+
     # extract u v bounds from face
     if isinstance(face.ShapeType(), type(TopAbs_FACE)):
         face = TopoDS.Face_s(face)
         u_min, u_max, v_min, v_max = BRepTools.UVBounds_s(face)
     else:
-        msg = f'shape type {type(face)} for uv bounds not yet supported'
+        msg = f"shape type {type(face)} for uv bounds not yet supported"
         raise Exception(msg)
 
     surface: Geom_Surface = _get_ocp_surface_from_ocp_face(face)
-    
+
     if normalise_periodic_params:
-        if isinstance(surface, Geom_CylindricalSurface):
-            u_min, u_max = _normalise_periodic_boundaries_across_2pi(u_min, u_max)
-        elif isinstance(surface, Geom_ConicalSurface):
-            u_min, u_max = _normalise_periodic_boundaries_across_2pi(u_min, u_max)
-        elif isinstance(surface, Geom_SphericalSurface):
+        if (
+            isinstance(surface, Geom_CylindricalSurface)
+            or isinstance(surface, Geom_ConicalSurface)
+            or isinstance(surface, Geom_SphericalSurface)
+        ):
             u_min, u_max = _normalise_periodic_boundaries_across_2pi(u_min, u_max)
         elif isinstance(surface, Geom_ToroidalSurface):
             u_min, u_max = _normalise_periodic_boundaries_across_2pi(u_min, u_max)
@@ -683,7 +687,10 @@ def _get_uv_bounds_from_ocp_face(face: "TopoDS_Face", normalise_periodic_params:
     # check range
     return u_min, u_max, v_min, v_max
 
-def _normalise_periodic_boundaries_across_2pi(p_min: float, p_max: float) -> tuple[float, float]:
+
+def _normalise_periodic_boundaries_across_2pi(
+    p_min: float, p_max: float
+) -> tuple[float, float]:
     """Normalise a periodic parameter range so that it lies within 2pi.
 
     Parameters
@@ -717,7 +724,7 @@ def _normalise_periodic_boundaries_across_2pi(p_min: float, p_max: float) -> tup
 
     # check that the p_range is positive
     if r_range < 0.0:
-        msg = f'periodic range across 2pi, max greater than min ()'
+        msg = "periodic range across 2pi, max greater than min ()"
         raise Exception(msg)
 
     # ensure that p_range is within 2pi
@@ -744,6 +751,7 @@ def _normalise_periodic_boundaries_across_2pi(p_min: float, p_max: float) -> tup
     # return min and max
     return r_min, r_max
 
+
 def _normalise_periodic_boundaries_across_pi(u_min: float, u_max: float) -> None:
     """Normalise a periodic parameter range across pi (not yet implemented).
 
@@ -757,7 +765,12 @@ def _normalise_periodic_boundaries_across_pi(u_min: float, u_max: float) -> None
     # tolerance for rounding errors
     TOL = 1e-4
 
-def _sample_uv_bounds_from_ocp_shape(shape: "TopoDS_Shape", samples: tuple[int, int]=(5, 5), sample_sphere_size: float=1.0) -> list["TopoDS_Solid"]:
+
+def _sample_uv_bounds_from_ocp_shape(
+    shape: TopoDS_Shape,
+    samples: tuple[int, int] = (5, 5),
+    sample_sphere_size: float = 1.0,
+) -> list[TopoDS_Solid]:
     """Sample a face over its UV bounds, placing a sphere at each sample point.
 
     Intended as a visual debugging aid.
@@ -792,13 +805,18 @@ def _sample_uv_bounds_from_ocp_shape(shape: "TopoDS_Shape", samples: tuple[int, 
                 sphere = BRepPrimAPI_MakeSphere(point, sample_sphere_size).Shape()
                 spheres.append(sphere)
     else:
-        msg = f'shape type {shape.ShapeType()} for uv bounds not yet supported'
+        msg = f"shape type {shape.ShapeType()} for uv bounds not yet supported"
         logger.fatal(msg)
         raise Exception(msg)
 
     return spheres
 
-def _sample_uv_bounds_for_faces_in_solid(solid: "TopoDS_Solid", samples: tuple[int, int]=(5, 5), sample_sphere_size: float=1.0) -> dict["TopoDS_Face", list["TopoDS_Solid"]]:
+
+def _sample_uv_bounds_for_faces_in_solid(
+    solid: TopoDS_Solid,
+    samples: tuple[int, int] = (5, 5),
+    sample_sphere_size: float = 1.0,
+) -> dict[TopoDS_Face, list[TopoDS_Solid]]:
     """Sample every face of a solid over its UV bounds with spheres.
 
     Parameters
@@ -823,12 +841,19 @@ def _sample_uv_bounds_for_faces_in_solid(solid: "TopoDS_Solid", samples: tuple[i
 
     # iterate over faces in solid
     for face in faces:
-        sphere_sets[face] = _sample_uv_bounds_from_ocp_shape(face, samples=samples, sample_sphere_size=sample_sphere_size)
-    
+        sphere_sets[face] = _sample_uv_bounds_from_ocp_shape(
+            face, samples=samples, sample_sphere_size=sample_sphere_size
+        )
+
     # return sphere sets
     return sphere_sets
 
-def check_ocp_planes_coincident(surface_plane_1: "Geom_Plane", surface_plane_2: "Geom_Plane", decom_params: DecompositionParameters) -> bool:
+
+def check_ocp_planes_coincident(
+    surface_plane_1: Geom_Plane,
+    surface_plane_2: Geom_Plane,
+    decom_params: DecompositionParameters,
+) -> bool:
     """Check whether two OCP planes are coincident within tolerance.
 
     The planes are coincident if the angle between their normals is within
@@ -849,9 +874,10 @@ def check_ocp_planes_coincident(surface_plane_1: "Geom_Plane", surface_plane_2: 
     bool
         True if the planes are coincident within tolerance.
     """
+
     def normal_angles_within_tol() -> bool:
         """Check the angle between the plane normals is within tolerance."""
-        # get the normals 
+        # get the normals
         norm_1 = surface_plane_1.Axis().Direction()
         norm_2 = surface_plane_2.Axis().Direction()
 
@@ -863,14 +889,14 @@ def check_ocp_planes_coincident(surface_plane_1: "Geom_Plane", surface_plane_2: 
         angle = angle_between_vectors(vec_1, vec_2)
 
         return angle < decom_params.surf_plane_tol_normal_angle
-        
+
     def check_planes_not_perpendicular() -> bool:
         """Check the absolute dot product of the normals exceeds the tolerance."""
         norm_1 = surface_plane_1.Axis().Direction()
         norm_2 = surface_plane_2.Axis().Direction()
 
         dot = abs(norm_1.XYZ().Dot(norm_2.XYZ()))
-        
+
         # If dot ≈ 0 → perpendicular
         return dot > decom_params.surf_plane_tol_normal_angle
 
@@ -892,7 +918,7 @@ def check_ocp_planes_coincident(surface_plane_1: "Geom_Plane", surface_plane_2: 
         return dist < decom_params.surf_plane_tol_distance
 
     # def check_parameters_within_tol():
-    #     # get the normals 
+    #     # get the normals
     #     norm_1 = surface_plane_1.Axis().Direction()
     #     norm_2 = surface_plane_2.Axis().Direction()
 
@@ -907,9 +933,18 @@ def check_ocp_planes_coincident(surface_plane_1: "Geom_Plane", surface_plane_2: 
     #     else:
     #         return True
 
-    return normal_angles_within_tol() and check_planes_not_perpendicular() and check_distance_along_normal()
+    return (
+        normal_angles_within_tol()
+        and check_planes_not_perpendicular()
+        and check_distance_along_normal()
+    )
 
-def ocp_cylinders_coincident(surface_cylinder_1: "Geom_CylindricalSurface", surface_cylinder_2: "Geom_CylindricalSurface", decom_params: DecompositionParameters) -> bool:
+
+def ocp_cylinders_coincident(
+    surface_cylinder_1: Geom_CylindricalSurface,
+    surface_cylinder_2: Geom_CylindricalSurface,
+    decom_params: DecompositionParameters,
+) -> bool:
     """Check whether two OCP cylindrical surfaces are coincident within tolerance.
 
     Compares radii, the distance between axis locations and the angle between
@@ -929,39 +964,52 @@ def ocp_cylinders_coincident(surface_cylinder_1: "Geom_CylindricalSurface", surf
     bool
         True if the cylinders are coincident within tolerance.
     """
+
     def radii_within_tol() -> bool:
         """Check the cylinder radii are within tolerance."""
         rad_1 = surface_cylinder_1.Radius()
         rad_2 = surface_cylinder_2.Radius()
-        return values_within_tolerance(rad_1, rad_2, decom_params.surf_cylinder_tol_radius)
-    
+        return values_within_tolerance(
+            rad_1, rad_2, decom_params.surf_cylinder_tol_radius
+        )
+
     def axis_angles_within_tol() -> bool:
         """Check the angle between the cylinder axes is within tolerance."""
         # directions
         axis_dir_1 = surface_cylinder_1.Axis().Direction()
         axis_dir_2 = surface_cylinder_2.Axis().Direction()
-        
-        # get vectors 
+
+        # get vectors
         vec_1 = [axis_dir_1.X(), axis_dir_1.Y(), axis_dir_1.Z()]
         vec_2 = [axis_dir_2.X(), axis_dir_2.Y(), axis_dir_2.Z()]
 
-        return angle_between_vectors(vec_1, vec_2) < decom_params.surf_cylinder_tol_axis_angle
+        return (
+            angle_between_vectors(vec_1, vec_2)
+            < decom_params.surf_cylinder_tol_axis_angle
+        )
 
     def axis_distance_within_tol() -> bool:
         """Check the distance between the cylinder axis locations is within tol."""
         # locations from surfaces
         loc_1 = surface_cylinder_1.Position().Location()
         loc_2 = surface_cylinder_2.Position().Location()
-        
+
         # calculate distance
         distance = loc_1.Distance(loc_2)
 
         return distance < decom_params.surf_cylinder_tol_axis_distance
-    
-    # check if cylinders coincident
-    return radii_within_tol() and axis_distance_within_tol() and axis_angles_within_tol()
 
-def ocp_sphere_coincident(surface_sphere_1: "Geom_SphericalSurface", surface_sphere_2: "Geom_SphericalSurface", decom_params: DecompositionParameters) -> bool:
+    # check if cylinders coincident
+    return (
+        radii_within_tol() and axis_distance_within_tol() and axis_angles_within_tol()
+    )
+
+
+def ocp_sphere_coincident(
+    surface_sphere_1: Geom_SphericalSurface,
+    surface_sphere_2: Geom_SphericalSurface,
+    decom_params: DecompositionParameters,
+) -> bool:
     """Check whether two OCP spherical surfaces are coincident within tolerance.
 
     Compares radii and the distance between centres.
@@ -980,6 +1028,7 @@ def ocp_sphere_coincident(surface_sphere_1: "Geom_SphericalSurface", surface_sph
     bool
         True if the spheres are coincident within tolerance.
     """
+
     # check radii are within tolerance
     def radii_within_tol() -> bool:
         """Check the sphere radii are within tolerance."""
@@ -996,12 +1045,20 @@ def ocp_sphere_coincident(surface_sphere_1: "Geom_SphericalSurface", surface_sph
         centre_1 = [location_1.X(), location_1.Y(), location_1.Z()]
         centre_2 = [location_2.X(), location_2.Y(), location_2.Z()]
 
-        return distance_between_points(*centre_1, *centre_2) < decom_params.surf_sph_position_tol
+        return (
+            distance_between_points(*centre_1, *centre_2)
+            < decom_params.surf_sph_position_tol
+        )
 
     # carry out checks for spheres being coincident, and return boolean value
     return radii_within_tol() and centres_within_tol()
 
-def ocp_cone_coincident(surface_cone_1: "Geom_ConicalSurface", surface_cone_2: "Geom_ConicalSurface", decom_params: DecompositionParameters) -> bool:
+
+def ocp_cone_coincident(
+    surface_cone_1: Geom_ConicalSurface,
+    surface_cone_2: Geom_ConicalSurface,
+    decom_params: DecompositionParameters,
+) -> bool:
     """Check whether two OCP conical surfaces are coincident within tolerance.
 
     Compares semi-angles, the angle between axis directions and the distance
@@ -1021,37 +1078,51 @@ def ocp_cone_coincident(surface_cone_1: "Geom_ConicalSurface", surface_cone_2: "
     bool
         True if the cones are coincident within tolerance.
     """
+
     def semi_angle_within_tol() -> bool:
         """Check the cone semi-angles are within tolerance."""
         semi_angle_1 = surface_cone_1.SemiAngle()
         semi_angle_2 = surface_cone_2.SemiAngle()
-        return values_within_tolerance(semi_angle_1, semi_angle_2, decom_params.surf_cone_semi_angle_tol)
+        return values_within_tolerance(
+            semi_angle_1, semi_angle_2, decom_params.surf_cone_semi_angle_tol
+        )
 
     def axis_angles_within_tol() -> bool:
         """Check the angle between the cone axes is within tolerance."""
         axis_dir_1 = surface_cone_1.Position().Direction()
         axis_dir_2 = surface_cone_2.Position().Direction()
 
-         # get vectors 
+        # get vectors
         vec_1 = [axis_dir_1.X(), axis_dir_1.Y(), axis_dir_1.Z()]
         vec_2 = [axis_dir_2.X(), axis_dir_2.Y(), axis_dir_2.Z()]
 
-        return angle_between_vectors(vec_1, vec_2) < decom_params.surf_cone_axis_angle_tol
+        return (
+            angle_between_vectors(vec_1, vec_2) < decom_params.surf_cone_axis_angle_tol
+        )
 
     def axis_distance_within_tol() -> bool:
         """Check the distance between the cone axis locations is within tolerance."""
         # locations from surfaces
         loc_1 = surface_cone_1.Position().Location()
         loc_2 = surface_cone_2.Position().Location()
-        
+
         # calculate distance
         distance = loc_1.Distance(loc_2)
 
         return distance < decom_params.surf_cone_axis_distance_tol
 
-    return semi_angle_within_tol() and axis_angles_within_tol() and axis_distance_within_tol()
+    return (
+        semi_angle_within_tol()
+        and axis_angles_within_tol()
+        and axis_distance_within_tol()
+    )
 
-def ocp_tori_coincident(surface_tori_1: "Geom_ToroidalSurface", surface_tori_2: "Geom_ToroidalSurface", decom_params: DecompositionParameters) -> bool:
+
+def ocp_tori_coincident(
+    surface_tori_1: Geom_ToroidalSurface,
+    surface_tori_2: Geom_ToroidalSurface,
+    decom_params: DecompositionParameters,
+) -> bool:
     """Check whether two OCP toroidal surfaces are coincident within tolerance.
 
     Compares minor radii, major radii, the angle between axis directions and
@@ -1071,28 +1142,35 @@ def ocp_tori_coincident(surface_tori_1: "Geom_ToroidalSurface", surface_tori_2: 
     bool
         True if the tori are coincident within tolerance.
     """
+
     def minor_radii_within_tol() -> bool:
         """Check the tori minor radii are within tolerance."""
         minor_radius_1 = surface_tori_1.MinorRadius()
         minor_radius_2 = surface_tori_2.MinorRadius()
-        return values_within_tolerance(minor_radius_1, minor_radius_2, decom_params.surf_tol_tori_minor_radius)
+        return values_within_tolerance(
+            minor_radius_1, minor_radius_2, decom_params.surf_tol_tori_minor_radius
+        )
 
     def major_radii_within_tol() -> bool:
         """Check the tori major radii are within tolerance."""
         major_radius_1 = surface_tori_1.MajorRadius()
         major_radius_2 = surface_tori_2.MajorRadius()
-        return values_within_tolerance(major_radius_1, major_radius_2, decom_params.surf_tol_tori_major_radius)
+        return values_within_tolerance(
+            major_radius_1, major_radius_2, decom_params.surf_tol_tori_major_radius
+        )
 
     def axis_angles_within_tol() -> bool:
         """Check the angle between the tori axes is within tolerance."""
         axis_dir_1 = surface_tori_1.Position().Direction()
         axis_dir_2 = surface_tori_2.Position().Direction()
 
-         # get vectors 
+        # get vectors
         vec_1 = [axis_dir_1.X(), axis_dir_1.Y(), axis_dir_1.Z()]
         vec_2 = [axis_dir_2.X(), axis_dir_2.Y(), axis_dir_2.Z()]
 
-        return angle_between_vectors(vec_1, vec_2) < decom_params.surf_tol_tori_axis_angle
+        return (
+            angle_between_vectors(vec_1, vec_2) < decom_params.surf_tol_tori_axis_angle
+        )
 
     def centres_within_tol() -> bool:
         """Check the distance between the tori centres is within tolerance."""
@@ -1100,12 +1178,20 @@ def ocp_tori_coincident(surface_tori_1: "Geom_ToroidalSurface", surface_tori_2: 
         centre_2 = surface_tori_2.Position().Location()
 
         distance = centre_1.Distance(centre_2)
-        
+
         return distance < decom_params.surf_tol_tori_centre
 
-    return minor_radii_within_tol() and major_radii_within_tol() and axis_angles_within_tol() and centres_within_tol()
+    return (
+        minor_radii_within_tol()
+        and major_radii_within_tol()
+        and axis_angles_within_tol()
+        and centres_within_tol()
+    )
 
-def check_solids_intersect_by_faces(inner_solid: "TopoDS_Shape", outer_solid: "TopoDS_Shape", tol: float=1e-6) -> bool:
+
+def check_solids_intersect_by_faces(
+    inner_solid: TopoDS_Shape, outer_solid: TopoDS_Shape, tol: float = 1e-6
+) -> bool:
     """Check that a section can be computed between every pair of faces of two solids.
 
     For every face of ``inner_solid`` and every face of ``outer_solid`` a
@@ -1129,8 +1215,12 @@ def check_solids_intersect_by_faces(inner_solid: "TopoDS_Shape", outer_solid: "T
     """
     # classifier = BRepClass3d_SolidClassifier()
 
-    faces_inner: list[TopoDS_Face] = extract_ocp_shape_type_from_shape(inner_solid, TopAbs_FACE, cast_from_shape=True)
-    faces_outer: list[TopoDS_Face] = extract_ocp_shape_type_from_shape(outer_solid, TopAbs_FACE, cast_from_shape=True)
+    faces_inner: list[TopoDS_Face] = extract_ocp_shape_type_from_shape(
+        inner_solid, TopAbs_FACE, cast_from_shape=True
+    )
+    faces_outer: list[TopoDS_Face] = extract_ocp_shape_type_from_shape(
+        outer_solid, TopAbs_FACE, cast_from_shape=True
+    )
 
     for face_inner in faces_inner:
         for face_outer in faces_outer:
@@ -1141,10 +1231,11 @@ def check_solids_intersect_by_faces(inner_solid: "TopoDS_Shape", outer_solid: "T
 
             if not section.IsDone():
                 return False
-            
+
     return True
 
-def check_ocp_faces_connected(face_1: "TopoDS_Face", face_2: "TopoDS_Face") -> bool:
+
+def check_ocp_faces_connected(face_1: TopoDS_Face, face_2: TopoDS_Face) -> bool:
     """Check whether two OCP faces share at least one edge.
 
     Parameters
@@ -1159,7 +1250,7 @@ def check_ocp_faces_connected(face_1: "TopoDS_Face", face_2: "TopoDS_Face") -> b
     bool
         True if any edge of ``face_1`` is also an edge of ``face_2``.
     """
-    # set up explorer 
+    # set up explorer
     exp = TopExp()
 
     # map edges in first face
@@ -1175,8 +1266,9 @@ def check_ocp_faces_connected(face_1: "TopoDS_Face", face_2: "TopoDS_Face") -> b
         edge_1 = map_1.FindKey(i)
         if map_2.Contains(edge_1):
             return True
-        
+
     return False
+
 
 def rotation_matrix_from_ocp_vectors(vec_1: gp_Vec, vec_2: gp_Vec) -> np.ndarray:
     """Define the rotation matrix which rotates one OCP vector onto another.
@@ -1197,9 +1289,9 @@ def rotation_matrix_from_ocp_vectors(vec_1: gp_Vec, vec_2: gp_Vec) -> np.ndarray
     np.ndarray
         The 3x3 rotation matrix.
     """
-    
+
     # the axis of rotation
-    axis = vec_1.Crossed(vec_2) 
+    axis = vec_1.Crossed(vec_2)
     axis.Normalize()
 
     vec_1.Normalize()
@@ -1208,28 +1300,28 @@ def rotation_matrix_from_ocp_vectors(vec_1: gp_Vec, vec_2: gp_Vec) -> np.ndarray
     vec_1 = np.array([vec_1.X(), vec_1.Y(), vec_1.Z()])
     vec_2 = np.array([vec_2.X(), vec_2.Y(), vec_2.Z()])
 
-    cos_theta = np.dot(vec_1, vec_2)                  
+    cos_theta = np.dot(vec_1, vec_2)
     sin_theta = np.linalg.norm(np.cross(vec_1, vec_2))
-    
-    # define repeated mathematical operations 
+
+    # define repeated mathematical operations
     one_less_cos_theta = 1.0 - cos_theta
 
-    r_11 = ((axis.X()**2) * one_less_cos_theta) + cos_theta
+    r_11 = ((axis.X() ** 2) * one_less_cos_theta) + cos_theta
     r_12 = (axis.X() * axis.Y() * one_less_cos_theta) - (axis.Z() * sin_theta)
     r_13 = (axis.X() * axis.Z() * one_less_cos_theta) + (axis.Y() * sin_theta)
 
     r_21 = (axis.X() * axis.Y() * one_less_cos_theta) + (axis.Z() * sin_theta)
     r_22 = ((axis.Y() ** 2) * one_less_cos_theta) + cos_theta
     r_23 = (axis.Y() * axis.Z() * one_less_cos_theta) - (axis.X() * sin_theta)
-    
+
     r_31 = (axis.X() * axis.Z() * one_less_cos_theta) - (axis.Y() * sin_theta)
     r_32 = (axis.Y() * axis.Z() * one_less_cos_theta) + (axis.X() * sin_theta)
     r_33 = ((axis.Z() ** 2) * one_less_cos_theta) + cos_theta
-    
-    matrix_rotation = np.array([[r_11, r_12, r_13], 
-                                [r_21, r_22, r_23], 
-                                [r_31, r_32, r_33]])
-    
+
+    matrix_rotation = np.array(
+        [[r_11, r_12, r_13], [r_21, r_22, r_23], [r_31, r_32, r_33]]
+    )
+
     # logger.debug('rotation matrix')
     # logger.debug(f'u = {u}')
     # logger.debug(f'v = {v}')
@@ -1245,5 +1337,5 @@ def rotation_matrix_from_ocp_vectors(vec_1: gp_Vec, vec_2: gp_Vec) -> np.ndarray
     # logger.debug(f'r[0,0] = {matrix_rotation[2, 0]}')
     # logger.debug(f'r[0,1] = {matrix_rotation[2, 1]}')
     # logger.debug(f'r[0,2] = {matrix_rotation[2, 2]}')
-    
+
     return matrix_rotation

@@ -8,14 +8,12 @@ by axis-aligned planes (:class:`STLSlicePX`, :class:`STLSlicePY`,
 
 from __future__ import annotations
 
-import numpy as np
 import os
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-
-from .checkvals import check_module_loaded
-
 from collections.abc import Callable, Sequence
+
+import matplotlib.pyplot as plt
+import numpy as np
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 
 def vector_plane_intersection(
@@ -222,16 +220,14 @@ class STLSolid:
         self.vertices_loop: bool | None = None
 
     def slice(
-        self, normal_axis: str = "x",
-        intercept: float = 0.0,
-        create_loops: bool = False
+        self, normal_axis: str = "x", intercept: float = 0.0, create_loops: bool = False
     ) -> STLSlicePX | STLSlicePY | STLSlicePZ:
         """Returns a 2D slice through the STLSolid geometry
 
         Parameters
         ----------
         normal_axis : str, optional
-            The axis to place the normal of the slice plane, x, y or z, by 
+            The axis to place the normal of the slice plane, x, y or z, by
             default "x"
         intercept : float, optional
             intercept along the axis, by default 0.0
@@ -410,7 +406,7 @@ class STL:
                         for i in range(0, len(section_solid[1:-1]), 7)
                     ]
                 else:
-                    msg = f"number of lines in facet subsection not equal to 7"
+                    msg = "number of lines in facet subsection not equal to 7"
                     raise ValueError(msg)
 
                 facets: list[STLFacet] = []
@@ -457,10 +453,8 @@ class STL:
 
         for i, facet in enumerate(self._facets):
             for vertex in facet.vertices:
-                if vertex[0] < x_min:
-                    x_min = vertex[0]
-                if vertex[0] > x_max:
-                    x_max = vertex[0]
+                x_min = min(x_min, vertex[0])
+                x_max = max(x_max, vertex[0])
                 if vertex[1] < y_min:
                     y_min = vertex[0]
                 if vertex[1] > y_max:
@@ -477,7 +471,9 @@ class STL:
         ax.set_zlim(z_min, z_max)
         plt.show()
 
-    def plot_2d(self, axis: str = "x", intercept: float = 0.0, grid: bool = True) -> None:
+    def plot_2d(
+        self, axis: str = "x", intercept: float = 0.0, grid: bool = True
+    ) -> None:
         """STL plotting function producing 2D plot using matplotlib
 
         Parameters
@@ -588,7 +584,7 @@ def sort_intercepts_into_loop(
 
     # STLSliceLoop axis lookup
     STL_SLICE_LOOP_AXIS_LOOKUP: dict[
-        str, type[STLSliceLoopPX] | type[STLSliceLoopPY] | type[STLSliceLoopPZ]
+        str, type[STLSliceLoopPX | STLSliceLoopPY | STLSliceLoopPZ]
     ] = {
         "x": STLSliceLoopPX,
         "y": STLSliceLoopPY,
@@ -686,7 +682,6 @@ def sort_intercepts_into_loop(
             y_max = p_next[1] + 50
 
             for axes_row in axes:
-
                 axes_row[1].plot([p_next[0], p_next[0]], [y_min, y_max])
                 axes_row[1].plot([x_min, x_max], [p_next[1], p_next[1]])
 
@@ -702,7 +697,7 @@ def sort_intercepts_into_loop(
             plt.savefig("plot.png")
             plt.show()
 
-            msg = f"sort_intercept_into_loops failed to find next point"
+            msg = "sort_intercept_into_loops failed to find next point"
             raise Exception(msg)
 
     return [p_start[0]], [p_start[1]], loops
@@ -713,7 +708,6 @@ class STLSlice:
 
     def __init__(self) -> None:
         """Initialise the STLSlice base class."""
-        pass
 
 
 class STLSlicePX(STLSlice):

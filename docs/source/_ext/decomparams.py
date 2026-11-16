@@ -1,7 +1,17 @@
+from importlib.metadata import PackageNotFoundError, version as package_version
+
 from docutils import nodes
 from docutils.parsers.rst import Directive
 import mcio
 from dataclasses import fields
+
+def _mcio_version():
+    """Version of the installed mcio package, which is set in pyproject.toml."""
+    try:
+        return package_version("mcio")
+    except PackageNotFoundError:
+        return "unknown"
+
 
 class DecompositionParamsTable(Directive):
     has_content = False
@@ -73,7 +83,7 @@ def setup(app):
     app.add_directive("decomposition-params", DecompositionParamsTable)
     
     return {
-        'version': '0.1',
+        'version': _mcio_version(),
         'parallel_read_safe': True,
         'parallel_write_safe': True,
     }

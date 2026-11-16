@@ -18,6 +18,8 @@ env:
   # openmc is not published on PyPI; install the Python API from source at a fixed commit
   OPENMC_SPEC: "openmc @ git+https://github.com/openmc-dev/openmc.git@83a30f6860c79fac8fd58584489cc0d1abcb0376"
   COVERAGE_PYTHON: "3.13"
+  # fail the run (rather than skip the openmc tests) if openmc fails to install or import
+  MCIO_REQUIRE_OPENMC: "1"
 
 jobs:
   pytest:

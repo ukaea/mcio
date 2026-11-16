@@ -4,7 +4,6 @@ to CSG conversion.
 
 import os
 import re
-from typing import List, Union
 
 try:
     import casadi
@@ -25,8 +24,8 @@ except ImportError:
 
 
 def lost_particles_from_mcnp_run(
-    input_file_path: Union[str, os.PathLike],
-    output_file_path: Union[str, os.PathLike] = "lost_particles.stp",
+    input_file_path: str | os.PathLike,
+    output_file_path: str | os.PathLike = "lost_particles.stp",
     max_particles: int = 100,
     vector_length: float = 250.0,
     radius: float = 2.0,
@@ -54,7 +53,7 @@ def lost_particles_from_mcnp_run(
     """
 
     with open(input_file_path, "r") as input_file:
-        rows: List[str] = [r for r in input_file]
+        rows: list[str] = [r for r in input_file]
 
     # define regex sub group expressions
     exp_numeric_exponential = r"[-]{0,1}[0-9]+\.[0-9]+[eE][+-][0-9]+"
@@ -77,8 +76,8 @@ def lost_particles_from_mcnp_run(
     )
 
     # iterate over rows
-    spheres: List[TopoDS_Shape] = []
-    edges: List[TopoDS_Edge] = []
+    spheres: list[TopoDS_Shape] = []
+    edges: list[TopoDS_Edge] = []
     sphere_count: int = 0
     for i, row in enumerate(rows):
         if search := re.search(expression_coord, row):

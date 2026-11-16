@@ -11,10 +11,9 @@ from __future__ import annotations
 
 import logging
 import os
-from multiprocessing import parent_process
-
+import sys
 import warnings
-
+from multiprocessing import parent_process
 
 # filter warning of OCP missing
 warnings.filterwarnings("ignore", message=r".*No module named ['\"]OCP['\"].*")
@@ -25,9 +24,14 @@ logger: logging.Logger = logging.getLogger("mcio")
 # Initialise as None
 LOGGER_FILE_HANDLER: logging.FileHandler | None = None
 
-# Robust check: If parent_process() is None, this is the Main Process.
-# In "spawn" mode (Windows), child processes will have a parent_process object.
-if parent_process() is None:
+# Only the main process writes the log file (workers log via a queue). A spawned
+# worker imports this package before parent_process() is set, with sys.argv
+# copied from the main process, so also check its real command line for the flag
+# multiprocessing adds - otherwise each new worker truncates the log file.
+_is_worker_process = (
+    parent_process() is not None or "--multiprocessing-fork" in sys.orig_argv
+)
+if not _is_worker_process:
     # set up logging with a top level handler
     formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 
@@ -51,7 +55,7 @@ else:
     logger.addHandler(logging.NullHandler())
 
 # expose logger and handler
-__all__: list[str] = ["logger", "LOGGER_FILE_HANDLER"]
+__all__: list[str] = ["LOGGER_FILE_HANDLER", "logger"]
 
 # set logger params
 logger.setLevel(logging.INFO)
@@ -96,66 +100,71 @@ LOGGER_LEVELS: LoggerLevels = LoggerLevels()
 
 
 # import modules
-from . import advantg
-from . import cad
-from . import cell
-from . import checkvals
-from . import data
-from . import decomposeparams
-from . import formatting
-from . import geant4
-from . import macrobody
-from . import material
-from . import mcnp
-from . import model
-from . import reader
-from . import serpent2
-from . import source
-from . import surface
-from . import tally
-from . import transform
-from . import volume
-from . import universe
+from . import (
+    advantg,
+    cad,
+    cell,
+    checkvals,
+    data,
+    decomposeparams,
+    formatting,
+    geant4,
+    macrobody,
+    material,
+    mcnp,
+    model,
+    reader,
+    serpent2,
+    source,
+    surface,
+    tally,
+    transform,
+    universe,
+    volume,
+)
 
 # check for optional packages - ocp-cadquery
 try:
     import casadi
     import OCP
-    from . import decompose
-    from . import diagnostic
+
     # from . import inversion
-    from . import ocp
-    from . import ocpbooleans
-    from . import ocpboundingbox
-    from . import ocpfilereadwrite
-    from . import ocpproperties
-    from . import ocprepair
-    from . import ocptomcio
+    from . import (
+        decompose,
+        diagnostic,
+        ocp,
+        ocpbooleans,
+        ocpboundingbox,
+        ocpfilereadwrite,
+        ocpproperties,
+        ocprepair,
+        ocptomcio,
+    )
 
 except ModuleNotFoundError as e:
-    logger.warning(f'[PACKAGE UNAVAILABLE - unable to load OCP]')
+    logger.warning("[PACKAGE UNAVAILABLE - unable to load OCP]")
     logger.warning(e)
 
 # check for optional packages - openmc
 try:
     import openmc
 except ModuleNotFoundError:
-    logger.warning(f"[PACKAGE UNAVAILABLE] - unable to load openmc")
+    logger.warning("[PACKAGE UNAVAILABLE] - unable to load openmc")
 
 # check for optional packages - cadquery
 try:
     import cadquery as cq
 except ModuleNotFoundError:
-    logger.warning(f"[PACKAGE UNAVAILABLE] - unable to load cadquery")
+    logger.warning("[PACKAGE UNAVAILABLE] - unable to load cadquery")
 
 # load constants from data package
 from mcio.data import (
-    ELEMENT,
     ATOMIC_NUMBER,
-    RELATIVE_ATOMIC_MASS,
-    ISOTOPIC_COMPOSITION_BY_ATOM_FRACTION,
-    ISOTOPIC_COMPOSITION_BY_WEIGHT_FRACTION,
-    ZAID_FROM_ISOTOPE,
+    ELEMENT,
     ELEMENT_FROM_ISOTOPE,
     ISOTOPE_FROM_ZAID,
+    ISOTOPIC_COMPOSITION_BY_ATOM_FRACTION,
+    ISOTOPIC_COMPOSITION_BY_WEIGHT_FRACTION,
+    RELATIVE_ATOMIC_MASS,
+    ZAID_FROM_ISOTOPE,
 )

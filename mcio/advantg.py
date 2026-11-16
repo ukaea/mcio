@@ -3,10 +3,10 @@
 Contains classes for writing ADVANTG text input files: :class:`AdvantgCard`,
 :class:`AdvantgHeader` and the main :class:`Advantg` parameter container.
 """
+
 from __future__ import annotations
 
 import os
-from typing import Optional, List, Dict, Union
 
 from .checkvals import numbers_to_strings
 from .formatting import formatting
@@ -274,10 +274,10 @@ class Advantg:
         self,
         model: str = "mcnp",
         method: str = "fwcadis",
-        outputs: Optional[List[str]] = None,
-        mcnp_input: Optional[str] = None,
-        mcnp_tallies: Optional[List[int]] = None,
-        mcnp_material_names: Optional[Dict[int, str]] = None,
+        outputs: list[str] | None = None,
+        mcnp_input: str | None = None,
+        mcnp_tallies: list[int] | None = None,
+        mcnp_material_names: dict[int, str] | None = None,
         mcnp_min_source_samples: float = 1e6,
         mcnp_max_source_samples: float = 1e8,
         mcnp_target_source_density: float = 100.0,
@@ -293,13 +293,13 @@ class Advantg:
         fwcadis_spatial_treatment: str = "pathlength",
         fwcadis_response_weighting: bool = True,
         fwcadis_min_response: float = 0.0,
-        fwcadis_max_response: Union[float, str] = "inf",
+        fwcadis_max_response: float | str = "inf",
         dx_adjoint: bool = False,
         dx_forward: bool = False,
         mesh_refinement: str = "mcnp",
-        mesh_x: Optional[List[float]] = None,
-        mesh_y: Optional[List[float]] = None,
-        mesh_z: Optional[List[float]] = None,
+        mesh_x: list[float] | None = None,
+        mesh_y: list[float] | None = None,
+        mesh_z: list[float] | None = None,
         mesh_x_ints: int = 1,
         mesh_y_ints: int = 1,
         mesh_z_ints: int = 1,
@@ -313,7 +313,7 @@ class Advantg:
         mesh_z_min_width: float = 1.0,
         anisn_library: str = "27n19g",
         anisn_upscatter: bool = False,
-        anisn_zaid_map: Optional[Dict[int, str]] = None,
+        anisn_zaid_map: dict[int, str] | None = None,
         denovo_discretization: str = "sc",
         denovo_x_blocks: int = 1,
         denovo_y_blocks: int = 1,
@@ -333,7 +333,7 @@ class Advantg:
         denovo_mc_num_particles: int = 10000,
         denovo_solver: str = "gmres",
         denovo_multigroup_solver: str = "gauss_seidel",
-        denovo_preconditioner: Optional[bool] = None,
+        denovo_preconditioner: bool | None = None,
         denovo_two_grid: bool = False,
         denovo_krylov_space: int = 20,
         denovo_max_iterations: int = 100,
@@ -343,7 +343,7 @@ class Advantg:
         denovo_upscatter_inner_tolerance: float = 0.01,
         denovo_first_group: int = 0,
         denovo_verbose: bool = True,
-        mcnp_input_template: Optional[str] = None,
+        mcnp_input_template: str | None = None,
         mcnp_mxspln: int = 100,
         mcnp_ww_ratio: float = 5.0,
         mcnp_sb_type: str = "space_energy",
@@ -357,7 +357,7 @@ class Advantg:
         silo_source_ids: bool = True,
         silo_source_strength: bool = True,
         silo_ww: bool = False,
-        silo_edit_reactions: Optional[str] = None,
+        silo_edit_reactions: str | None = None,
         advantg_version: str = "3.2.0",
     ) -> None:
         """Initialise the ADVANTG parameters."""
@@ -373,12 +373,12 @@ class Advantg:
         # driver options
         self.model: str = model
         self.method: str = method
-        self.outputs: List[str] = outputs
+        self.outputs: list[str] = outputs
 
         # model options (mcnp)
-        self.mcnp_input: Optional[str] = mcnp_input
-        self.mcnp_tallies: Optional[List[int]] = mcnp_tallies
-        self.mcnp_material_names: Dict[int, str] = mcnp_material_names
+        self.mcnp_input: str | None = mcnp_input
+        self.mcnp_tallies: list[int] | None = mcnp_tallies
+        self.mcnp_material_names: dict[int, str] = mcnp_material_names
         self.mcnp_min_source_samples: float = mcnp_min_source_samples
         self.mcnp_max_source_samples: float = mcnp_max_source_samples
         self.mcnp_target_source_density: float = mcnp_target_source_density
@@ -396,7 +396,7 @@ class Advantg:
         self.fwcadis_spatial_treatment: str = fwcadis_spatial_treatment
         self.fwcadis_response_weighting: bool = fwcadis_response_weighting
         self.fwcadis_min_response: float = fwcadis_min_response
-        self.fwcadis_max_response: Union[float, str] = fwcadis_max_response
+        self.fwcadis_max_response: float | str = fwcadis_max_response
 
         # dx
         self.dx_adjoint: bool = dx_adjoint
@@ -404,9 +404,9 @@ class Advantg:
 
         # spatial mesh
         self.mesh_refinement: str = mesh_refinement
-        self.mesh_x: Optional[List[float]] = mesh_x
-        self.mesh_y: Optional[List[float]] = mesh_y
-        self.mesh_z: Optional[List[float]] = mesh_z
+        self.mesh_x: list[float] | None = mesh_x
+        self.mesh_y: list[float] | None = mesh_y
+        self.mesh_z: list[float] | None = mesh_z
         self.mesh_x_ints: int = mesh_x_ints
         self.mesh_y_ints: int = mesh_y_ints
         self.mesh_z_ints: int = mesh_z_ints
@@ -422,7 +422,7 @@ class Advantg:
         # multigroup library options
         self.anisn_library: str = anisn_library
         self.anisn_upscatter: bool = anisn_upscatter
-        self.anisn_zaid_map: Optional[Dict[int, str]] = anisn_zaid_map
+        self.anisn_zaid_map: dict[int, str] | None = anisn_zaid_map
 
         # solver options (denovo)
         self.denovo_discretization: str = denovo_discretization
@@ -444,7 +444,7 @@ class Advantg:
         self.denovo_mc_num_particles: int = denovo_mc_num_particles
         self.denovo_solver: str = denovo_solver
         self.denovo_multigroup_solver: str = denovo_multigroup_solver
-        self.denovo_preconditioner: Optional[bool] = denovo_preconditioner
+        self.denovo_preconditioner: bool | None = denovo_preconditioner
         self.denovo_two_grid: bool = denovo_two_grid
         self.denovo_krylov_space: int = denovo_krylov_space
         self.denovo_max_iterations: int = denovo_max_iterations
@@ -456,7 +456,7 @@ class Advantg:
         self.denovo_verbose: bool = denovo_verbose
 
         # output options (mcnp)
-        self.mcnp_input_template: Optional[str] = mcnp_input_template
+        self.mcnp_input_template: str | None = mcnp_input_template
         self.mcnp_mxspln: int = mcnp_mxspln
         self.mcnp_ww_ratio: float = mcnp_ww_ratio
         self.mcnp_sb_type: str = mcnp_sb_type
@@ -471,7 +471,7 @@ class Advantg:
         self.silo_response_ids: bool = silo_response_ids
         self.silo_source_ids: bool = silo_source_ids
         self.silo_ww: bool = silo_ww
-        self.silo_edit_reactions: Optional[str] = silo_edit_reactions
+        self.silo_edit_reactions: str | None = silo_edit_reactions
         self.silo_source_strength: bool = silo_source_strength
 
     def _section(self, header: str, designators: list[str]) -> str:

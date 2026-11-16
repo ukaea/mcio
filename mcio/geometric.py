@@ -8,9 +8,7 @@ test.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import math
-from typing import Dict, List, Tuple, Union
 
 import numpy as np
 
@@ -52,9 +50,7 @@ def check_point_on_axis(x0: float, y0: float, z0: float, tolerance: float) -> st
         return "off_axis"
 
 
-def check_vector_on_axis(
-    u0: float, v0: float, w0: float, tol_axis: float
-) -> str:
+def check_vector_on_axis(u0: float, v0: float, w0: float, tol_axis: float) -> str:
     """Check if a direction vector lies along a primary axis within tolerance.
 
     Parameters
@@ -98,7 +94,7 @@ def check_vector_on_axis(
 
 def check_vector_parallel_to_axis(
     u0: float, v0: float, w0: float, tol_axis: float
-) -> Union[str, bool]:
+) -> str | bool:
     """Determine if a vector is parallel to one of the Cartesian axes.
 
     Parameters
@@ -141,7 +137,7 @@ def calculate_plane_parameters_from_point_and_normal(
     v0: float,
     w0: float,
     reverse: bool = False,
-) -> Tuple[float, float, float, float]:
+) -> tuple[float, float, float, float]:
     """Calculate MCNP plane parameters from a point and a normal vector.
 
     The returned coefficients describe the plane in the MCNP ``P`` card form
@@ -193,7 +189,7 @@ def calculate_plane_from_three_points(
     x2: float,
     y2: float,
     z2: float,
-) -> Tuple[float, float, float, float]:
+) -> tuple[float, float, float, float]:
     """Calculate plane coefficients (a, b, c, d) passing through three 3D points.
 
     The normal is ``(p1 - p0) x (p2 - p0)`` (not normalised), and the plane is
@@ -233,15 +229,13 @@ def calculate_plane_from_three_points(
     normal = np.cross(vec_1, vec_2)
 
     # calculate the general parameters for a plane
-    a, b, c, d = calculate_plane_parameters_from_point_and_normal(
-        x0, y0, z0, *normal
-    )
+    a, b, c, d = calculate_plane_parameters_from_point_and_normal(x0, y0, z0, *normal)
 
     return a, b, c, d
 
 
 def angle_between_vectors(
-    vec_1: Union[List[float], np.ndarray], vec_2: Union[List[float], np.ndarray]
+    vec_1: list[float] | np.ndarray, vec_2: list[float] | np.ndarray
 ) -> float:
     """Calculate the angle in radians between two 3D vectors.
 
@@ -266,9 +260,7 @@ def angle_between_vectors(
 
     # calculate the angle between the vectors in radians, correcting for rounding errors passed to arccos
     angle = np.arccos(
-        np.round(
-            dot_product / (magnitude_vec_1 * magnitude_vec_2), decimals=6
-        )
+        np.round(dot_product / (magnitude_vec_1 * magnitude_vec_2), decimals=6)
     )
 
     # return the angle between vectors in radians
@@ -307,9 +299,7 @@ def distance_between_points(
     return distance
 
 
-def values_within_tolerance(
-    val_1: float, val_2: float, tolerance: float
-) -> bool:
+def values_within_tolerance(val_1: float, val_2: float, tolerance: float) -> bool:
     """Check if two values are within a given absolute tolerance of each other.
 
     Parameters
@@ -395,12 +385,12 @@ class BoundingBox:
         self._z_mid: float = (self._z_min + self._z_max) / 2.0
 
     @property
-    def minimums(self) -> Tuple[float, float, float]:
+    def minimums(self) -> tuple[float, float, float]:
         """Tuple[float, float, float]: Minimum (x, y, z) boundaries."""
         return self._x_min, self._y_min, self._z_min
 
     @property
-    def maximums(self) -> Tuple[float, float, float]:
+    def maximums(self) -> tuple[float, float, float]:
         """Tuple[float, float, float]: Maximum (x, y, z) boundaries."""
         return self._x_max, self._y_max, self._z_max
 
@@ -452,15 +442,9 @@ class BoundingBox:
     @property
     def radius_enclosure(self) -> float:
         """float: Maximum half-diagonal across major 2D projection planes."""
-        radius_xy = (
-            (self._x_length / 2.0) ** 2 + (self._y_length / 2.0) ** 2
-        ) ** 0.5
-        radius_xz = (
-            (self._x_length / 2.0) ** 2 + (self._z_length / 2.0) ** 2
-        ) ** 0.5
-        radius_yz = (
-            (self._y_length / 2.0) ** 2 + (self._z_length / 2.0) ** 2
-        ) ** 0.5
+        radius_xy = ((self._x_length / 2.0) ** 2 + (self._y_length / 2.0) ** 2) ** 0.5
+        radius_xz = ((self._x_length / 2.0) ** 2 + (self._z_length / 2.0) ** 2) ** 0.5
+        radius_yz = ((self._y_length / 2.0) ** 2 + (self._z_length / 2.0) ** 2) ** 0.5
 
         return max([radius_xy, radius_xz, radius_yz])
 
@@ -519,7 +503,7 @@ class BoundingBox:
         self._z_length = z_length
 
     @property
-    def centre(self) -> Tuple[float, float, float]:
+    def centre(self) -> tuple[float, float, float]:
         """Tuple[float, float, float]: Center coordinates (x, y, z)."""
         return self._x_mid, self._y_mid, self._z_mid
 
@@ -539,7 +523,7 @@ class BoundingBox:
         """
         return self._x_length * self._y_length * self._z_length
 
-    def make_cubic(self) -> "BoundingBox":
+    def make_cubic(self) -> BoundingBox:
         """Construct a new cubic bounding box centered on this box.
 
         Returns
@@ -548,9 +532,7 @@ class BoundingBox:
             A new cubic BoundingBox instance.
         """
         # Find longest length
-        max_length_halved = (
-            max(self._x_length, self._y_length, self._z_length) / 2.0
-        )
+        max_length_halved = max(self._x_length, self._y_length, self._z_length) / 2.0
 
         # create new bounding box with all length equal to the maximum length
         bounding_box_cubic = BoundingBox(
@@ -586,7 +568,7 @@ class BoundingBox:
 
         return string
 
-    def __add__(self, value: float) -> "BoundingBox":
+    def __add__(self, value: float) -> BoundingBox:
         """Return a new box grown by ``value`` on every side.
 
         Parameters
@@ -620,7 +602,7 @@ class BoundingBox:
 
         return bounding_box
 
-    def __radd__(self, value: float) -> "BoundingBox":
+    def __radd__(self, value: float) -> BoundingBox:
         """Support ``value + bounding_box`` by delegating to :meth:`__add__`.
 
         Parameters
@@ -635,7 +617,7 @@ class BoundingBox:
         """
         return self + value
 
-    def __mul__(self, multiplier: float) -> "BoundingBox":
+    def __mul__(self, multiplier: float) -> BoundingBox:
         """Return a new box scaled about its centre.
 
         Parameters
@@ -667,7 +649,7 @@ class BoundingBox:
 
         return bounding_box
 
-    def __or__(self, other: "BoundingBox") -> "BoundingBox":
+    def __or__(self, other: BoundingBox) -> BoundingBox:
         """Return the smallest box enclosing both boxes (``self | other``).
 
         Parameters
@@ -696,7 +678,7 @@ class BoundingBox:
             z_max=z_max,
         )
 
-    def __xor__(self, other: Union["BoundingBox", "OrientedBoundingBox"]) -> bool:
+    def __xor__(self, other: BoundingBox | OrientedBoundingBox) -> bool:
         """Check if two bounding boxes overlap (``self ^ other``).
 
         For an AABB the test uses strict inequalities, so boxes that only touch
@@ -729,7 +711,7 @@ class BoundingBox:
         else:
             return False
 
-    def split_to_halves(self) -> Dict[str, "BoundingBox"]:
+    def split_to_halves(self) -> dict[str, BoundingBox]:
         """Split the bounding box into two equal halves along its longest dimension.
 
         Returns
@@ -738,27 +720,15 @@ class BoundingBox:
             Dictionary containing the split child BoundingBox instances.
         """
         tol = 1e-6
-        x_y_lenghts_equal = values_within_tolerance(
-            self._x_length, self._y_length, tol
-        )
-        x_z_lengths_equal = values_within_tolerance(
-            self._x_length, self._z_length, tol
-        )
-        y_z_lengths_equal = values_within_tolerance(
-            self._y_length, self._z_length, tol
-        )
+        x_y_lenghts_equal = values_within_tolerance(self._x_length, self._y_length, tol)
+        x_z_lengths_equal = values_within_tolerance(self._x_length, self._z_length, tol)
+        y_z_lengths_equal = values_within_tolerance(self._y_length, self._z_length, tol)
 
         max_length = max(self._x_length, self._y_length, self._z_length)
 
-        x_full_length = values_within_tolerance(
-            self._x_length, max_length, tol
-        )
-        y_full_length = values_within_tolerance(
-            self._y_length, max_length, tol
-        )
-        z_full_length = values_within_tolerance(
-            self._z_length, max_length, tol
-        )
+        x_full_length = values_within_tolerance(self._x_length, max_length, tol)
+        y_full_length = values_within_tolerance(self._y_length, max_length, tol)
+        z_full_length = values_within_tolerance(self._z_length, max_length, tol)
 
         # case where px split required (square or x is longest length)
         if (x_y_lenghts_equal and x_z_lengths_equal) or x_full_length:
@@ -824,7 +794,7 @@ class BoundingBox:
         # return bounding box halves
         return bounding_boxes_split_to_halves
 
-    def split_to_octants(self) -> Dict[str, "BoundingBox"]:
+    def split_to_octants(self) -> dict[str, BoundingBox]:
         """Split the bounding box into eight equal octant bounding boxes.
 
         Returns
@@ -901,7 +871,7 @@ class BoundingBox:
 
         return bounding_boxes_split_to_octants
 
-    def split(self, n_splits: int = 1) -> List["BoundingBox"]:
+    def split(self, n_splits: int = 1) -> list[BoundingBox]:
         """Recursively halve the box ``n_splits`` times.
 
         Each pass divides every rectangular parallelepiped (RPP) in half along its
@@ -918,13 +888,11 @@ class BoundingBox:
         list of BoundingBox
             The ``2 ** n_splits`` child bounding boxes.
         """
-        bounding_boxes: List[BoundingBox] = [self]
+        bounding_boxes: list[BoundingBox] = [self]
         for split in range(n_splits):
-            bounding_box_results: List[BoundingBox] = []
+            bounding_box_results: list[BoundingBox] = []
             for bounding_box in bounding_boxes:
-                bounding_box_results.extend(
-                    bounding_box.split_to_halves().values()
-                )
+                bounding_box_results.extend(bounding_box.split_to_halves().values())
             bounding_boxes = bounding_box_results
 
         return bounding_boxes
@@ -1007,9 +975,17 @@ def obbs_overlap(
         aRk = abs_R[keep]
         ak = a[keep]
         tk = t[keep]
-        ra = ak[:, i1, np.newaxis] * aRk[:, i2, :] + ak[:, i2, np.newaxis] * aRk[:, i1, :]
-        rb = b[i1][np.newaxis, np.newaxis, :] * aRk[:, :, i2] + b[i2][np.newaxis, np.newaxis, :] * aRk[:, :, i1]
-        sep = np.abs(tk[:, i2, np.newaxis] * Rk[:, i1, :] - tk[:, i1, np.newaxis] * Rk[:, i2, :])
+        ra = (
+            ak[:, i1, np.newaxis] * aRk[:, i2, :]
+            + ak[:, i2, np.newaxis] * aRk[:, i1, :]
+        )
+        rb = (
+            b[i1][np.newaxis, np.newaxis, :] * aRk[:, :, i2]
+            + b[i2][np.newaxis, np.newaxis, :] * aRk[:, :, i1]
+        )
+        sep = np.abs(
+            tk[:, i2, np.newaxis] * Rk[:, i1, :] - tk[:, i1, np.newaxis] * Rk[:, i2, :]
+        )
         overlap[keep] = np.all(sep <= ra + rb, axis=(1, 2))
 
     return overlap
@@ -1033,13 +1009,13 @@ class OrientedBoundingBox:
 
     def __init__(
         self,
-        center: Tuple[float, float, float],
-        axes: Tuple[
-            Tuple[float, float, float],
-            Tuple[float, float, float],
-            Tuple[float, float, float],
+        center: tuple[float, float, float],
+        axes: tuple[
+            tuple[float, float, float],
+            tuple[float, float, float],
+            tuple[float, float, float],
         ],
-        half_lengths: Tuple[float, float, float],
+        half_lengths: tuple[float, float, float],
     ) -> None:
         """Initialise the OBB, normalising each axis to unit length."""
         self._center: np.ndarray = np.array(center, dtype=float)
@@ -1074,7 +1050,7 @@ class OrientedBoundingBox:
             * float(self._half_lengths[2])
         )
 
-    def __mul__(self, multiplier: float) -> "OrientedBoundingBox":
+    def __mul__(self, multiplier: float) -> OrientedBoundingBox:
         """Scale the bounding box half-lengths uniformly about its centre.
 
         Parameters
@@ -1093,7 +1069,7 @@ class OrientedBoundingBox:
             half_lengths=tuple(self._half_lengths * multiplier),
         )
 
-    def __xor__(self, other: Union[BoundingBox, "OrientedBoundingBox"]) -> bool:
+    def __xor__(self, other: BoundingBox | OrientedBoundingBox) -> bool:
         """Check if this OBB intersects another OBB or an AABB.
 
         Uses the Separating Axis Theorem (SAT) with 15 candidate axes (3 from each

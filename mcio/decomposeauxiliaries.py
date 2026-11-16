@@ -12,57 +12,56 @@ import math
 from typing import Any
 
 try:
-    import casadi
-    import OCP
     from OCP.BRepAlgoAPI import BRepAlgoAPI_Cut
     from OCP.BRepBuilderAPI import BRepBuilderAPI_MakeFace
     from OCP.Geom import (
-        Geom_Plane,
-        Geom_CylindricalSurface,
-        Geom_SphericalSurface,
         Geom_ConicalSurface,
+        Geom_CylindricalSurface,
+        Geom_Plane,
+        Geom_SphericalSurface,
         Geom_ToroidalSurface,
     )
     from OCP.GeomLProp import GeomLProp_SLProps
-    from OCP.gp import gp_Pnt, gp_Vec, gp_Dir, gp_Ax3, gp_Pln
+    from OCP.gp import gp_Ax3, gp_Dir, gp_Pln, gp_Pnt, gp_Vec
     from OCP.TopAbs import (
+        TopAbs_EDGE,
+        TopAbs_FACE,
         TopAbs_FORWARD,
         TopAbs_REVERSED,
-        TopAbs_FACE,
-        TopAbs_EDGE,
         TopAbs_WIRE,
     )
-    from OCP.TopoDS import TopoDS_Solid, TopoDS_Face
+    from OCP.TopoDS import TopoDS_Face, TopoDS_Solid
 except Exception as e:
     from mcio import logger
 
-    logger.warning('failed to load OCP')
+    logger.warning("failed to load OCP")
     logger.warning(f"{e}")
 
 
 from mcio import logger
+
 from .decomposeparams import DecompositionParameters
 from .ocp import (
-    _get_ocp_surface_from_ocp_face,
-    extract_ocp_shape_type_from_shape,
-    _get_uv_bounds_from_ocp_faces,
-    _get_normal_at_uv_param_on_ocp_surface,
     _get_normal_at_uv_param_on_ocp_face,
-    point_at_intersection_of_two_lines,
+    _get_normal_at_uv_param_on_ocp_surface,
+    _get_ocp_surface_from_ocp_face,
+    _get_uv_bounds_from_ocp_faces,
     distance_of_point_from_axis,
+    extract_ocp_shape_type_from_shape,
+    point_at_intersection_of_two_lines,
 )
 from .ocpbooleans import (
-    _filter_degenerate_thin_solids_2,
-    _sort_ocp_faces_by_connected,
     _common_ocp_solid,
     _cut_ocp_solid,
+    _filter_degenerate_thin_solids_2,
+    _sort_ocp_faces_by_connected,
     generate_ocp_half_space_from_face,
 )
 from .ocpfilereadwrite import STEPFileWriter
 from .ocpproperties import (
-    check_ocp_planes_coincident,
-    _volume_of_ocp_solids,
     _distance_of_point_along_vector,
+    _volume_of_ocp_solids,
+    check_ocp_planes_coincident,
 )
 
 
@@ -202,7 +201,6 @@ def generate_auxiliary_surfaces_from_solid(
     for face_type, groups_of_connected_faces in faces_grouped_by_connected.items():
         # iterate over faces of given surface type
         for group_of_connected_faces in groups_of_connected_faces:
-
             # generate auxiliary surface for face - and add to collection for whole solid
             auxiliary_surfaces_for_face = AUXILIARY_SURFACE_METHODS[face_type](
                 group_of_connected_faces, decom_params
@@ -294,8 +292,8 @@ def generate_auxiliary_surfaces_from_solid(
 
                 if common_solids_result.legacy_used:
                     logger.debug(
-                        'BOPAlgo_CUT - legacy used follwing commin problem' +\
-                       f'{len(cut_solids)} solids produced'
+                        "BOPAlgo_CUT - legacy used follwing commin problem"
+                        + f"{len(cut_solids)} solids produced"
                     )
 
                 # check volumes conserved
@@ -305,9 +303,11 @@ def generate_auxiliary_surfaces_from_solid(
                 vol_common_and_cut_solids = vol_common + vol_cut
 
                 if vol_common_and_cut_solids == 1e-20:
-                    logger.fatal('vol_common_and_cut_solids vol is zero, divide by zero error encountered')
-                    logger.fatal(f'number of common_solids = {len(common_solids)}')
-                    logger.fatal(f'number of cut_solids = {len(cut_solids)}')
+                    logger.fatal(
+                        "vol_common_and_cut_solids vol is zero, divide by zero error encountered"
+                    )
+                    logger.fatal(f"number of common_solids = {len(common_solids)}")
+                    logger.fatal(f"number of cut_solids = {len(cut_solids)}")
 
                 TOL = 1e-2
                 if abs(1 - (vol_solid_enclosed / vol_common_and_cut_solids)) > TOL:
@@ -350,7 +350,6 @@ def generate_auxiliary_surfaces_from_solid(
 
                 # debugging, possibly suspicous solids... (unlikely to be possible)
                 if len(common_solids) > 1:
-
                     step_writer = STEPFileWriter(decom_params)
                     step_writer.add_solids([solid], "solid")
                     step_writer.add_solids(common_solids, "common_solids")
@@ -369,7 +368,7 @@ def generate_auxiliary_surfaces_from_solid(
                     output_path = step_writer.write(decom_params.debug_cut_common_path)
 
                     msg = (
-                        f"auxiliary halfspace cut and common produced"
+                        "auxiliary halfspace cut and common produced"
                         + f"{len(common_solids)} commons not 1, possible"
                         + f"error - see {output_path}"
                     )
@@ -653,7 +652,7 @@ def generate_auxiliary_surfaces_spheres_from_ocp_face(
 
     # check for case where two coincident and connected spheres are found...
     if len(faces) > 1:
-        msg = f"case where two or more coincident spheres are connected - not yet coded... sorry :("
+        msg = "case where two or more coincident spheres are connected - not yet coded... sorry :("
         # need to split and isolate each spherical face using a plane, as the intersection of two spheres
         # should form an edge along a plane
         logger.fatal(msg)
@@ -747,9 +746,8 @@ def generate_auxiliary_surfaces_spheres_from_ocp_face(
         u_closed_angle < (math.tau - decom_params.aux_surface_sphere_angle_tol)
     ) and not decom_params.aux_surface_sphere_simple:
         # comprehensive case
-        msg = 'sperical non-simple case not yet coded'
+        msg = "sperical non-simple case not yet coded"
         # needs to be coded - if required
-        pass
     else:
         msg = (
             f"[ERROR] - spherical aux case, u_min = {u_min:.2f} "
@@ -802,9 +800,12 @@ def generate_auxiliary_surfaces_cones_from_ocp_faces(
     semi_angle = surface.SemiAngle()
 
     # check if surface is convex or concave
-    if faces[0].Orientation() == TopAbs_REVERSED and (semi_angle > (math.pi / 2.0)):
-        return []
-    elif faces[0].Orientation() == TopAbs_FORWARD and (semi_angle < (math.pi / 2.0)):
+    if (
+        faces[0].Orientation() == TopAbs_REVERSED
+        and (semi_angle > (math.pi / 2.0))
+        or faces[0].Orientation() == TopAbs_FORWARD
+        and (semi_angle < (math.pi / 2.0))
+    ):
         return []
 
     # get the range of u and v across all coincident faces
@@ -911,7 +912,7 @@ def generate_auxiliary_surfaces_cones_from_ocp_faces(
             pass
         else:
             msg = (
-                f"[ERROR] - cone auxiliary surface generation, closed "
+                "[ERROR] - cone auxiliary surface generation, closed "
                 + f"angle {closed_angle:.2f} out of range"
             )
             raise Exception(msg)
@@ -996,7 +997,7 @@ def generate_auxiliary_surfaces_tori_from_ocp_faces(
     props = GeomLProp_SLProps(surface, u_min, v_mid, 1, 1e-6)
     if not props.IsNormalDefined():
         # check a normal is defined
-        msg = f"no normal defined at this point"
+        msg = "no normal defined at this point"
         raise Exception(msg)
     else:
         # get normal and point on the surface at the u v mid point
@@ -1033,7 +1034,6 @@ def generate_auxiliary_surfaces_tori_from_ocp_faces(
         # print('\n\n here - case 1')
 
     elif closed_angle_u < math.pi - TOL_ROUNDING:
-
         if decom_params.aux_surface_tori_aux_surface_simple:
             # carry out simple approach, single plane accross span of major radius
 

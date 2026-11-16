@@ -6,12 +6,10 @@ and placeholder dataclasses intended to hold profiling data.
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Any
-
 import time
-import dataclasses
+from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
 
 
 def function_timer(func: Callable[..., Any]) -> Callable[..., tuple[Any, float]]:
@@ -28,6 +26,7 @@ def function_timer(func: Callable[..., Any]) -> Callable[..., tuple[Any, float]]
         Wrapped function returning a tuple of the original result and the time
         taken in seconds.
     """
+
     def wrapper(*args: Any, **kwargs: Any) -> tuple[Any, float]:
         """Call the wrapped function and time it.
 
@@ -46,7 +45,7 @@ def function_timer(func: Callable[..., Any]) -> Callable[..., tuple[Any, float]]
         # record start time
         time_start = time.time()
 
-        # call function wrapper has been applied to 
+        # call function wrapper has been applied to
         result = func(*args, **kwargs)
 
         # calculate total time taken
@@ -54,7 +53,7 @@ def function_timer(func: Callable[..., Any]) -> Callable[..., tuple[Any, float]]
 
         # return the result of the fucntion wrapper has been applied to, along with total time taken
         return result, time_total
-    
+
     # return the wrapper
     return wrapper
 
@@ -63,11 +62,7 @@ def function_timer(func: Callable[..., Any]) -> Callable[..., tuple[Any, float]]
 class ProfilerDecompositionSolid:
     """Placeholder for profiling data of a single decomposed solid."""
 
-    pass
-
 
 @dataclass
 class ProfilerDecomposer:
     """Placeholder for profiling data of a full decomposition run."""
-
-    pass

@@ -8,12 +8,10 @@ slot holding its description.
 
 from __future__ import annotations
 
-from typing import Any
-
 import dataclasses
 import json
 import warnings
-
+from typing import Any
 
 from .table import Table
 
@@ -49,7 +47,7 @@ class ParameterLookup:
         """
         pairs: list[tuple[str, str]] = []
         for slot in self.__slots__:
-            if slot[:5].lower() == '_def_':
+            if slot[:5].lower() == "_def_":
                 parameter = slot[5:]
                 if parameter in self.__slots__:
                     pairs.append((parameter, slot))
@@ -63,21 +61,21 @@ class ParameterLookup:
         str
             One table per parameter category, concatenated.
         """
-        headings = ['variable', 'value', 'description']
+        headings = ["variable", "value", "description"]
 
         # collect rows per category (first word of the name, upper cased)
         rows_lookup: dict[str, list[list[Any]]] = {key: [] for key in self._rows_lookup}
         for parameter, definition in self._definitions():
-            category = parameter.split('_')[0].upper()
+            category = parameter.split("_")[0].upper()
             row = [parameter, getattr(self, parameter), getattr(self, definition)]
-            rows_lookup[category if category in rows_lookup else 'OTHERS'].append(row)
+            rows_lookup[category if category in rows_lookup else "OTHERS"].append(row)
 
         tables = [
             Table(rows, headers=headings, title=self._titles[category])
             for category, rows in rows_lookup.items()
             if rows
         ]
-        return ''.join([table.as_string for table in tables])
+        return "".join([table.as_string for table in tables])
 
     def write(self, output_path: str) -> None:
         """Write the parameter values to a json file.
@@ -90,7 +88,7 @@ class ParameterLookup:
         data: dict[str, Any] = {
             parameter: getattr(self, parameter) for parameter, _ in self._definitions()
         }
-        with open(output_path, 'w') as output_file:
+        with open(output_path, "w") as output_file:
             json.dump(data, output_file, indent=4)
 
     @classmethod
@@ -118,7 +116,7 @@ class ParameterLookup:
         params = cls()
         names = {field.name.lower(): field.name for field in dataclasses.fields(cls)}
 
-        with open(input_path, 'r') as input_file:
+        with open(input_path, "r") as input_file:
             data = json.load(input_file)
 
         for key, value in data.items():
