@@ -59,7 +59,7 @@ try:
     from OCP.StlAPI import StlAPI_Writer
     from OCP.TCollection import TCollection_AsciiString, TCollection_ExtendedString
     from OCP.TDataStd import TDataStd_Name
-    from OCP.TDF import TDF_Label, TDF_LabelSequence
+    from OCP.TDF import TDF_Label
     from OCP.TDocStd import TDocStd_Document
     from OCP.TopAbs import (
         TopAbs_COMPOUND,
@@ -75,18 +75,21 @@ try:
     from OCP.TopExp import TopExp_Explorer
     from OCP.TopLoc import TopLoc_Location
     from OCP.TopoDS import (
-        TopoDS,
         TopoDS_Compound,
         TopoDS_Face,
         TopoDS_Shape,
         TopoDS_Solid,
+    )
+    from mcio.ocpcompat import (
+        TDF_LabelSequence,
+        XCAFPrs_IndexedDataMapOfShapeStyle,
+        topods_cast,
     )
     from OCP.XCAFApp import XCAFApp_Application
     from OCP.XCAFDoc import XCAFDoc_ColorGen, XCAFDoc_ColorSurf, XCAFDoc_DocumentTool
     from OCP.XCAFPrs import (
         XCAFPrs_DocumentExplorer,
         XCAFPrs_DocumentExplorerFlags_None,
-        XCAFPrs_IndexedDataMapOfShapeStyle,
         XCAFPrs_Style,
     )
 
@@ -103,14 +106,14 @@ try:
     )
 
     TOPODS_CAST_METHODS: dict[TopAbs_ShapeEnum, Callable[[TopoDS_Shape], Any]] = {
-        TopAbs_COMPOUND: TopoDS.Compound_s,
-        TopAbs_COMPSOLID: TopoDS.CompSolid_s,
-        TopAbs_SOLID: TopoDS.Solid_s,
-        TopAbs_SHELL: TopoDS.Shell_s,
-        TopAbs_FACE: TopoDS.Face_s,
-        TopAbs_WIRE: TopoDS.Wire_s,
-        TopAbs_EDGE: TopoDS.Edge_s,
-        TopAbs_VERTEX: TopoDS.Vertex_s,
+        TopAbs_COMPOUND: topods_cast.Compound,
+        TopAbs_COMPSOLID: topods_cast.CompSolid,
+        TopAbs_SOLID: topods_cast.Solid,
+        TopAbs_SHELL: topods_cast.Shell,
+        TopAbs_FACE: topods_cast.Face,
+        TopAbs_WIRE: topods_cast.Wire,
+        TopAbs_EDGE: topods_cast.Edge,
+        TopAbs_VERTEX: topods_cast.Vertex,
         TopAbs_SHAPE: lambda shape: shape,
     }
 
@@ -1072,14 +1075,14 @@ def downcast_ocp_shape(shape: TopoDS_Shape) -> TopoDS_Shape:
     casting_method_loopuk: dict[
         TopAbs_ShapeEnum, Callable[[TopoDS_Shape], TopoDS_Shape]
     ] = {
-        TopAbs_COMPOUND: TopoDS.Compound_s,
-        TopAbs_COMPSOLID: TopoDS.CompSolid_s,
-        TopAbs_SOLID: TopoDS.Solid_s,
-        TopAbs_SHELL: TopoDS.Shell_s,
-        TopAbs_FACE: TopoDS.Face_s,
-        TopAbs_WIRE: TopoDS.Wire_s,
-        TopAbs_EDGE: TopoDS.Edge_s,
-        TopAbs_VERTEX: TopoDS.Vertex_s,
+        TopAbs_COMPOUND: topods_cast.Compound,
+        TopAbs_COMPSOLID: topods_cast.CompSolid,
+        TopAbs_SOLID: topods_cast.Solid,
+        TopAbs_SHELL: topods_cast.Shell,
+        TopAbs_FACE: topods_cast.Face,
+        TopAbs_WIRE: topods_cast.Wire,
+        TopAbs_EDGE: topods_cast.Edge,
+        TopAbs_VERTEX: topods_cast.Vertex,
     }
 
     return casting_method_loopuk[shape.ShapeType()](shape)
@@ -1334,11 +1337,11 @@ def _get_ocp_surface_from_ocp_face(
         The face's surface.
     """
     # extract surface from face
-    surface: Geom_Surface = BRep_Tool.Surface_s(TopoDS.Face_s(face))
+    surface: Geom_Surface = BRep_Tool.Surface_s(topods_cast.Face(face))
 
     # check if it's Geom_RectangularTrimmedSurface
     if remove_trimmed_surface and isinstance(surface, Geom_RectangularTrimmedSurface):
-        surface = BRep_Tool.Surface_s(TopoDS.Face_s(face)).BasisSurface()
+        surface = BRep_Tool.Surface_s(topods_cast.Face(face)).BasisSurface()
 
     # return surface
     return surface

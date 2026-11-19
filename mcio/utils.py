@@ -19,7 +19,7 @@ import inspect
 import os
 
 try:
-    from OCP.TDF import TDF_LabelSequence
+    from mcio.ocpcompat import TDF_LabelSequence
 except:
     pass
 

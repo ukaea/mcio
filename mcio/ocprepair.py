@@ -31,7 +31,8 @@ try:
         TopAbs_VERTEX,
         TopAbs_WIRE,
     )
-    from OCP.TopoDS import TopoDS, TopoDS_Edge, TopoDS_Solid
+    from OCP.TopoDS import TopoDS_Edge, TopoDS_Solid
+    from mcio.ocpcompat import topods_cast
 
     TOP_ABS_SHAPES: tuple[TopAbs_ShapeEnum, ...] = (
         TopAbs_COMPOUND,
@@ -46,14 +47,14 @@ try:
     )
 
     TOPODS_CAST_METHODS: dict[TopAbs_ShapeEnum, Callable[[TopoDS_Shape], Any]] = {
-        TopAbs_COMPOUND: TopoDS.Compound_s,
-        TopAbs_COMPSOLID: TopoDS.CompSolid_s,
-        TopAbs_SOLID: TopoDS.Solid_s,
-        TopAbs_SHELL: TopoDS.Shell_s,
-        TopAbs_FACE: TopoDS.Face_s,
-        TopAbs_WIRE: TopoDS.Wire_s,
-        TopAbs_EDGE: TopoDS.Edge_s,
-        TopAbs_VERTEX: TopoDS.Vertex_s,
+        TopAbs_COMPOUND: topods_cast.Compound,
+        TopAbs_COMPSOLID: topods_cast.CompSolid,
+        TopAbs_SOLID: topods_cast.Solid,
+        TopAbs_SHELL: topods_cast.Shell,
+        TopAbs_FACE: topods_cast.Face,
+        TopAbs_WIRE: topods_cast.Wire,
+        TopAbs_EDGE: topods_cast.Edge,
+        TopAbs_VERTEX: topods_cast.Vertex,
         TopAbs_SHAPE: lambda shape: shape,
     }
 

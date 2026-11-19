@@ -18,6 +18,11 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from OCP.TopAbs import TopAbs_ShapeEnum
     from OCP.TopoDS import TopoDS_CompSolid
+    from mcio.ocpcompat import (
+        TDF_LabelSequence,
+        TopTools_IndexedMapOfShape,
+        topods_cast,
+    )
     from OCP.XCAFDoc import XCAFDoc_ShapeTool
 
 
@@ -61,7 +66,7 @@ try:
     from OCP.gp import gp_Ax2, gp_Ax3, gp_Dir, gp_Pln, gp_Pnt, gp_Vec
     from OCP.TCollection import TCollection_AsciiString, TCollection_ExtendedString
     from OCP.TDataStd import TDataStd_Name
-    from OCP.TDF import TDF_Label, TDF_LabelSequence
+    from OCP.TDF import TDF_Label
     from OCP.TDocStd import TDocStd_Document
     from OCP.TopAbs import (
         TopAbs_COMPOUND,
@@ -79,8 +84,7 @@ try:
     )
     from OCP.TopExp import TopExp, TopExp_Explorer
     from OCP.TopLoc import TopLoc_Location
-    from OCP.TopoDS import TopoDS, TopoDS_Edge, TopoDS_Face, TopoDS_Shape, TopoDS_Solid
-    from OCP.TopTools import TopTools_IndexedMapOfShape
+    from OCP.TopoDS import TopoDS_Edge, TopoDS_Face, TopoDS_Shape, TopoDS_Solid
     from OCP.XCAFApp import XCAFApp_Application
 
     TOP_ABS_SHAPES: tuple[TopAbs_ShapeEnum, ...] = (
@@ -98,14 +102,14 @@ try:
     TOPODS_CAST_METHODS: dict[
         TopAbs_ShapeEnum, Callable[[TopoDS_Shape], TopoDS_Shape]
     ] = {
-        TopAbs_COMPOUND: TopoDS.Compound_s,
-        TopAbs_COMPSOLID: TopoDS.CompSolid_s,
-        TopAbs_SOLID: TopoDS.Solid_s,
-        TopAbs_SHELL: TopoDS.Shell_s,
-        TopAbs_FACE: TopoDS.Face_s,
-        TopAbs_WIRE: TopoDS.Wire_s,
-        TopAbs_EDGE: TopoDS.Edge_s,
-        TopAbs_VERTEX: TopoDS.Vertex_s,
+        TopAbs_COMPOUND: topods_cast.Compound,
+        TopAbs_COMPSOLID: topods_cast.CompSolid,
+        TopAbs_SOLID: topods_cast.Solid,
+        TopAbs_SHELL: topods_cast.Shell,
+        TopAbs_FACE: topods_cast.Face,
+        TopAbs_WIRE: topods_cast.Wire,
+        TopAbs_EDGE: topods_cast.Edge,
+        TopAbs_VERTEX: topods_cast.Vertex,
         TopAbs_SHAPE: lambda shape: shape,
     }
 
@@ -590,7 +594,7 @@ def get_common_ocp_edges_in_ocp_faces(
             common_edges.append(edge_1)
 
     # cast generic shape to edge
-    common_edges_cast = [TopoDS.Edge_s(edge) for edge in common_edges]
+    common_edges_cast = [topods_cast.Edge(edge) for edge in common_edges]
 
     return common_edges_cast
 

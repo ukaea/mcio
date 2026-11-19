@@ -89,6 +89,14 @@ mcio.diagnostic
    :undoc-members:
    :show-inheritance:
 
+mcio.ocpcompat
+--------------
+
+.. automodule:: mcio.ocpcompat
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 mcio.ocpfilereadwrite
 ---------------------
 
