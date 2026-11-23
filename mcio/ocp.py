@@ -87,6 +87,12 @@ try:
     from OCP.TopoDS import TopoDS_Edge, TopoDS_Face, TopoDS_Shape, TopoDS_Solid
     from OCP.XCAFApp import XCAFApp_Application
 
+    from mcio.ocpcompat import (
+        TDF_LabelSequence,
+        TopTools_IndexedMapOfShape,
+        topods_cast,
+    )
+
     TOP_ABS_SHAPES: tuple[TopAbs_ShapeEnum, ...] = (
         TopAbs_COMPOUND,
         TopAbs_COMPSOLID,
