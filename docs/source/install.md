@@ -38,11 +38,11 @@ python -m sphinx -b html docs/source docs/build/html
 ## OpenMC
 
 Writing OpenMC XML files requires the OpenMC Python API; see the
-[OpenMC installation guide](https://docs.openmc.org/en/stable/quickinstall.html). The test suite also needs it, and
-CI installs it at a fixed commit with:
+[OpenMC installation guide](https://docs.openmc.org/en/stable/quickinstall.html). The test suite also needs it. The
+latest development version can be installed with:
 
 ```bash
-python -m pip install "openmc @ git+https://github.com/openmc-dev/openmc.git@83a30f6860c79fac8fd58584489cc0d1abcb0376"
+python -m pip install "openmc @ git+https://github.com/openmc-dev/openmc.git"
 ```
 
 ## Conda installation for CadQuery-OCP
@@ -103,7 +103,7 @@ Now install the cadquery-ocp package in conda:
 load_conda
 
 # install cadquery and ocp
-conda create --name ocp -c conda-forge cadquery ocp python=3.13 pip -y
+conda create --name ocp -c conda-forge cadquery ocp python=3.14 pip -y
 
 # activate the ocp conda environment
 conda activate ocp

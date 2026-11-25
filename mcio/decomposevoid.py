@@ -55,7 +55,8 @@ try:
     from OCP.gp import gp_Pnt
     from OCP.TopAbs import TopAbs_IN, TopAbs_VERTEX
     from OCP.TopExp import TopExp_Explorer
-    from OCP.TopoDS import TopoDS, TopoDS_Solid
+    from OCP.TopoDS import TopoDS_Solid
+    from mcio.ocpcompat import topods_cast
 except Exception as e:
     from mcio import logger
 
@@ -206,7 +207,7 @@ class _OctreeData:
         vertices: list[tuple[float, float, float]] = []
         explorer = TopExp_Explorer(self.split_solids[index].split_solid, TopAbs_VERTEX)
         while explorer.More():
-            p = BRep_Tool.Pnt_s(TopoDS.Vertex_s(explorer.Current()))
+            p = BRep_Tool.Pnt_s(topods_cast.Vertex(explorer.Current()))
             vertices.append((p.X(), p.Y(), p.Z()))
             explorer.Next()
         if not vertices:
