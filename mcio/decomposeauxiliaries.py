@@ -65,6 +65,31 @@ from .ocpproperties import (
 )
 
 
+def _volume_is_conserved(
+    volume_original: float, volume_parts: float, tolerance: float
+) -> bool:
+    """Check the volumes of the parts of a split solid sum to its original volume.
+
+    Parameters
+    ----------
+    volume_original : float
+        Volume of the solid before it was split.
+    volume_parts : float
+        Total volume of the solids produced by splitting it (common and cut).
+    tolerance : float
+        Maximum relative difference ``|1 - volume_original / volume_parts|``.
+
+    Returns
+    -------
+    bool
+        True if the volumes agree within the tolerance. False if they do not, or
+        if the parts have no volume (no relative difference can be calculated).
+    """
+    if not volume_parts > 0.0:
+        return False
+    return abs(1 - (volume_original / volume_parts)) <= tolerance
+
+
 def generate_auxiliary_surfaces_from_solids(
     solids: list[TopoDS_Solid], decom_params: DecompositionParameters
 ) -> dict[TopoDS_Solid, dict[TopoDS_Face, list[list[Any]]]]:
@@ -257,11 +282,15 @@ def generate_auxiliary_surfaces_from_solid(
                 )
                 common_solids = common_solids_result.solids
 
-                # check if the legacy and leanup fall back methods used
+                # check if the legacy and cleanup fall back methods used
                 if common_solids_result.legacy_used:
                     logger.debug("BOPAlgo_COMMON - legacy used")
                 if common_solids_result.solids_cleaned:
                     logger.debug("BOPAlgo_COMMON - cleanup used")
+
+                # reset for each auxiliary surface, so a result from an earlier
+                # surface is never read if the cut is skipped
+                cut_solids_result = None
 
                 # check to see if cut solids are required, if so, apply cut operation
                 if (
@@ -296,21 +325,17 @@ def generate_auxiliary_surfaces_from_solid(
                         + f"{len(cut_solids)} solids produced"
                     )
 
-                # check volumes conserved
+                # check volumes conserved, and that a common solid was produced
+                # (the first common solid is taken as the enclosed solid below)
                 vol_solid_enclosed = _volume_of_ocp_solids([solid_enclosed])
                 vol_common = _volume_of_ocp_solids(common_solids)
                 vol_cut = _volume_of_ocp_solids(cut_solids)
                 vol_common_and_cut_solids = vol_common + vol_cut
 
-                if vol_common_and_cut_solids == 1e-20:
-                    logger.fatal(
-                        "vol_common_and_cut_solids vol is zero, divide by zero error encountered"
-                    )
-                    logger.fatal(f"number of common_solids = {len(common_solids)}")
-                    logger.fatal(f"number of cut_solids = {len(cut_solids)}")
-
                 TOL = 1e-2
-                if abs(1 - (vol_solid_enclosed / vol_common_and_cut_solids)) > TOL:
+                if not common_solids or not _volume_is_conserved(
+                    vol_solid_enclosed, vol_common_and_cut_solids, TOL
+                ):
                     # save operation solids to step file
                     tool = generate_ocp_half_space_from_face(
                         face_auxiliary,
@@ -339,11 +364,26 @@ def generate_auxiliary_surfaces_from_solid(
                     )
 
                     # output message to logger and raise exception
-                    msg = f"auxiliary halfspace cut and common failed. Vol of solid = {vol_solid_enclosed:.6e} | vol of cut = {vol_common:.6e} | vol of common = {vol_common:.6e} | cut + common = {vol_common_and_cut_solids:.6e} - see {output_path}"
+                    reason = (
+                        "no common solids produced"
+                        if not common_solids
+                        else "volume not conserved"
+                    )
+                    msg = (
+                        f"auxiliary halfspace cut and common failed ({reason}). "
+                        + f"Vol of solid = {vol_solid_enclosed:.6e} | "
+                        + f"vol of cut = {vol_cut:.6e} ({len(cut_solids)} solids) | "
+                        + f"vol of common = {vol_common:.6e} ({len(common_solids)} solids) | "
+                        + f"cut + common = {vol_common_and_cut_solids:.6e} - see {output_path}"
+                    )
                     logger.fatal(msg)
                     raise Exception(msg)
 
-                elif common_solids_result.legacy_used and cut_solids_result.legacy_used:
+                elif (
+                    cut_solids_result is not None
+                    and common_solids_result.legacy_used
+                    and cut_solids_result.legacy_used
+                ):
                     logger.warning(
                         "common and cut sucessful following fallback to legacy method"
                     )
