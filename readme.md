@@ -49,10 +49,10 @@ cd mcio
 python -m pip install ".[dev,docs,cad,jupyter]"
 ```
 
-The test suite also needs OpenMC; CI installs it with:
+The test suite also needs OpenMC:
 
 ```bash
-python -m pip install "openmc @ git+https://github.com/openmc-dev/openmc.git@83a30f6860c79fac8fd58584489cc0d1abcb0376"
+python -m pip install "openmc @ git+https://github.com/openmc-dev/openmc.git"
 ```
 
 ## Quick start
