@@ -423,6 +423,14 @@ def main() -> argparse.Namespace | None:
     # Parse args
     args = parser.parse_args()
 
+    # decompose needs input files, except when only writing the parameters file
+    if (
+        args.command == "decompose"
+        and not args.input
+        and not args.write_decompose_parameters
+    ):
+        decomp.error("the following arguments are required: --input/-i")
+
     # handle help for sub-parsers
     if (args.command == "help") or (args.command is None):
         if args.command is None:

@@ -95,6 +95,21 @@ class MCIOUnitTestCLI(unittest.TestCase):
         args, _ = parse("decompose", "-i", "model.stp", "model_2.stp", "-c", "12")
         self.assertEqual(args.cores, 12)
 
+    def test_decompose_without_input_is_a_usage_error(self):
+        stderr = io.StringIO()
+        with (
+            self.assertRaises(SystemExit) as raised,
+            contextlib.redirect_stderr(stderr),
+        ):
+            parse("decompose")
+        self.assertEqual(raised.exception.code, 2)
+        self.assertIn("--input", stderr.getvalue())
+
+    def test_decompose_write_parameters_needs_no_input(self):
+        args, _ = parse("decompose", "-wdp")
+        self.assertIsNone(args.input)
+        self.assertEqual(args.write_decompose_parameters, "decompose_parameters.json")
+
     def test_unknown_option_exits(self):
         with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):
             parse("decompose", "-i", "a.stp", "-n", "12")
