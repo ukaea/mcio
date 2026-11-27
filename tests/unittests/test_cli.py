@@ -95,6 +95,47 @@ class MCIOUnitTestCLI(unittest.TestCase):
         args, _ = parse("decompose", "-i", "model.stp", "model_2.stp", "-c", "12")
         self.assertEqual(args.cores, 12)
 
+    def _run_decompose_with_mock_decomposer(self, *argv):
+        """Run ``run_decompose`` with a mocked decomposer, returning its solids."""
+        import mcio.__main__ as cli
+
+        solids = [
+            mock.Mock(split_solids=[], profile_time_decomposition=0.0) for _ in range(3)
+        ]
+        decomposer = mock.Mock(decomposition_solids=solids)
+        decomposer.decom_params.debug_large_number_of_split_solids = 50
+        decomposer.decom_params.debug_long_conversion_time = 20.0
+        decomposer.decom_params.debug_save_solid = "analysis/solids"
+        fake_mcio = mock.Mock()
+        fake_mcio.decompose.Decomposer.return_value = decomposer
+        fake_importlib = mock.Mock()
+        fake_importlib.util.find_spec.return_value = None  # no openmc output
+
+        # run_decompose uses module globals the __main__ block normally imports
+        with mock.patch.multiple(
+            cli,
+            create=True,
+            mcio=fake_mcio,
+            importlib=fake_importlib,
+            logger=mock.Mock(),
+            LOGGER_LEVELS=mock.Mock(),
+            DecompositionParameters=mock.Mock(),
+            STEPFileWriter=mock.Mock(),
+        ):
+            args, _ = parse("decompose", "-i", "a.stp", *argv)
+            cli.run_decompose(args)
+        return solids
+
+    def test_decompose_saves_solids_only_when_debugging(self):
+        for solid in self._run_decompose_with_mock_decomposer():
+            solid.save.assert_not_called()
+
+        solids = self._run_decompose_with_mock_decomposer("--debug")
+        for i, solid in enumerate(solids, start=1):
+            solid.save.assert_called_once_with(
+                os.path.join("analysis/solids", f"decomposed_solid_{i}.step")
+            )
+
     def test_unknown_option_exits(self):
         with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):
             parse("decompose", "-i", "a.stp", "-n", "12")
