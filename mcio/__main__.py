@@ -126,11 +126,15 @@ def run_decompose(args: argparse.Namespace) -> None:
                 f"solid_{i} produced {n_split_solids} split solids - see {output_path}"
             )
 
-        output_path = decomposition_solid.save(
-            os.path.join(
-                decomposer.decom_params.debug_save_solid, f"decomposed_solid_{i}.step"
+        # save every decomposed solid only when debugging, as large models
+        # otherwise produce a large number of STEP files
+        if args.debug:
+            decomposition_solid.save(
+                os.path.join(
+                    decomposer.decom_params.debug_save_solid,
+                    f"decomposed_solid_{i}.step",
+                )
             )
-        )
 
     # save void octree
     if args.save_voids:
