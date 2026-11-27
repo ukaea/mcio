@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import sys
 
 
 def run_decompose(args: argparse.Namespace) -> None:
@@ -438,6 +439,10 @@ def main() -> argparse.Namespace | None:
 
 if __name__ == "__main__":
     args = main()
+
+    # help was printed (no command, or the help command), so there is nothing to run
+    if args is None:
+        sys.exit(0)
 
     # store functions for command line methods
     METHODS = {

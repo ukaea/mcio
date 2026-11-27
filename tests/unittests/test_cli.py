@@ -5,10 +5,15 @@ unittest: command line parser - sub-command arguments, defaults and help.
 import contextlib
 import io
 import os
+import subprocess
+import sys
 import unittest
 from unittest import mock
 
 from mcio.__main__ import main
+
+# run python -m mcio from the repository root, so this checkout's mcio is imported
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 def parse(*argv):
@@ -94,6 +99,22 @@ class MCIOUnitTestCLI(unittest.TestCase):
         self.assertIn("-c 12", output)
         args, _ = parse("decompose", "-i", "model.stp", "model_2.stp", "-c", "12")
         self.assertEqual(args.cores, 12)
+
+    def test_help_runs_without_error_from_command_line(self):
+        # python -m mcio with no command, or help <topic>, prints help and exits 0
+        for argv in ([], ["help"], ["help", "decompose"]):
+            with self.subTest(argv=argv):
+                result = subprocess.run(
+                    [sys.executable, "-m", "mcio", *argv],
+                    cwd=REPO_ROOT,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                    timeout=300,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn("decompose", result.stdout)
+                self.assertNotIn("Traceback", result.stderr)
 
     def test_unknown_option_exits(self):
         with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):
