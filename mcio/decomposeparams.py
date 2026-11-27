@@ -7,6 +7,7 @@ decomposition, together with a human-readable definition of each parameter.
 
 from __future__ import annotations
 
+import copy
 import dataclasses
 import math
 import warnings
@@ -103,6 +104,7 @@ class DecompositionParameters(ParameterLookup):
     split_skip_non_cutting_planes: bool = True
     split_skip_non_cutting_planes_rel_tol: float = 1e-7
     split_solid_timeout: float = 200.0
+    split_volume_warning_tol: float = 1e-3
 
     _def_split_max_distnace_between_face_and_halfspace: str = (
         "max dist between face and halfspace used to recursively split"
@@ -111,34 +113,36 @@ class DecompositionParameters(ParameterLookup):
     _def_split_sew: str = "split sew to solids following recursive splitting"
     _def_split_skip_non_cutting_planes: str = "skip the half space and split of planar faces whose plane leaves the whole solid on the material side (they cannot split it)"
     _def_split_skip_non_cutting_planes_rel_tol: str = "tolerance, relative to the solid size, for a solid to count as lying behind a planar face"
-    _def_split_solid_timeout: str = "multiprocess runs only: seconds a single solid may take to decompose before its worker is stopped and the solid is saved as failed to convert (0 for no limit)"
+    _def_split_solid_timeout: str = "multiprocess runs only: seconds a single decomposition attempt may take, before its worker is stopped and the solid is saved as failed to convert, multiplied by the number of attempts (0 for no limit)"
+    _def_split_volume_warning_tol: str = "log a warning for any solid whose decomposed volume differs from its original volume by more than this relative amount"
 
-    # boolean operation settings
-    bool_common_fuzzy_value: float = 1e-6
-    bool_cutter_fuzzy_value: float = 1e-6
-    bool_splitter_fuzzy_value: float = 1e-6
-
-    bool_degenerate_min_area_to_vol_ratio: float = 1e-4
-    bool_degenerate_min_vol_fraction_of_original: float = 1e-10
-    bool_degenerate_min_ab_vol: float = 1e-10
-
-    _def_bool_common_fuzzy_value: str = (
-        "fuzzy logic value passed to common boolean operation"
+    bool_common_fuzzy_values: list[float] = dataclasses.field(
+        default_factory=lambda: [1e-6, 1e-5, 1e-4]
     )
-    _def_bool_cutter_fuzzy_value: str = (
-        "fuzzy logic value passed to the cut boolean operation"
+    bool_cutter_fuzzy_values: list[float] = dataclasses.field(
+        default_factory=lambda: [1e-6, 1e-5, 1e-4]
     )
-    _def_bool_splitter_fuzzy_value: str = (
-        "fuzzy logic value passed to the split boolean operation"
+    bool_splitter_fuzzy_values: list[float] = dataclasses.field(
+        default_factory=lambda: [1e-6, 1e-5, 1e-4]
     )
 
-    _def_bool_degenerate_min_area_to_vol_ratio: str = "area to vol ration limit, used to filter degenerate solids in boolean operations"
-    _def_bool_degenerate_min_vol_fraction_of_original: str = (
-        "minumum volume required as a fraction of the original solid"
+    bool_degenerate_min_area_to_vol_ratio_values: list[float] = dataclasses.field(
+        default_factory=lambda: [1e-4, 1e-6, 1e-8]
     )
-    _def_bool_degenerate_min_ab_vol: str = (
-        "minimum volume of any split solid produced via boolean operation"
+    bool_degenerate_min_vol_fraction_of_original_values: list[float] = (
+        dataclasses.field(default_factory=lambda: [1e-10, 1e-12, 1e-14])
     )
+    bool_degenerate_min_ab_vol_values: list[float] = dataclasses.field(
+        default_factory=lambda: [1e-10, 1e-12, 1e-14]
+    )
+
+    _def_bool_common_fuzzy_values: str = "fuzzy logic value passed to common boolean operation, one value per decomposition attemp, ascending values with gradually looser tolerances"
+    _def_bool_cutter_fuzzy_values: str = "fuzzy logic value passed to the cut boolean operation, one value per decomposition attempt"
+    _def_bool_splitter_fuzzy_values: str = "fuzzy logic value passed to the split boolean operation, one value per decomposition attempt"
+
+    _def_bool_degenerate_min_area_to_vol_ratio_values: str = "volume to area ratio limit (about a third of the thickness), used to filter degenerate solids in boolean operations, one value per decomposition attempt"
+    _def_bool_degenerate_min_vol_fraction_of_original_values: str = "minumum volume required as a fraction of the original solid, one value per decomposition attempt"
+    _def_bool_degenerate_min_ab_vol_values: str = "minimum volume of any split solid produced via boolean operation, one value per decomposition attempt"
 
     # tolerances
     make_face_tol: float = 1e-6
@@ -416,6 +420,9 @@ class DecompositionParameters(ParameterLookup):
     )
 
     debug_trackback_directory: str = "analysis/trackbacks"
+    debug_failed_solid_report_directory: str = "analysis/failed_solid_reports"
+
+    _def_debug_failed_solid_report_directory: str = "debug: save a report on each solid which fails to decompose (error, attempts, geometry summary, suspicious features) to this directory"
 
     _def_debug_cut_fatal_path: str = (
         "debugging: path of failed cut operations, dumps solids to step file"
@@ -493,7 +500,11 @@ class DecompositionParameters(ParameterLookup):
     _def_other_nominal_gap: str = ""
 
     def __post_init__(self) -> None:
-        """Initialise the table row lookup and table titles used for printing."""
+        """Initialise the attempt, table row lookup and table titles used for printing."""
+        # index of the decomposition attempt, which selects the value used from
+        # each of the parameters with one value per attempt
+        self._attempt: int = 0
+
         # define sub category string (first word of the parameter name, upper cased)
         self._rows_lookup: dict[str, list[list[Any]]] = {
             "DOC": [],
@@ -522,6 +533,49 @@ class DecompositionParameters(ParameterLookup):
             "MODEL": "model",
             "DEBUG": "debugging",
             "OTHERS": "other parameters",
+        }
+
+    @property
+    def attempt(self) -> int:
+        """int: Index of the decomposition attempt these parameters are used for."""
+        return self._attempt
+
+    @property
+    def n_attempts(self) -> int:
+        """int: Number of decomposition attempts, the length of the longest list."""
+        return max(len(getattr(self, name)) for name in _PER_ATTEMPT_PARAMETERS)
+
+    def for_attempt(self, attempt: int) -> DecompositionParameters:
+        """Return a copy of the parameters set to a decomposition attempt.
+
+        In the copy, ``bool_common_fuzzy_value`` and the other single value names
+        return the entry of the matching list for this attempt (the last entry of
+        a list shorter than the number of attempts).
+
+        Parameters
+        ----------
+        attempt : int
+            Index of the attempt, starting at 0.
+
+        Returns
+        -------
+        DecompositionParameters
+            Independent copy of the parameters, set to the attempt.
+        """
+        params = copy.deepcopy(self)
+        params._attempt = attempt
+        return params
+
+    def attempt_values(self) -> dict[str, float]:
+        """Return the values used for the current attempt, by single value name.
+
+        Returns
+        -------
+        dict[str, float]
+            e.g. ``{"bool_common_fuzzy_value": 1e-06, ...}``.
+        """
+        return {
+            single: getattr(self, single) for single in _PER_ATTEMPT_PARAMETERS.values()
         }
 
     def __getattr__(self, name: str) -> Any:
@@ -574,6 +628,8 @@ class DecompositionParameters(ParameterLookup):
                 stacklevel=2,
             )
             name = lower
+        if name in _PER_ATTEMPT_PARAMETERS:
+            value = _validated_values(name, value)
         object.__setattr__(self, name, value)
 
 
@@ -581,3 +637,81 @@ class DecompositionParameters(ParameterLookup):
 _FIELD_NAMES: frozenset[str] = frozenset(
     field.name for field in dataclasses.fields(DecompositionParameters)
 )
+
+
+def _validated_values(name: str, value: Any) -> list[float]:
+    """Check the value of a parameter with one value per decomposition attempt.
+
+    Parameters
+    ----------
+    name : str
+        Name of the parameter, for error messages.
+    value : Any
+        A list (or tuple) of numbers, or a single number which is used as a list
+        of one value (so a single attempt).
+
+    Returns
+    -------
+    list[float]
+        The values.
+
+    Raises
+    ------
+    ValueError
+        If there are no values, or a value is not a finite number of at least zero.
+    """
+    values = list(value) if isinstance(value, (list, tuple)) else [value]
+    if not values:
+        raise ValueError(f"{name} must have at least one value")
+    checked: list[float] = []
+    for item in values:
+        if isinstance(item, bool) or not isinstance(item, (int, float)):
+            raise ValueError(f"{name} values must be numbers, not {item!r}")
+        if not math.isfinite(item) or item < 0:
+            raise ValueError(f"{name} values must be finite and not negative: {item}")
+        checked.append(float(item))
+    return checked
+
+
+def _current_value_property(values_name: str) -> property:
+    """Make the single value property for a parameter with one value per attempt.
+
+    Reading returns the entry for the current attempt. Assigning sets the
+    parameter to a list of that one value (so a single attempt).
+    """
+
+    def getter(self: DecompositionParameters) -> float:
+        values = getattr(self, values_name)
+        return values[min(self._attempt, len(values) - 1)]
+
+    def setter(self: DecompositionParameters, value: float) -> None:
+        setattr(self, values_name, [value])
+
+    return property(
+        getter,
+        setter,
+        doc=f"float: value of ``{values_name}`` for the current attempt.",
+    )
+
+
+#: parameters with one value per attempt, and the single value name of each
+_PER_ATTEMPT_PARAMETERS: dict[str, str] = {
+    "bool_common_fuzzy_values": "bool_common_fuzzy_value",
+    "bool_cutter_fuzzy_values": "bool_cutter_fuzzy_value",
+    "bool_splitter_fuzzy_values": "bool_splitter_fuzzy_value",
+    "bool_degenerate_min_area_to_vol_ratio_values": "bool_degenerate_min_area_to_vol_ratio",
+    "bool_degenerate_min_vol_fraction_of_original_values": "bool_degenerate_min_vol_fraction_of_original",
+    "bool_degenerate_min_ab_vol_values": "bool_degenerate_min_ab_vol",
+}
+
+for _values_name, _single_name in _PER_ATTEMPT_PARAMETERS.items():
+    setattr(
+        DecompositionParameters,
+        _single_name,
+        _current_value_property(_values_name),
+    )
+
+#: single value names used before the lists, and the list parameter replacing each
+DecompositionParameters._renamed_parameters = {
+    single: values for values, single in _PER_ATTEMPT_PARAMETERS.items()
+}

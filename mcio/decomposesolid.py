@@ -5,6 +5,7 @@ solid during the decomposition of a full cad model.
 from __future__ import annotations
 
 import os
+import time
 from typing import Any
 
 from rich.progress import (
@@ -20,6 +21,7 @@ from tqdm.notebook import tqdm as tqdm_notebook
 
 try:
     from OCP.BRepBuilderAPI import BRepBuilderAPI_MakeFace
+    from OCP.Geom import Geom_ToroidalSurface
     from OCP.TopAbs import TopAbs_FACE, TopAbs_REVERSED
     from OCP.TopoDS import TopoDS_Solid
 except Exception as e:
@@ -36,6 +38,7 @@ from .decomposeauxiliaries import generate_auxiliary_surfaces_from_solids
 from .decomposeparams import DecompositionParameters
 from .decomposesplitsolids import SplitSolid
 from .decomposevoid import VoidOctreeFaces, VoidOctreeSplitSolids
+from .failedsolidreport import SUPPORTED_SURFACES
 from .geometric import BoundingBox
 from .model import Model
 from .ocp import (
@@ -229,6 +232,71 @@ def _generate_mcio_cells(
     return cells
 
 
+def _values_as_text(values: dict[str, float]) -> str:
+    """Format the parameter values of a decomposition attempt for a message.
+
+    Parameters
+    ----------
+    values : dict[str, float]
+        Single value parameter names and values, from
+        ``DecompositionParameters.attempt_values()``.
+
+    Returns
+    -------
+    str
+        e.g. ``common_fuzzy_value=1e-06, cutter_fuzzy_value=1e-06, ...``.
+    """
+    return ", ".join(
+        f"{name.removeprefix('bool_')}={value:g}" for name, value in values.items()
+    )
+
+
+#: how degenerate tori (a minor radius larger than the major radius) are named when
+#: the faces of a solid which cannot be converted are counted
+DEGENERATE_TORUS = "degenerate torus (minor radius larger than major radius)"
+
+
+class UnsupportedSurfaceError(Exception):
+    """A solid has faces which cannot be converted.
+
+    Only planes, cylinders, cones, spheres and tori (with a minor radius no larger than
+    the major radius) can be converted. Retrying the solid cannot help, so it is not
+    retried.
+    """
+
+
+def _unsupported_surface_types(solid: TopoDS_Solid) -> dict[str, int]:
+    """Count the faces of a solid which cannot be converted, by what is wrong.
+
+    Parameters
+    ----------
+    solid : TopoDS_Solid
+        The solid to check.
+
+    Returns
+    -------
+    dict[str, int]
+        The name of each surface type which cannot be converted (e.g.
+        ``Geom_SurfaceOfRevolution``), and ``DEGENERATE_TORUS`` for tori with a minor
+        radius larger than the major radius, with the number of faces of the solid.
+        Empty if every face can be converted.
+    """
+    counts: dict[str, int] = {}
+    for face in extract_ocp_shape_type_from_shape(
+        solid, TopAbs_FACE, cast_from_shape=True
+    ):
+        surface = _get_ocp_surface_from_ocp_face(face)
+        name = type(surface).__name__
+        if name not in SUPPORTED_SURFACES:
+            counts[name] = counts.get(name, 0) + 1
+        elif (
+            isinstance(surface, Geom_ToroidalSurface)
+            and surface.MinorRadius() > surface.MajorRadius()
+        ):
+            counts[DEGENERATE_TORUS] = counts.get(DEGENERATE_TORUS, 0) + 1
+    return counts
+
+
 class DecompositionSolid:
     """Manage geometric decomposition, auxiliary surface generation, and cell synthesis
     for an individual OpenCASCADE TopoDS_Solid.
@@ -333,6 +401,9 @@ class DecompositionSolid:
         # set up variables for quality assurance
         self._volume_original_solid: float | None = None
         self._volume_decomposed_solids: float | None = None
+
+        # decomposition attempts made, see _decompose_with_attempts
+        self._attempts: list[dict[str, Any]] = []
 
         # store OCP surface to MCIO surface to reduce repetition of surfaces
         self._surfaces_generated: dict[Any, Any] = (
@@ -603,6 +674,34 @@ class DecompositionSolid:
         if self._is_serialised:
             self.deserialise()
 
+        # fail this solid now, with a clear message, if it has faces which cannot be
+        # converted, without stopping the decomposition of the other solids
+        unsupported = _unsupported_surface_types(self._solid_original)
+        if unsupported:
+            what = " and ".join(
+                [
+                    text
+                    for text, present in (
+                        (
+                            "unsupported surface types",
+                            any(name != DEGENERATE_TORUS for name in unsupported),
+                        ),
+                        ("degenerate tori", DEGENERATE_TORUS in unsupported),
+                    )
+                    if present
+                ]
+            )
+            msg = (
+                f"solid has faces with {what}: "
+                + ", ".join(f"{n} x {name}" for name, n in unsupported.items())
+                + ". Only planes, cylinders, cones, spheres and tori (with a minor"
+                + " radius no larger than the major radius) can be converted, so"
+                + " these faces need to be simplified in the CAD model (a surface"
+                + " of revolution can be saved by the CAD program without showing as"
+                + " a spline)"
+            )
+            raise UnsupportedSurfaceError(msg)
+
         # debugging
         logger.debug("decompose() - starting with surfaces...")
         if logger.getEffectiveLevel() <= 10:
@@ -781,9 +880,140 @@ class DecompositionSolid:
         else:
             self.reserialise_required = False
 
-        # decompose original solid
-        _, self._profile_time_decomposition = self._decompose()
+        # decompose original solid, retrying with the next value of each parameter
+        # with one value per attempt if an attempt fails
+        self._profile_time_decomposition = self._decompose_with_attempts()
+
+        # warn if the decomposed solids do not have the volume of the original
+        mismatch = self.volume_mismatch
+        if (
+            mismatch is not None
+            and mismatch > self.decom_params.split_volume_warning_tol
+        ):
+            logger.warning(
+                f"solid {self.name or ''} decomposed volume differs from the original "
+                + f"by {mismatch:.2e} (relative) - original = "
+                + f"{self._volume_original_solid:.6e}, decomposed = "
+                + f"{self._volume_decomposed_solids:.6e}"
+            )
 
         # re-serialise if required
         if self.reserialise_required:
             self.serialise()
+
+    def _decompose_with_attempts(self) -> float:
+        """Decompose the solid, retrying a failed attempt with looser parameters.
+
+        Attempt ``n`` uses the ``n`` th value of each decomposition parameter which
+        has one value per attempt (the boolean fuzzy values and the degenerate solid
+        filters). The first attempt which succeeds is kept. If every attempt fails,
+        the exception of the last attempt is raised, with the errors of all attempts
+        in its message. With one attempt the exception is raised unchanged.
+
+        Returns
+        -------
+        float
+            Total time taken by all attempts (s).
+
+        Raises
+        ------
+        Exception
+            If the last attempt fails.
+        """
+        params = self.decom_params
+        n_attempts = params.n_attempts
+        self._attempts = []
+        time_total = 0.0
+
+        try:
+            for attempt in range(n_attempts):
+                # run the attempt with its own copy of the parameters, so the
+                # parameters shared with other solids are never altered
+                self.decom_params = params.for_attempt(attempt)
+                values = self.decom_params.attempt_values()
+                time_start = time.time()
+
+                try:
+                    self._decompose()
+                except Exception as exception:
+                    time_attempt = time.time() - time_start
+                    time_total += time_attempt
+                    self._attempts.append(
+                        {
+                            "attempt": attempt + 1,
+                            "values": values,
+                            "error": str(exception),
+                            "time": time_attempt,
+                        }
+                    )
+                    self._clear_decomposition()
+
+                    # retrying cannot help a solid with unsupported surfaces
+                    if n_attempts == 1 or isinstance(
+                        exception, UnsupportedSurfaceError
+                    ):
+                        raise
+
+                    if attempt == n_attempts - 1:
+                        msg = (
+                            f"failed after {n_attempts} decomposition attempts:\n"
+                            + "\n".join(
+                                f" - attempt {a['attempt']} ({_values_as_text(a['values'])}): {a['error']}"
+                                for a in self._attempts
+                            )
+                        )
+                        raise Exception(msg) from exception
+
+                    logger.warning(
+                        f"solid {self.name or ''} decomposition attempt {attempt + 1} "
+                        + f"of {n_attempts} failed ({exception}) - retrying with the "
+                        + f"values of attempt {attempt + 2}"
+                    )
+                    continue
+
+                time_attempt = time.time() - time_start
+                time_total += time_attempt
+                self._attempts.append(
+                    {
+                        "attempt": attempt + 1,
+                        "values": values,
+                        "error": None,
+                        "time": time_attempt,
+                    }
+                )
+                if attempt > 0:
+                    logger.warning(
+                        f"solid {self.name or ''} decomposed on attempt "
+                        + f"{attempt + 1} of {n_attempts} ({_values_as_text(values)})"
+                    )
+                break
+        finally:
+            self.decom_params = params
+
+        return time_total
+
+    def _clear_decomposition(self) -> None:
+        """Clear the results of a decomposition attempt, ready for the next attempt."""
+        self._split_solids = []
+        self._cell = None
+        self._volume_original_solid = None
+        self._volume_decomposed_solids = None
+
+    @property
+    def attempts(self) -> list[dict[str, Any]]:
+        """list[dict]: The decomposition attempts made, each with its attempt number
+        (from 1), parameter values, error (None if it succeeded) and time (s)."""
+        return self._attempts
+
+    @property
+    def attempts_used(self) -> int:
+        """int: Number of decomposition attempts made (1 if the first succeeded)."""
+        return len(self._attempts)
+
+    @property
+    def volume_mismatch(self) -> float | None:
+        """float or None: Relative difference between the decomposed and original
+        volume, or None if the solid has not been decomposed."""
+        if not self._volume_original_solid or self._volume_decomposed_solids is None:
+            return None
+        return abs(1 - self._volume_decomposed_solids / self._volume_original_solid)

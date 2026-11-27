@@ -19,6 +19,7 @@ from typing import Any
 
 # import from where it is defined: decompose imports this module part way through loading
 from .decomposesolid import DecompositionSolid
+from .failedsolidreport import write_failed_solid_report
 from .ocp import STEPFileWriter
 
 
@@ -91,8 +92,9 @@ def save_failed_solid(
     """Save a solid which failed to decompose, and log the failure.
 
     The reason and traceback are written to
-    ``decom_params.debug_trackback_directory/traceback_solid_<i>.txt`` and the
-    original solid to ``decom_params.debug_failed_to_convert_directory``. The
+    ``decom_params.debug_trackback_directory/traceback_solid_<i>.txt``, the
+    original solid to ``decom_params.debug_failed_to_convert_directory`` and a report
+    on the failure to ``decom_params.debug_failed_solid_report_directory``. The
     solid is left serialised if it was serialised on entry.
 
     Parameters
@@ -141,8 +143,24 @@ def save_failed_solid(
         )
     )
 
+    # write a report on the failure, with the solid and its geometry (this never raises)
+    report_path = write_failed_solid_report(
+        i,
+        decomposition_solid,
+        reason,
+        traceback_text,
+        files={
+            "original solid (STEP)": output_file_path,
+            "traceback": os.path.join(
+                decom_params.debug_trackback_directory, f"traceback_solid_{i}.txt"
+            ),
+        },
+    )
+
     # output failure message to logger
     msg = f"solid_{i} failed to convert - see {output_file_path}"
+    if report_path:
+        msg += f" and the report {report_path}"
     msg_exception = f"solid_{i} exception :\n{reason}"
     logger.fatal(msg)
     logger.fatal(msg_exception)

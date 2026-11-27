@@ -1382,7 +1382,7 @@ def generate_ocp_half_space_from_face(
                 logger.info(op_func)
 
                 decom_params_LOWER_FUZZY = copy.deepcopy(decom_params)
-                decom_params_LOWER_FUZZY.bool_common_fuzzy_value = 1e-12
+                decom_params_LOWER_FUZZY.bool_common_fuzzy_values = [1e-12]
 
                 half_space_solids = op_func(
                     bounding_box_solid,
@@ -1398,7 +1398,7 @@ def generate_ocp_half_space_from_face(
                 )
 
                 if vol_bounding_box == vol_half_space or vol_half_space == 0:
-                    # try rotatin gthe cylinder
+                    # try rotatin gthe cylinder to avoil coincident seams
                     rotation_angle = math.radians(7.3)  # Avoid 0, 45, 90
                     trsf = gp_Trsf()
                     trsf.SetRotation(gp_Ax1(axial_midpoint, direction), rotation_angle)

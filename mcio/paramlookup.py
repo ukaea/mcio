@@ -67,7 +67,11 @@ class ParameterLookup:
         rows_lookup: dict[str, list[list[Any]]] = {key: [] for key in self._rows_lookup}
         for parameter, definition in self._definitions():
             category = parameter.split("_")[0].upper()
-            row = [parameter, getattr(self, parameter), getattr(self, definition)]
+            value = getattr(self, parameter)
+            if isinstance(value, (list, tuple)):
+                # the table only formats single values, so show lists as text
+                value = "[" + ", ".join(f"{item:g}" for item in value) + "]"
+            row = [parameter, value, getattr(self, definition)]
             rows_lookup[category if category in rows_lookup else "OTHERS"].append(row)
 
         tables = [
@@ -119,7 +123,14 @@ class ParameterLookup:
         with open(input_path, "r") as input_file:
             data = json.load(input_file)
 
+        # parameters renamed since the file was written, e.g. a single value which
+        # is now a list of values (setting the new name accepts the single value)
+        renamed: dict[str, str] = getattr(cls, "_renamed_parameters", {})
+
         for key, value in data.items():
+            if key.lower() in renamed:
+                setattr(params, renamed[key.lower()], value)
+                continue
             if key.lower() not in names:
                 raise KeyError(f"unknown parameter '{key}' in {input_path}")
             name = names[key.lower()]

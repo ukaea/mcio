@@ -107,12 +107,6 @@ class Analysis:
     decomposition_solids : Sequence[DecompositionSolid]
         The decomposition solids containing the CAD solids to analyse.
 
-    Raises
-    ------
-    ValueError
-        If a face has a surface type other than plane, cylinder, cone, sphere
-        or torus.
-
     Attributes
     ----------
     NUMBER_OF_BODIES : int
@@ -127,8 +121,15 @@ class Analysis:
         Count of faces by OCP surface type across all solids.
     DEGENERATE_TORI_COUNT : int
         Number of tori whose minor radius exceeds their major radius.
+    DEGENERATE_TORI_PER_BODY : dict[DecompositionSolid, int]
+        For each solid with degenerate tori, the number of them. These solids will fail
+        to decompose, but do not stop the others.
     CAD_VALID : dict[DecompositionSolid, bool]
         Result of the OCP ``BRepCheck_Analyzer`` validity check for each solid.
+    UNSUPPORTED_SURFACES : dict[DecompositionSolid, dict[type, int]]
+        For each solid with faces whose surface type is not plane, cylinder, cone,
+        sphere or torus, the count of faces of each such type. These solids will fail
+        to decompose, but do not stop the others.
     """
 
     def __init__(self, decomposition_solids: Sequence[DecompositionSolid]) -> None:
@@ -148,6 +149,8 @@ class Analysis:
         self.DEGENERATE_TORI_COUNT: int = 0
 
         self.CAD_VALID: dict[DecompositionSolid, bool] = {}
+        self.UNSUPPORTED_SURFACES: dict[DecompositionSolid, dict[type, int]] = {}
+        self.DEGENERATE_TORI_PER_BODY: dict[DecompositionSolid, int] = {}
 
         for decomposition_solid in decomposition_solids:
             faces = extract_ocp_shape_type_from_shape(
@@ -170,9 +173,12 @@ class Analysis:
                     Geom_SphericalSurface,
                     Geom_ToroidalSurface,
                 ]:
-                    msg = f"face containes unsupported surface type {surface_type}"
-                    logger.fatal(msg)
-                    raise ValueError(msg)
+                    # the solid fails to decompose, which does not affect the others
+                    unsupported = self.UNSUPPORTED_SURFACES.setdefault(
+                        decomposition_solid, {}
+                    )
+                    unsupported[surface_type] = unsupported.get(surface_type, 0) + 1
+                    continue
 
                 # count faces and surfaces by type
                 self.FACES_PER_BODY[decomposition_solid] += 1
@@ -184,6 +190,9 @@ class Analysis:
                     and surface.MinorRadius() > surface.MajorRadius()
                 ):
                     self.DEGENERATE_TORI_COUNT += 1
+                    self.DEGENERATE_TORI_PER_BODY[decomposition_solid] = (
+                        self.DEGENERATE_TORI_PER_BODY.get(decomposition_solid, 0) + 1
+                    )
 
             # run analysis to check if cad is valid
             analyser = BRepCheck_Analyzer(decomposition_solid.original_solid, True)
@@ -219,6 +228,7 @@ class Analysis:
             ["spheres", self.FACE_TYPE_COUNT[Geom_SphericalSurface]],
             ["tori", self.FACE_TYPE_COUNT[Geom_ToroidalSurface]],
             ["tori (degenerate)", self.DEGENERATE_TORI_COUNT],
+            ["bodies with unsupported surfaces", len(self.UNSUPPORTED_SURFACES)],
         ]
 
         # generate table
@@ -266,7 +276,7 @@ class Analysis:
                 self.FACE_TYPE_COUNT_PER_BODY[decomposition_solid][
                     Geom_ToroidalSurface
                 ],
-                self.DEGENERATE_TORI_COUNT,
+                self.DEGENERATE_TORI_PER_BODY.get(decomposition_solid, 0),
             ]
             rows_per_body.append(row)
 
@@ -867,10 +877,20 @@ class Decomposer:
         if analyse_model:
             analysis = self.analysis
 
-            if analysis.DEGENERATE_TORI_COUNT > 0:
-                msg = f"[ERROR] - {analysis.DEGENERATE_TORI_COUNT} degenerate tori detected, and will not convert"
-                logger.fatal(msg)
-                raise Exception(msg)
+            # solids with faces which cannot be converted fail on their own, and do
+            # not stop the rest
+            n_unconvertible = len(
+                set(analysis.UNSUPPORTED_SURFACES)
+                | set(analysis.DEGENERATE_TORI_PER_BODY)
+            )
+            if n_unconvertible:
+                logger.warning(
+                    f"{n_unconvertible} solids have faces with unsupported surface "
+                    + f"types ({len(analysis.UNSUPPORTED_SURFACES)} solids) or "
+                    + f"degenerate tori ({len(analysis.DEGENERATE_TORI_PER_BODY)} "
+                    + "solids) and will fail to convert, see the reports on the "
+                    + "failed solids"
+                )
 
         # time the decomposition (single core or multiprocess, including serialisation)
         time_start_decomposition = time.time()
@@ -1009,14 +1029,16 @@ class Decomposer:
                     save_failed_solid(i, decomposition_solid, reason),
                 )
 
-            # a solid taking longer than split_solid_timeout is stopped and saved
-            # as failed, so one stuck solid cannot stall the whole decomposition
+            # a solid taking longer than split_solid_timeout for each of its
+            # decomposition attempts is stopped and saved as failed, so one stuck
+            # solid cannot stall the whole decomposition
             try:
                 results = run_with_timeout(
                     _run_decomposer_solid,
                     enumerated_decomposition_solids,
                     cores=cores,
-                    timeout=self.decom_params.split_solid_timeout,
+                    timeout=self.decom_params.split_solid_timeout
+                    * self.decom_params.n_attempts,
                     on_failure=on_failure,
                     initializer=configure_worker_logger,
                     initargs=(log_queue,),
